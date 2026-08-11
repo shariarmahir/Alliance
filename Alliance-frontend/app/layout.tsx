@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "./components/header";
 import { Footer } from "./components/footer";
 import { WhatsAppButton } from "./components/whatsapp-button";
+import { Toaster } from "@/app/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <Footer />
         <WhatsAppButton />
+        <Toaster />
       </body>
     </html>
   );
