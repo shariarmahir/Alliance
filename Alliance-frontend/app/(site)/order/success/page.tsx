@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { Suspense, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, ExternalLink, Download, Printer, Truck, Calendar } from "lucide-react";
@@ -49,6 +49,14 @@ function getServerSnapshot(): string | null {
 }
 
 export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrderSuccessContent />
+    </Suspense>
+  );
+}
+
+function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
   const raw = useSyncExternalStore(subscribe, getStoredRaw, getServerSnapshot);
