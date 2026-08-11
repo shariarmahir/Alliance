@@ -91,6 +91,19 @@ export type DeliveryAddress = {
   phone: string;
 };
 
+export type AdminRole = "super" | "sub";
+
+export type AdminSession = {
+  role: AdminRole;
+  name: string;
+  email: string;
+};
+
+export type RevenuePoint = { label: string; value: number };
+export type OrderRatioSlice = { status: "confirmed" | "pending" | "cancelled"; count: number };
+export type CountryBreakdown = { country: string; orders: number };
+export type TrafficSource = { source: string; orders: number };
+
 // A confirmed order, persisted client-side (no server round-trip).
 export type Order = {
   orderNumber: string;
