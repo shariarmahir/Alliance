@@ -9,7 +9,10 @@ export type AdminNavIcon =
   | "quotations"
   | "contact-requests"
   | "emails"
-  | "employees";
+  | "employees"
+  | "tasks"
+  | "leave"
+  | "daily-report";
 
 export type AdminNavItem = {
   label: string;
@@ -28,7 +31,10 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Quotations", href: "/admin/quotations", icon: "quotations", roles: ["super"], enabled: true },
   { label: "Contact Requests", href: "/admin/contact-requests", icon: "contact-requests", roles: ["super"], enabled: true },
   { label: "Emails", href: "/admin/emails", icon: "emails", roles: ["super"], enabled: true },
-  { label: "Employees", href: "/admin/employees", icon: "employees", roles: ["super"], enabled: false },
+  { label: "Employees", href: "/admin/employees", icon: "employees", roles: ["super"], enabled: true },
+  { label: "Task Desk", href: "/admin/tasks", icon: "tasks", roles: ["super", "sub"], enabled: true },
+  { label: "Leave Requests", href: "/admin/leave", icon: "leave", roles: ["super", "sub"], enabled: true },
+  { label: "Daily Report", href: "/admin/daily-report", icon: "daily-report", roles: ["super", "sub"], enabled: true },
 ];
 
 export function navItemsForRole(role: AdminRole): AdminNavItem[] {
