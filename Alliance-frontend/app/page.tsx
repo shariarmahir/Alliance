@@ -154,7 +154,7 @@ export default function Home() {
       </section>
 
       {/* Services & Support */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
+      <section id="services" className="mx-auto max-w-7xl px-4 py-16">
         <h2 className="mb-10 text-2xl font-bold text-slate-900">Services &amp; Support</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((s) => (
@@ -191,7 +191,7 @@ export default function Home() {
       </section>
 
       {/* We Are Here To Help You */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
+      <section id="contact" className="mx-auto max-w-7xl px-4 py-16">
         <div className="flex flex-col items-start justify-between gap-6 rounded-xl border border-slate-200 p-8 sm:flex-row sm:items-center">
           <div>
             <h2 className="mb-2 text-xl font-bold text-slate-900">We Are Here To Help You</h2>

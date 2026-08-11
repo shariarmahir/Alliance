@@ -1,75 +1,108 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Phone, Mail, Search, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Globe, Phone, Mail, Menu, ChevronDown } from "lucide-react";
 import { categories } from "@/app/lib/mock-data";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 
 export function Header() {
+  const [q, setQ] = useState("");
+  const router = useRouter();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    router.push(`/products?q=${encodeURIComponent(q)}`);
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="hidden bg-primary text-white sm:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5 text-xs">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Phone className="size-3.5" /> +8801713-116019
-            </span>
-            <span className="flex items-center gap-1">
-              <Mail className="size-3.5" /> info@alliance.com
-            </span>
+    <header className="sticky top-0 z-50 w-full">
+      {/* Utility bar */}
+      <div className="bg-slate-900 text-slate-200">
+        <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 text-xs">
+          <div className="flex items-center gap-2">
+            <Globe className="size-3.5 text-accent" /> Ships Worldwide · International Industrial Electronics
           </div>
-          <p>Industrial Electronics &amp; Automation Parts — Shipped Worldwide</p>
+          <div className="hidden items-center gap-5 sm:flex">
+            <a href="tel:+8801713116019" className="flex items-center gap-1 hover:text-accent">
+              <Phone className="size-3.5" /> +8801713-116019
+            </a>
+            <a href="mailto:info@alliance.com" className="flex items-center gap-1 hover:text-accent">
+              <Mail className="size-3.5" /> info@alliance.com
+            </a>
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3">
-        <Link href="/" className="text-2xl font-bold tracking-tight text-primary">
-          Alliance
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-700 lg:flex">
-          <Link href="/" className="hover:text-primary">
-            Home
+      {/* Main bar */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-lg font-extrabold text-white">
+              A
+            </div>
+            <div className="leading-none">
+              <div className="text-2xl font-extrabold tracking-tight text-primary">
+                Alliance<span className="text-accent">.</span>
+              </div>
+              <div className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
+                Industrial Electronics
+              </div>
+            </div>
           </Link>
-          <Link href="/products" className="hover:text-primary">
+
+          <form onSubmit={submit} className="mx-auto hidden w-full max-w-2xl md:flex">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by part number, brand or product..."
+              className="h-11 w-full rounded-l-md border border-r-0 border-slate-300 px-4 text-sm outline-none focus:border-primary"
+            />
+            <button type="submit" className="btn-glass-accent flex h-11 items-center gap-2 rounded-l-none rounded-r-md px-5">
+              <Search className="size-4" /> Search
+            </button>
+          </form>
+
+          <Link href="/products" className="btn-glass ml-auto flex h-11 items-center">
+            Browse Catalog
+          </Link>
+        </div>
+      </div>
+
+      {/* Category nav */}
+      <div className="bg-primary text-white">
+        <div className="mx-auto flex h-11 max-w-7xl items-center gap-1 overflow-x-auto px-4 text-sm font-medium">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 rounded px-3 py-1.5 hover:bg-white/15 focus:outline-none">
+              <Menu className="size-4" /> All Categories <ChevronDown className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              {categories.map((c) => (
+                <DropdownMenuItem key={c.slug} render={<Link href={`/products?category=${c.slug}`} />}>
+                  {c.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {categories.slice(0, 6).map((c) => (
+            <Link
+              key={c.slug}
+              href={`/products?category=${c.slug}`}
+              className="whitespace-nowrap rounded px-3 py-1.5 hover:bg-white/15"
+            >
+              {c.name}
+            </Link>
+          ))}
+          <Link href="/products" className="whitespace-nowrap rounded px-3 py-1.5 hover:bg-white/15">
             All Products
           </Link>
-          <div className="group relative">
-            <button className="flex items-center gap-1 hover:text-primary">
-              Categories <ChevronDown className="size-4" />
-            </button>
-            <div className="invisible absolute left-0 top-full z-50 w-64 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:opacity-100">
-              {categories.map((c) => (
-                <Link
-                  key={c.slug}
-                  href={`/products?category=${c.slug}`}
-                  className="block rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary"
-                >
-                  {c.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <a href="#about" className="hover:text-primary">
-            About
-          </a>
-          <a href="#contact" className="hover:text-primary">
-            Contact
-          </a>
-        </nav>
-
-        <form action="/products" method="GET" className="ml-auto hidden max-w-sm flex-1 items-center gap-2 md:flex">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              name="q"
-              placeholder="Search part number or description..."
-              className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-primary focus:outline-none"
-            />
-          </div>
-        </form>
-
-        <Link href="/products" className="btn-glass ml-auto md:ml-0">
-          Browse Catalog
-        </Link>
+        </div>
       </div>
     </header>
   );
