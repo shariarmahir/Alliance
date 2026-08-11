@@ -71,7 +71,7 @@ export default function ConfirmOrderPage() {
   const opt = OPTIONS.find((o) => o.id === shipOption)!;
   const grandTotal = total + opt.cost;
 
-  function confirmOrder(e: React.FormEvent) {
+  async function confirmOrder(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     const order: Order = {
@@ -87,12 +87,31 @@ export default function ConfirmOrderPage() {
       preferredDate: date,
       address,
       placedAt: new Date().toISOString(),
+      status: "pending",
     };
     try {
       localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(order));
     } catch {
       // storage unavailable — order still proceeds, success page will show empty state
     }
+
+    // Fire-and-forget server mirror so admins can review/confirm/cancel this
+    // order. Awaited so we can toast on failure, but its outcome never blocks
+    // navigation — the customer's local-first flow must keep working even if
+    // the server write fails.
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(order),
+      });
+      if (!res.ok) {
+        toast.warning("Order confirmed, but we couldn't sync it to our records. Our team may follow up manually.");
+      }
+    } catch {
+      toast.warning("Order confirmed, but we couldn't sync it to our records. Our team may follow up manually.");
+    }
+
     clear();
     toast.success("Order confirmed successfully!");
     router.push(`/order/success?orderNumber=${order.orderNumber}`);
