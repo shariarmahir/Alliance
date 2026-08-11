@@ -1,0 +1,66 @@
+[
+  {
+    "id": "eml-1",
+    "from": "procurement@meghnagroup.com",
+    "subject": "RFQ: Allen Bradley PLC modules — bulk order",
+    "preview": "We are looking to source 40 units of Allen Bradley CompactLogix modules for our Chattogram plant expansion...",
+    "receivedAt": "2026-08-10T09:14:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": "eml-2",
+    "from": "shipping-notifications@dhl.com",
+    "subject": "Your shipment AWB-8837412 has cleared customs",
+    "preview": "This is an automated notification that your shipment containing Siemens drives has cleared customs at Dhaka...",
+    "receivedAt": "2026-08-10T06:42:00.000Z",
+    "status": "received"
+  },
+  {
+    "id": "eml-3",
+    "from": "s.rahman@karnaphuli-textiles.com",
+    "subject": "Warranty claim — Omron E5CC temperature controller",
+    "preview": "One of the Omron E5CC units purchased in March has stopped responding. Our unit is still under the 2-year...",
+    "receivedAt": "2026-08-09T13:05:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": "eml-4",
+    "from": "sales@danfoss-bd-distributor.com",
+    "subject": "Updated price list for VLT drives — Q3 2026",
+    "preview": "Please find attached our updated distributor price list for the Danfoss VLT AutomationDrive FC 302 series...",
+    "receivedAt": "2026-08-08T11:30:00.000Z",
+    "status": "received"
+  },
+  {
+    "id": "eml-5",
+    "from": "m.chowdhury@bengal-steel.com",
+    "subject": "Follow-up: Mitsubishi FX5U controller compatibility",
+    "preview": "Thank you for the quotation sent last week. Before we finalize the order, could you confirm whether the FX5U...",
+    "receivedAt": "2026-08-08T08:17:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": "eml-6",
+    "from": "noreply@schneider-electric-partners.com",
+    "subject": "New certified distributor training available",
+    "preview": "As a valued Schneider Electric partner, you are invited to enroll in our upcoming certified distributor...",
+    "receivedAt": "2026-08-07T15:50:00.000Z",
+    "status": "received"
+  },
+  {
+    "id": "eml-7",
+    "from": "a.hasan@padma-power.com",
+    "subject": "Urgent: Need replacement Siemens S7-1200 CPU",
+    "preview": "Our production line went down this morning due to a failed CPU module. We need an urgent replacement...",
+    "receivedAt": "2026-08-11T07:22:00.000Z",
+    "status": "pending"
+  },
+  {
+    "id": "eml-8",
+    "from": "accounts@alliance-freight-forwarders.com",
+    "subject": "Invoice #INV-22841 for freight services — due Aug 20",
+    "preview": "Please find attached invoice INV-22841 covering air freight charges for the July shipment batch...",
+    "receivedAt": "2026-08-06T10:05:00.000Z",
+    "status": "received"
+  }
+]

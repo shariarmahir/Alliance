@@ -120,7 +120,12 @@ export type OrderRatioSlice = { status: "confirmed" | "pending" | "cancelled"; c
 export type CountryBreakdown = { country: string; orders: number };
 export type TrafficSource = { source: string; orders: number };
 
-// A confirmed order, persisted client-side (no server round-trip).
+export type OrderStatus = "pending" | "confirmed" | "cancelled";
+export type QuotationStatus = "pending" | "confirmed" | "cancelled";
+
+// A confirmed order. Persisted client-side (localStorage, for the success/
+// invoice page) AND, as of Phase 3, mirrored server-side via POST /api/orders
+// so admins can review and confirm/cancel it (data/orders.json).
 export type Order = {
   orderNumber: string;
   trackingId: string;
@@ -134,4 +139,35 @@ export type Order = {
   preferredDate: string; // yyyy-mm-dd
   address: DeliveryAddress;
   placedAt: string; // ISO
+  status: OrderStatus; // defaults to "pending" on creation
+};
+
+// A submitted quotation, persisted server-side (data/quotations.json) as of
+// Phase 3 — previously sessionStorage-only.
+export type Quotation = {
+  id: string; // crypto.randomUUID()
+  items: QuoteItem[];
+  total: number;
+  details: QuotationDetails;
+  status: QuotationStatus; // defaults to "pending"
+};
+
+export type ContactRequest = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  submittedAt: string; // ISO
+  handled: boolean; // admin marks true once actioned
+};
+
+// Mock inbox entry — explicitly NOT a real email integration, UI preview only.
+export type MockEmail = {
+  id: string;
+  from: string;
+  subject: string;
+  preview: string;
+  receivedAt: string; // ISO
+  status: "pending" | "received";
 };
