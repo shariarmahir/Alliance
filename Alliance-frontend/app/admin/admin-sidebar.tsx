@@ -3,9 +3,35 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeft, ChevronsRight, ShieldCheck } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  ShieldCheck,
+  LayoutDashboard,
+  Package,
+  Boxes,
+  Image as ImageIcon,
+  Users,
+  ClipboardList,
+  FileText,
+  Mail,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/app/lib/utils";
-import type { AdminNavItem } from "./nav-config";
+import type { AdminNavItem, AdminNavIcon } from "./nav-config";
+
+const ICONS: Record<AdminNavIcon, LucideIcon> = {
+  overview: LayoutDashboard,
+  products: Package,
+  stock: Boxes,
+  "hero-images": ImageIcon,
+  orders: ClipboardList,
+  quotations: FileText,
+  "contact-requests": MessageSquare,
+  emails: Mail,
+  employees: Users,
+};
 
 export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
   const pathname = usePathname();
@@ -15,7 +41,7 @@ export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
     <aside
       className={cn(
         "sticky top-0 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        collapsed ? "w-[72px]" : "w-64"
+        collapsed ? "w-18" : "w-64"
       )}
     >
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
@@ -28,7 +54,7 @@ export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {items.map((item) => {
           const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
-          const Icon = item.icon;
+          const Icon = ICONS[item.icon];
 
           if (!item.enabled) {
             return (
@@ -40,7 +66,7 @@ export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
                   collapsed && "justify-center px-0"
                 )}
               >
-                <Icon className="size-[18px] shrink-0" />
+                <Icon className="size-4.5 shrink-0" />
                 {!collapsed && (
                   <span className="flex flex-1 items-center justify-between">
                     {item.label}
@@ -65,7 +91,7 @@ export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
               )}
             >
-              <Icon className="size-[18px] shrink-0" />
+              <Icon className="size-4.5 shrink-0" />
               {!collapsed && item.label}
             </Link>
           );

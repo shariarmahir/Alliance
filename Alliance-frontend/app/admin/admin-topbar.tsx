@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/app/components/ui/dropdown-menu";
 
@@ -25,12 +24,10 @@ export function AdminTopbar({ session }: { session: AdminSession }) {
           <ChevronDown className="size-3.5 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col">
-              <span className="font-medium text-foreground">{session.name}</span>
-              <span className="text-xs text-muted-foreground">{session.email}</span>
-            </div>
-          </DropdownMenuLabel>
+          <div className="flex flex-col px-1.5 py-1">
+            <span className="text-sm font-medium text-foreground">{session.name}</span>
+            <span className="text-xs text-muted-foreground">{session.email}</span>
+          </div>
           <DropdownMenuSeparator />
           <form action={logoutAction}>
             <DropdownMenuItem variant="destructive" render={<button type="submit" className="w-full" />}>
