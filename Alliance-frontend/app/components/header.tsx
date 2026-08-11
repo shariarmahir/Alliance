@@ -6,5 +6,8 @@ import { categories } from "@/app/lib/mock-data";
 import { HeaderClient } from "./header-client";
 
 export function Header() {
-  return <HeaderClient categories={categories} />;
+  // Spread into a plain array — `categories` is a Proxy (see mock-data.ts)
+  // that re-reads categories.json on access; RSC prop serialization cannot
+  // pass a Proxy directly to a Client Component, so materialize it here.
+  return <HeaderClient categories={[...categories]} />;
 }

@@ -28,6 +28,25 @@ export async function readProducts(): Promise<Product[]> {
 
 export async function writeProducts(products: Product[]): Promise<void> {
   await fs.writeFile(path.join(DATA_DIR, "products.json"), JSON.stringify(products, null, 2) + "\n");
+  await syncCategoryProductCounts(products);
+}
+
+// Keeps each category's stored productCount in sync with the actual product
+// list after any product write (single add, bulk import, stock change never
+// affects counts but is harmless to recompute). Both the admin Categories
+// tab and the storefront category grid read productCount directly from
+// categories.json, so this is the one place that needs to stay accurate.
+async function syncCategoryProductCounts(products: Product[]): Promise<void> {
+  const categories = await readCategories();
+  let changed = false;
+  for (const category of categories) {
+    const count = products.filter((p) => p.categorySlug === category.slug).length;
+    if (category.productCount !== count) {
+      category.productCount = count;
+      changed = true;
+    }
+  }
+  if (changed) await writeCategories(categories);
 }
 
 export async function addProduct(product: Product): Promise<void> {
