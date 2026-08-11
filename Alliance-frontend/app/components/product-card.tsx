@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Product } from "@/app/lib/types";
 import { formatPrice } from "@/app/lib/utils";
 import { Badge } from "@/app/components/ui/badge";
+import { RequestQuoteButton } from "@/app/components/request-quote-button";
 
 const stockLabel: Record<Product["stock"], string> = {
   "in-stock": "In Stock",
@@ -32,7 +33,7 @@ export function ProductCard({ product }: { product: Product }) {
       <p className="mb-3 text-lg font-bold text-slate-900">{formatPrice(product.price)}</p>
       <div className="mt-auto flex flex-col gap-2">
         <Link href={`/products/${product.slug}`} className="btn-glass">View Details</Link>
-        <Link href={`/quote/${product.slug}`} className="btn-glass-accent">Request Quotation</Link>
+        <RequestQuoteButton product={product} />
       </div>
     </div>
   );

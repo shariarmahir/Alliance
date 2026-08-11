@@ -43,28 +43,46 @@ export type Review = {
 
 export type FaqItem = { question: string; answer: string };
 
-export type QuoteRequest = {
-  id: string;
-  productSlug: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+// One line item in the persistent multi-item quote cart.
+export type QuoteItem = {
+  slug: string;
+  partNumber: string;
   name: string;
-  email: string;
-  phone: string;
-  company: string;
-  country: string;
-  createdAt: string; // ISO
+  brand: string;
+  image: string;
+  price: number; // unit price, USD
+  quantity: number;
 };
 
-export type DeliveryOption = "standard" | "express";
+export type DeliveryOptionId = "standard" | "express" | "air";
 
+export type DeliveryOption = {
+  id: DeliveryOptionId;
+  name: string;
+  eta: string;
+  cost: number;
+};
+
+export type DeliveryAddress = {
+  name: string;
+  line: string;
+  city: string;
+  country: string;
+  phone: string;
+};
+
+// A confirmed order, persisted client-side (no server round-trip).
 export type Order = {
-  id: string;
   orderNumber: string;
-  quoteId: string;
-  deliveryOption: DeliveryOption;
-  estimatedDeliveryDate: string; // ISO date
   trackingId: string;
-  createdAt: string; // ISO
+  items: QuoteItem[];
+  subtotal: number;
+  shippingCost: number;
+  grandTotal: number;
+  deliveryOption: DeliveryOptionId;
+  deliveryOptionName: string;
+  deliveryEta: string;
+  preferredDate: string; // yyyy-mm-dd
+  address: DeliveryAddress;
+  placedAt: string; // ISO
 };
