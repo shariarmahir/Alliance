@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { loadQuote, saveOrder } from "@/app/lib/quote-store";
@@ -14,28 +14,18 @@ export default function OrderConfirmPage() {
   const searchParams = useSearchParams();
   const quoteId = searchParams.get("quoteId");
 
-  const [quote, setQuote] = useState<QuoteRequest | null>(null);
+  const quote = useMemo<QuoteRequest | null>(() => (quoteId ? loadQuote(quoteId) : null), [quoteId]);
   const [delivery, setDelivery] = useState<DeliveryOption>("standard");
   const [submitting, setSubmitting] = useState(false);
-  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!quoteId) {
+    if (!quote) {
       toast.error("Your quotation session expired — please request a new quote.");
       router.push("/products");
-      return;
     }
-    const loaded = loadQuote(quoteId);
-    if (!loaded) {
-      toast.error("Your quotation session expired — please request a new quote.");
-      router.push("/products");
-      return;
-    }
-    setQuote(loaded);
-    setChecked(true);
-  }, [quoteId, router]);
+  }, [quote, router]);
 
-  if (!checked || !quote) {
+  if (!quote) {
     return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-slate-500">Loading your quotation…</div>;
   }
 

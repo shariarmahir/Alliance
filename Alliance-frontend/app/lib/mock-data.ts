@@ -47,8 +47,6 @@ type ProductSeed = {
   stock: StockStatus;
 };
 
-const stockCycle: StockStatus[] = ["in-stock", "low-stock", "out-of-stock"];
-
 const productSeeds: ProductSeed[] = [
   // ---------------- PLCs & Machine Control (6) ----------------
   {
@@ -1188,7 +1186,6 @@ const productSeeds: ProductSeed[] = [
 
 // Sanity check at module load (dev-time only signal, not thrown to avoid breaking prod builds)
 if (productSeeds.length !== 48) {
-  // eslint-disable-next-line no-console
   console.warn(`Expected 48 product seeds, found ${productSeeds.length}`);
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -9,44 +9,27 @@ import { loadOrder, loadQuote } from "@/app/lib/quote-store";
 import { getProductBySlug } from "@/app/lib/mock-data";
 import { formatPrice } from "@/app/lib/utils";
 import { InvoiceActions } from "@/app/components/invoice-actions";
-import type { Order, Product, QuoteRequest } from "@/app/lib/types";
 
 export default function OrderSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("orderNumber");
 
-  const [checked, setChecked] = useState(false);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [quote, setQuote] = useState<QuoteRequest | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
+  const { order, quote, product } = useMemo(() => {
+    const loadedOrder = orderNumber ? loadOrder(orderNumber) : null;
+    const loadedQuote = loadedOrder ? loadQuote(loadedOrder.quoteId) : null;
+    const loadedProduct = loadedQuote ? getProductBySlug(loadedQuote.productSlug) : undefined;
+    return { order: loadedOrder, quote: loadedQuote, product: loadedProduct ?? null };
+  }, [orderNumber]);
 
   useEffect(() => {
-    if (!orderNumber) {
+    if (!order || !quote || !product) {
       toast.error("We couldn't find that order — please request a new quote.");
       router.push("/products");
-      return;
     }
-    const loadedOrder = loadOrder(orderNumber);
-    if (!loadedOrder) {
-      toast.error("We couldn't find that order — please request a new quote.");
-      router.push("/products");
-      return;
-    }
-    const loadedQuote = loadQuote(loadedOrder.quoteId);
-    const loadedProduct = loadedQuote ? getProductBySlug(loadedQuote.productSlug) : undefined;
-    if (!loadedQuote || !loadedProduct) {
-      toast.error("We couldn't find that order — please request a new quote.");
-      router.push("/products");
-      return;
-    }
-    setOrder(loadedOrder);
-    setQuote(loadedQuote);
-    setProduct(loadedProduct);
-    setChecked(true);
-  }, [orderNumber, router]);
+  }, [order, quote, product, router]);
 
-  if (!checked || !order || !quote || !product) {
+  if (!order || !quote || !product) {
     return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-slate-500">Loading your order…</div>;
   }
 
