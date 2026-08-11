@@ -4,17 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useQuote } from "@/app/lib/quote-context";
-import { getProductBySlug } from "@/app/lib/mock-data";
 import { QuantityStepper } from "./quantity-stepper";
+import type { Product } from "@/app/lib/types";
 
-export function QuoteCta({ slug }: { slug: string }) {
+// Receives the full product object as a prop (resolved server-side by the
+// product detail page) rather than looking it up itself — mock-data.ts is
+// server-only (reads data/products.json from disk) and cannot be imported
+// from this client component.
+export function QuoteCta({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const { addItem } = useQuote();
   const router = useRouter();
 
   function requestQuote() {
-    const product = getProductBySlug(slug);
-    if (!product) return;
     addItem(product, qty);
     toast.success("Added to your quotation");
     router.push("/quote");

@@ -22,8 +22,8 @@ export type AdminNavItem = {
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Overview", href: "/admin", icon: "overview", roles: ["super"], enabled: true },
   { label: "Products", href: "/admin/products", icon: "products", roles: ["super", "sub"], enabled: true },
-  { label: "Stock", href: "/admin/stock", icon: "stock", roles: ["super", "sub"], enabled: false },
-  { label: "Hero Images", href: "/admin/hero-images", icon: "hero-images", roles: ["super", "sub"], enabled: false },
+  { label: "Stock", href: "/admin/stock", icon: "stock", roles: ["super", "sub"], enabled: true },
+  { label: "Hero Images", href: "/admin/hero-images", icon: "hero-images", roles: ["super", "sub"], enabled: true },
   { label: "Orders", href: "/admin/orders", icon: "orders", roles: ["super"], enabled: false },
   { label: "Quotations", href: "/admin/quotations", icon: "quotations", roles: ["super"], enabled: false },
   { label: "Contact Requests", href: "/admin/contact-requests", icon: "contact-requests", roles: ["super"], enabled: false },

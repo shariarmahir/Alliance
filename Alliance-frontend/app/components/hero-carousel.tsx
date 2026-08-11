@@ -1,66 +1,39 @@
-"use client";
+// Server component: reads hero background image paths from data/hero-images.json
+// (admin-editable via /admin/hero-images) and hands them to the client carousel.
+// Headline/subheadline text stays hardcoded — image only, per design spec.
+import fs from "fs";
+import path from "path";
+import { HeroCarouselClient } from "./hero-carousel-client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+type HeroImageEntry = { slot: number; path: string };
 
-const slides = [
+const SLIDE_COPY = [
   {
-    image: "/images/hero/hero1.svg",
     headline: "Industrial Automation Parts, Shipped Worldwide",
-    subheadline: "PLCs, drives, HMIs, and control components from trusted global brands — sourced and shipped from Bangladesh.",
+    subheadline:
+      "PLCs, drives, HMIs, and control components from trusted global brands — sourced and shipped from Bangladesh.",
   },
   {
-    image: "/images/hero/hero2.svg",
     headline: "Genuine Parts. Verified Suppliers.",
     subheadline: "Every part in our catalog is sourced from authorized channels with full traceability and warranty coverage.",
   },
   {
-    image: "/images/hero/hero3.svg",
     headline: "Fast Quotations. Reliable Lead Times.",
     subheadline: "Request a quote in minutes and get a dedicated response from our technical sales team.",
   },
 ];
 
+function readHeroImages(): HeroImageEntry[] {
+  const raw = fs.readFileSync(path.join(process.cwd(), "data", "hero-images.json"), "utf-8");
+  return JSON.parse(raw);
+}
+
 export function HeroCarousel() {
-  const [active, setActive] = useState(0);
+  const heroImages = readHeroImages().sort((a, b) => a.slot - b.slot);
+  const slides = SLIDE_COPY.map((copy, i) => ({
+    ...copy,
+    image: heroImages[i]?.path ?? "/images/hero/hero1.svg",
+  }));
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setActive((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <section className="relative h-[420px] w-full overflow-hidden bg-slate-900 sm:h-[480px]">
-      {slides.map((slide, i) => (
-        <div
-          key={slide.image}
-          className={`absolute inset-0 transition-opacity duration-700 ${i === active ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        >
-          <Image src={slide.image} alt="" fill priority={i === 0} className="object-cover opacity-40" />
-          <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-center px-4">
-            <h1 className="mb-4 max-w-2xl text-3xl font-bold text-white sm:text-5xl">{slide.headline}</h1>
-            <p className="mb-6 max-w-xl text-slate-200">{slide.subheadline}</p>
-            <Link href="/products" className="btn-glass-accent w-fit">
-              Browse Catalog
-            </Link>
-          </div>
-        </div>
-      ))}
-
-      <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-        {slides.map((slide, i) => (
-          <button
-            key={slide.image}
-            type="button"
-            aria-label={`Go to slide ${i + 1}`}
-            onClick={() => setActive(i)}
-            className={`h-2 rounded-full transition-all ${i === active ? "w-6 bg-accent" : "w-2 bg-white/50"}`}
-          />
-        ))}
-      </div>
-    </section>
-  );
+  return <HeroCarouselClient slides={slides} />;
 }

@@ -80,7 +80,7 @@ export default async function ProductDetailPage({
             </div>
           )}
 
-          <QuoteCta slug={product.slug} />
+          <QuoteCta product={product} />
         </div>
       </div>
 
