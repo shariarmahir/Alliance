@@ -113,6 +113,52 @@ export type AdminSession = {
   role: AdminRole;
   name: string;
   email: string;
+  employeeId?: string; // present for real employee accounts; absent for the 2 original hardcoded mock accounts
+};
+
+export type Designation = "sales-associate" | "warehouse-staff" | "support-agent" | "catalog-manager";
+
+export type Employee = {
+  id: string; // crypto.randomUUID(), also used as AdminSession.employeeId
+  employeeIdNumber: string; // human-facing ID like "EMP-0042", admin-assigned, unique
+  name: string;
+  email: string;
+  password: string; // plain text — see mock-security note in Phase 4 design spec
+  designation: Designation;
+  createdAt: string; // ISO
+};
+
+export type TaskStatus = "pending" | "in-progress" | "completed";
+
+export type Task = {
+  id: string;
+  title: string;
+  description: string;
+  assigneeEmployeeId: string; // Employee.id
+  dueDate: string; // yyyy-mm-dd
+  status: TaskStatus; // defaults to "pending"
+  createdAt: string; // ISO
+};
+
+export type LeaveStatus = "pending" | "approved" | "rejected";
+
+export type LeaveRequest = {
+  id: string;
+  employeeId: string;
+  startDate: string; // yyyy-mm-dd
+  endDate: string; // yyyy-mm-dd
+  reason: string;
+  status: LeaveStatus; // defaults to "pending"
+  submittedAt: string; // ISO
+};
+
+export type DailyReport = {
+  id: string;
+  employeeId: string;
+  date: string; // yyyy-mm-dd, defaults to submission day
+  hoursWorked: number;
+  summary: string; // free text, what they worked on
+  submittedAt: string; // ISO
 };
 
 export type RevenuePoint = { label: string; value: number };

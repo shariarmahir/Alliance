@@ -10,7 +10,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  const session = verifyAdminCredentials(email, password);
+  const session = await verifyAdminCredentials(email, password);
   if (!session) {
     return { error: "Invalid email or password." };
   }
