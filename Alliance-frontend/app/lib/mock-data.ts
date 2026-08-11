@@ -5,10 +5,14 @@
 // instead of hardcoded arrays. Every export below keeps its original name and
 // signature so existing consumers need zero changes.
 //
-// Caveat: because this module reads the files once at module load, a
-// long-lived dev server process only picks up admin writes on the next
-// request that re-evaluates the module (Next.js App Router re-evaluates
-// server modules per request for non-cached paths, which is sufficient here).
+// Important: `products` and `categories` are NOT plain arrays read once at
+// module load — Node (and Turbopack's dev module cache) keeps this module's
+// top-level state alive across requests within the same server process, so a
+// one-time readJson() here would go stale the moment an admin route writes
+// new data. Instead each export is a Proxy that re-reads its JSON file fresh
+// on every property/method access (e.g. `products.filter(...)` triggers a
+// fresh disk read at the `.filter` access), while still behaving exactly like
+// a plain array to every consumer.
 import "server-only";
 import fs from "fs";
 import path from "path";
@@ -18,6 +22,30 @@ const DATA_DIR = path.join(process.cwd(), "data");
 
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), "utf-8"));
+}
+
+// Wraps a JSON-backed array so every access re-reads the file from disk,
+// making writes from the admin routes visible immediately without relying on
+// module re-evaluation (which Turbopack's dev server does not guarantee).
+function freshArray<T>(file: string): T[] {
+  return new Proxy([] as T[], {
+    get(_target, prop, receiver) {
+      const current = readJson<T[]>(file);
+      return Reflect.get(current, prop, receiver);
+    },
+    has(_target, prop) {
+      const current = readJson<T[]>(file);
+      return Reflect.has(current, prop);
+    },
+    ownKeys() {
+      const current = readJson<T[]>(file);
+      return Reflect.ownKeys(current);
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const current = readJson<T[]>(file);
+      return Reflect.getOwnPropertyDescriptor(current, prop);
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -38,8 +66,8 @@ export const brands: Brand[] = [
 // hardcoded arrays; mutated by the admin catalog write layer from this point on)
 // ---------------------------------------------------------------------------
 
-export const products: Product[] = readJson<Product[]>("products.json");
-export const categories: Category[] = readJson<Category[]>("categories.json");
+export const products: Product[] = freshArray<Product>("products.json");
+export const categories: Category[] = freshArray<Category>("categories.json");
 
 // ---------------------------------------------------------------------------
 // Reviews
