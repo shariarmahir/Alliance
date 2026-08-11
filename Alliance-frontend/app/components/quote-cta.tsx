@@ -17,14 +17,14 @@ export function QuoteCta({ slug }: { slug: string }) {
     if (!product) return;
     addItem(product, qty);
     toast.success("Added to your quotation");
-    router.push("/order/confirm");
+    router.push("/quote");
   }
 
   return (
     <div className="flex flex-col gap-3">
       <QuantityStepper initial={1} onChange={setQty} />
       <button type="button" onClick={requestQuote} className="btn-glass-accent">
-        Request Quotation
+        Create Quotation
       </button>
     </div>
   );

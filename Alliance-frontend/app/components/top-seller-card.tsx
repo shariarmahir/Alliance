@@ -43,7 +43,7 @@ export function TopSellerCard({ product }: { product: TopSeller }) {
           )}
         </div>
         <Link href={browseHref} className="btn-glass-accent mt-1 w-full">
-          Request Quotation
+          Create Quotation
         </Link>
       </div>
     </Card>

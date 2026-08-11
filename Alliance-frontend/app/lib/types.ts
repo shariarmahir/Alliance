@@ -54,6 +54,26 @@ export type QuoteItem = {
   quantity: number;
 };
 
+export type ContactMethod = "email" | "phone" | "whatsapp";
+
+export type LeadTime = "standard" | "urgent" | "flexible";
+
+// Details collected on the Create Quotation form, submitted alongside the cart.
+export type QuotationDetails = {
+  fullName: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  companyName: string;
+  country: string;
+  taxId: string;
+  companyWebsite: string;
+  preferredContact: ContactMethod;
+  leadTime: LeadTime;
+  notes: string;
+  submittedAt: string; // ISO
+};
+
 export type DeliveryOptionId = "standard" | "express" | "air";
 
 export type DeliveryOption = {

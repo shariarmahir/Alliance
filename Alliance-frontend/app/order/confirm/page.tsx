@@ -34,18 +34,32 @@ function defaultPreferredDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
+const QUOTATION_STORAGE_KEY = "alliance_quotation";
+
+function defaultAddress(): DeliveryAddress {
+  const fallback: DeliveryAddress = { name: "", line: "", city: "", country: "Bangladesh", phone: "" };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = sessionStorage.getItem(QUOTATION_STORAGE_KEY);
+    if (!raw) return fallback;
+    const quotation = JSON.parse(raw);
+    return {
+      ...fallback,
+      name: quotation.fullName ?? "",
+      phone: quotation.phone ?? "",
+      country: quotation.country || "Bangladesh",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export default function ConfirmOrderPage() {
   const router = useRouter();
   const { items, total, clear } = useQuote();
   const [shipOption, setShipOption] = useState<DeliveryOptionId>("express");
   const [date, setDate] = useState(defaultPreferredDate);
-  const [address, setAddress] = useState<DeliveryAddress>({
-    name: "",
-    line: "",
-    city: "",
-    country: "Bangladesh",
-    phone: "",
-  });
+  const [address, setAddress] = useState<DeliveryAddress>(defaultAddress);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
