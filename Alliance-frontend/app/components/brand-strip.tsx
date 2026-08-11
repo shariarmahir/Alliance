@@ -6,7 +6,12 @@ export function BrandStrip() {
   return (
     <section className="border-y border-slate-200 bg-slate-50 py-10">
       <div className="mx-auto max-w-7xl px-4">
-        <h2 className="mb-6 text-center text-xl font-bold text-slate-900">Popular Brands Available</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Popular Brands Available</h2>
+          <Link href="/products" className="text-sm font-medium text-primary hover:underline">
+            Browse All
+          </Link>
+        </div>
         <div className="grid grid-cols-3 items-center gap-6 sm:grid-cols-6">
           {brands.map((b) => (
             <Link

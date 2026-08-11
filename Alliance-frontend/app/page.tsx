@@ -1,56 +1,66 @@
-import { ShieldCheck, Globe, Headset, Zap, Wrench, PackageSearch, Star } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ShieldCheck,
+  Wrench,
+  Radio,
+  Zap as ZapIcon,
+  BadgeCheck,
+  Truck,
+  RotateCcw,
+  Clock,
+  Rocket,
+} from "lucide-react";
 import { HeroCarousel } from "@/app/components/hero-carousel";
 import { CategoryGrid } from "@/app/components/category-grid";
-import { ProductTabsSection } from "@/app/components/product-tabs-section";
 import { BrandStrip } from "@/app/components/brand-strip";
-import { ContactForm } from "@/app/components/contact-form";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/app/components/ui/accordion";
-import { reviews, faqs } from "@/app/lib/mock-data";
 
-const trustFeatures = [
+const uptimeTags = [
+  { icon: ShieldCheck, label: "Automation Parts" },
+  { icon: RotateCcw, label: "Repair & Exchange" },
+  { icon: Clock, label: "Lifecycle Management" },
+  { icon: Radio, label: "Operations Support" },
+];
+
+const trustStats = [
+  { label: "ISO Certified", value: "9001:2015" },
+  { label: "Products Available", value: "20+ Million" },
+  { label: "Alliance Warranty", value: "2 Year" },
+  { label: "Shipping To", value: "100+ Countries" },
+  { label: "Direct Lines", value: "450+" },
+  { label: "Engineers", value: "350+" },
+];
+
+const services = [
   {
-    icon: ShieldCheck,
-    title: "Genuine Parts",
-    text: "Every component is sourced through authorized channels with full traceability and manufacturer warranty.",
+    icon: Wrench,
+    title: "Repair Services",
+    text: "Alliance's expert repair team restores your critical equipment with precision, extending its lifespan and minimizing downtime.",
   },
   {
-    icon: Globe,
-    title: "Global Shipping",
-    text: "We ship worldwide from Bangladesh via air and sea freight, with door-to-door courier options.",
+    icon: Radio,
+    title: "Alliance Remote",
+    text: "Live expert technical assistance from an Alliance-qualified engineer. Get back up and running with the troubleshooting help you need.",
   },
   {
-    icon: Headset,
-    title: "Expert Support",
-    text: "Our technical team helps you cross-reference parts and specify the right component for your system.",
+    icon: BadgeCheck,
+    title: "Ask An Engineer",
+    text: "Talk to an Alliance engineer about your specific product or project. Eliminate guesswork and get the help you need.",
   },
   {
-    icon: Zap,
-    title: "Fast Quotations",
-    text: "Submit a request and receive a formal quotation with pricing and lead time within one business day.",
+    icon: Truck,
+    title: "Sell To Us",
+    text: "Get cash for surplus or used parts and products, adding to your bottom line. Simple & easy process.",
   },
 ];
 
-const supportServices = [
-  {
-    icon: Wrench,
-    title: "Technical Support",
-    text: "Our engineers help you cross-reference obsolete or hard-to-find part numbers to current equivalents.",
-  },
-  {
-    icon: PackageSearch,
-    title: "Repair Services",
-    text: "Send in faulty drives, PLCs, and HMIs for diagnostic evaluation and repair quotations.",
-  },
-  {
-    icon: Globe,
-    title: "Bulk Ordering",
-    text: "Volume pricing and consolidated shipping available for plant-wide retrofits and spare parts stocking.",
-  },
+const differenceItems = [
+  { icon: ShieldCheck, title: "Standard 2 Year Warranty", text: "Most products ship with a full 2 year Alliance warranty. Extended warranty options available." },
+  { icon: Rocket, title: "Same Day Shipping", text: "1M+ products ship the same day and millions more with rush processing available." },
+  { icon: BadgeCheck, title: "ISO Certified", text: "Third party audited & certified materials, processes & services." },
+  { icon: RotateCcw, title: "30 Day Money-Back Guarantee", text: "Send the product back for any reason for a refund, less any applicable restocking fee." },
+  { icon: ZapIcon, title: "Rush Process", text: "Faster processing and a guaranteed ship date available on millions of qualified products." },
+  { icon: Clock, title: "Available 24/7/365", text: "Don't wait to get help. Our experts are available around the clock, every day of the year." },
 ];
 
 export default function Home() {
@@ -58,120 +68,130 @@ export default function Home() {
     <div>
       <HeroCarousel />
       <CategoryGrid />
-      <ProductTabsSection />
-      <BrandStrip />
 
-      {/* Quality Parts & Services You Can Trust */}
+      {/* Protect Uptime. Reduce Downtime. */}
       <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="mb-2 text-center text-2xl font-bold text-slate-900">
-          Quality Parts &amp; Services You Can Trust
-        </h2>
-        <p className="mx-auto mb-10 max-w-2xl text-center text-slate-600">
-          We back every order with genuine parts, worldwide logistics, and a support team that knows
-          industrial automation.
-        </p>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {trustFeatures.map((f) => (
-            <div key={f.title} className="rounded-xl border border-slate-200 bg-white p-6 text-center">
-              <f.icon className="mx-auto mb-4 size-10 text-primary" />
-              <h3 className="mb-2 font-semibold text-slate-900">{f.title}</h3>
-              <p className="text-sm text-slate-600">{f.text}</p>
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-4 text-2xl font-bold text-slate-900 sm:text-3xl">
+              Protect Uptime. Reduce Downtime.
+            </h2>
+            <div className="mb-5 flex flex-wrap gap-2">
+              {uptimeTags.map((t) => (
+                <span
+                  key={t.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
+                >
+                  <t.icon className="size-3.5 text-primary" />
+                  {t.label}
+                </span>
+              ))}
             </div>
-          ))}
+            <p className="mb-6 max-w-lg text-slate-600">
+              Alliance delivers automation parts, repair services, and lifecycle solutions that reduce
+              downtime and keep maintenance, engineering, and operations teams running.
+            </p>
+            <Link href="/products" className="text-sm font-semibold text-primary hover:underline">
+              Discuss Your Uptime Needs →
+            </Link>
+          </div>
+          <div className="relative aspect-video overflow-hidden rounded-xl">
+            <Image
+              src="/images/uptime-support.svg"
+              alt="Field engineer supporting industrial equipment"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </section>
 
-      {/* Protect Uptime. Reduce Downtime. */}
-      <section className="bg-slate-900 py-16 text-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2">
-          <div>
-            <h2 className="mb-4 text-3xl font-bold">
-              Protect Uptime. Reduce Downtime. <span className="text-accent">The Alliance Difference.</span>
-            </h2>
-            <p className="mb-8 text-slate-300">
-              When a critical part fails, every hour of downtime costs money. Our stocked inventory and
-              fast quotation process get replacement parts moving before your line stops.
-            </p>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <p className="text-3xl font-bold text-accent">24/7</p>
-                <p className="text-sm text-slate-300">Support</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-accent">150+</p>
-                <p className="text-sm text-slate-300">Brands</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-accent">Same-Day</p>
-                <p className="text-sm text-slate-300">Quotation</p>
-              </div>
+      {/* Quality Parts and Services You Can Trust */}
+      <section className="bg-secondary py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <h2 className="mb-4 text-2xl font-bold text-slate-900 sm:text-3xl">
+                Quality Parts and Services You Can Trust
+              </h2>
+              <p className="max-w-lg text-slate-600">
+                Automation, industrial, electrical, and MRO components to keep your business running
+                smoothly. From obsolete and hard-to-find equipment to on-site services and expert repair
+                capabilities, we&apos;ve got what you need.
+              </p>
+              <Link href="/products" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+                Learn About Us
+              </Link>
             </div>
-          </div>
-          <div className="flex h-64 items-center justify-center rounded-xl bg-white/5 backdrop-blur">
-            <Zap className="size-24 text-accent/60" />
+            <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
+              {trustStats.map((s) => (
+                <div key={s.label} className="border-l-2 border-primary/30 pl-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{s.label}</p>
+                  <p className="text-xl font-bold text-primary">{s.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Services & Support */}
       <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold text-slate-900">Services &amp; Support</h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {supportServices.map((s) => (
-            <div key={s.title} className="rounded-xl border border-slate-200 bg-white p-6">
-              <s.icon className="mb-4 size-10 text-primary" />
+        <h2 className="mb-10 text-2xl font-bold text-slate-900">Services &amp; Support</h2>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {services.map((s) => (
+            <div key={s.title} className="rounded-xl border border-slate-200 bg-slate-50 p-6">
+              <s.icon className="mb-4 size-8 text-primary" />
               <h3 className="mb-2 font-semibold text-slate-900">{s.title}</h3>
               <p className="text-sm text-slate-600">{s.text}</p>
+              <Link href="/products" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">
+                Learn More
+              </Link>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Client Reviews */}
-      <section className="bg-slate-50 py-16">
+      <BrandStrip />
+
+      {/* The Alliance Difference */}
+      <section className="bg-primary py-16 text-white">
         <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-10 text-center text-2xl font-bold text-slate-900">What Our Clients Say</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {reviews.map((r) => (
-              <div key={r.id} className="w-72 shrink-0 rounded-xl border border-slate-200 bg-white p-5">
-                <div className="mb-2 flex gap-0.5">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-4 ${i < r.rating ? "fill-accent text-accent" : "text-slate-300"}`}
-                    />
-                  ))}
+          <h2 className="mb-10 text-center text-2xl font-bold sm:text-3xl">The Alliance Difference</h2>
+          <div className="grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            {differenceItems.map((d) => (
+              <div key={d.title} className="flex gap-4">
+                <d.icon className="size-8 shrink-0 text-accent" />
+                <div>
+                  <h3 className="mb-1 font-semibold">{d.title}</h3>
+                  <p className="text-sm text-white/80">{d.text}</p>
                 </div>
-                <p className="mb-4 text-sm text-slate-600">&ldquo;{r.text}&rdquo;</p>
-                <p className="text-sm font-semibold text-slate-900">{r.author}</p>
-                <p className="text-xs text-slate-500">{r.country}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="about" className="mx-auto max-w-3xl px-4 py-16">
-        <h2 className="mb-10 text-center text-2xl font-bold text-slate-900">Frequently Asked Questions</h2>
-        <Accordion>
-          {faqs.map((faq, i) => (
-            <AccordionItem key={faq.question} value={`faq-${i}`}>
-              <AccordionTrigger>{faq.question}</AccordionTrigger>
-              <AccordionContent>{faq.answer}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </section>
-
-      {/* Contact */}
-      <section id="contact" className="bg-slate-50 py-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-2 text-center text-2xl font-bold text-slate-900">Contact Us</h2>
-          <p className="mx-auto mb-10 max-w-xl text-center text-slate-600">
-            Have a question about a part or need help specifying a component? Send us a message.
-          </p>
-          <ContactForm />
+      {/* We Are Here To Help You */}
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <div className="flex flex-col items-start justify-between gap-6 rounded-xl border border-slate-200 p-8 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="mb-2 text-xl font-bold text-slate-900">We Are Here To Help You</h2>
+            <p className="max-w-xl text-sm text-slate-600">
+              If you have questions, need a price or repair quote, or are ready to place an order, our
+              team is here to assist you.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+            <Link href="/products" className="btn-glass-accent">
+              Contact Us
+            </Link>
+            <div className="flex flex-col gap-1 text-sm text-slate-600 sm:items-end">
+              <a href="mailto:info@alliance.com" className="hover:text-primary">info@alliance.com</a>
+              <a href="tel:+8801713116019" className="hover:text-primary">+8801713-116019</a>
+            </div>
+          </div>
         </div>
       </section>
     </div>
