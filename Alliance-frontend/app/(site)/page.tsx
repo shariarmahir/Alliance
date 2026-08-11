@@ -201,7 +201,7 @@ export default function Home() {
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-            <Link href="/products" className="btn-glass-accent">
+            <Link href="/contact" className="btn-glass-accent">
               Contact Us
             </Link>
             <div className="flex flex-col gap-1 text-sm text-slate-600 sm:items-end">

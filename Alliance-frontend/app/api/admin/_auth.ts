@@ -20,3 +20,16 @@ export async function requireAdminSession(): Promise<AdminSession | NextResponse
 export function isSessionResponse(value: AdminSession | NextResponse): value is NextResponse {
   return value instanceof NextResponse;
 }
+
+// Stricter check for Phase 3's operations routes (orders, quotations,
+// contact requests, emails), which are super-admin-only per the spec —
+// unlike Phase 2's product/catalog routes, which any authenticated admin
+// (super or sub) may call. 401 if no session, 403 if role is "sub".
+export async function requireSuperAdminSession(): Promise<AdminSession | NextResponse> {
+  const session = await requireAdminSession();
+  if (isSessionResponse(session)) return session;
+  if (session.role !== "super") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return session;
+}

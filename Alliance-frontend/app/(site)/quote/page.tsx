@@ -34,7 +34,7 @@ export default function QuotePage() {
   const [values, setValues] = useState<QuotationFormValues>(EMPTY_VALUES);
   const [submitting, setSubmitting] = useState(false);
 
-  function submitQuotation(e: React.FormEvent) {
+  async function submitQuotation(e: React.FormEvent) {
     e.preventDefault();
 
     if (!values.fullName || !values.email || !values.phone || !values.companyName || !values.country) {
@@ -49,6 +49,21 @@ export default function QuotePage() {
       sessionStorage.setItem(QUOTATION_STORAGE_KEY, JSON.stringify(quotation));
     } catch {
       // storage unavailable — proceed anyway, confirm page just won't prefill
+    }
+
+    // Fire-and-forget server mirror so admins can review/confirm/cancel this
+    // quotation — never blocks navigation to the delivery details step.
+    try {
+      const res = await fetch("/api/quotations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, total, details: quotation }),
+      });
+      if (!res.ok) {
+        toast.warning("Quotation submitted, but we couldn't sync it to our records. Our team may follow up manually.");
+      }
+    } catch {
+      toast.warning("Quotation submitted, but we couldn't sync it to our records. Our team may follow up manually.");
     }
 
     toast.success("Quotation submitted! Choose your delivery details next.");
