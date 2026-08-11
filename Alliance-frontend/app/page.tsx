@@ -14,6 +14,8 @@ import {
 import { HeroCarousel } from "@/app/components/hero-carousel";
 import { CategoryGrid } from "@/app/components/category-grid";
 import { BrandStrip } from "@/app/components/brand-strip";
+import { TopSellerCard } from "@/app/components/top-seller-card";
+import { topSellers } from "@/app/lib/top-sellers";
 
 const uptimeTags = [
   { icon: ShieldCheck, label: "Automation Parts" },
@@ -104,6 +106,21 @@ export default function Home() {
               className="object-cover"
             />
           </div>
+        </div>
+      </section>
+
+      {/* Top Selling Products */}
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <div className="mb-8 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Top Selling Products</h2>
+          <Link href="/products" className="text-sm font-medium text-primary hover:underline">
+            Browse All
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {topSellers.map((p) => (
+            <TopSellerCard key={p.id} product={p} />
+          ))}
         </div>
       </section>
 
