@@ -16,6 +16,9 @@ import {
   FileText,
   Mail,
   MessageSquare,
+  ListChecks,
+  CalendarDays,
+  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/app/lib/utils";
@@ -31,6 +34,9 @@ const ICONS: Record<AdminNavIcon, LucideIcon> = {
   "contact-requests": MessageSquare,
   emails: Mail,
   employees: Users,
+  tasks: ListChecks,
+  leave: CalendarDays,
+  "daily-report": NotebookPen,
 };
 
 export function AdminSidebar({ items }: { items: AdminNavItem[] }) {

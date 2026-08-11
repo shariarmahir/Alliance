@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DollarSign, ShoppingCart, FileClock, Users2 } from "lucide-react";
-import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/app/lib/admin-auth";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
 import { kpiStats } from "@/app/lib/mock-analytics";
 import { formatPrice } from "@/app/lib/utils";
 import { StatCard } from "./stat-card";
@@ -10,11 +10,19 @@ import { OrderRatioChart } from "./charts/order-ratio-chart";
 import { CountryChart } from "./charts/country-chart";
 import { TrafficChart } from "./charts/traffic-chart";
 import { BestSellersCard } from "./best-sellers-card";
+import { SubAdminDashboard } from "./sub-admin-dashboard";
 
+// /admin is role-branching as of Phase 4: super admin keeps the analytics
+// Overview below (unchanged JSX), sub-admin sees their personal dashboard
+// instead of being redirected away.
 export default async function AdminOverviewPage() {
   const cookieStore = await cookies();
   const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
-  if (session?.role !== "super") redirect(landingPathForRole(session?.role ?? "sub"));
+  if (!session) redirect("/admin/login");
+
+  if (session.role === "sub") {
+    return <SubAdminDashboard session={session} />;
+  }
 
   return (
     <div className="space-y-6">
