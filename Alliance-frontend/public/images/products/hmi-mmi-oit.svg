@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#f8fafc"/>
+  <rect x="80" y="100" width="240" height="200" rx="10" fill="#e2e8f0" stroke="#007dcc" stroke-width="3"/>
+  <rect x="105" y="130" width="190" height="30" rx="4" fill="#007dcc"/>
+  <g fill="#94a3b8">
+    <rect x="105" y="175" width="80" height="10" rx="2"/>
+    <rect x="105" y="195" width="120" height="10" rx="2"/>
+    <rect x="105" y="215" width="60" height="10" rx="2"/>
+  </g>
+  <circle cx="270" cy="255" r="18" fill="#ffb900"/>
+  <text x="200" y="345" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" fill="#334155" text-anchor="middle">HMI Terminal</text>
+</svg>
