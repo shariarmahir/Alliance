@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "plcs-machine-control",
+    "name": "PLCs & Machine Control",
+    "icon": "/images/categories/plcs-machine-control.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "drives",
+    "name": "Drives",
+    "icon": "/images/categories/drives.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "hmi-mmi-oit",
+    "name": "HMI/MMI/OIT",
+    "icon": "/images/categories/hmi-mmi-oit.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "contactors-starters",
+    "name": "Contactors & Starters",
+    "icon": "/images/categories/contactors-starters.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "pneumatics",
+    "name": "Pneumatics",
+    "icon": "/images/categories/pneumatics.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "safety-systems",
+    "name": "Safety Systems",
+    "icon": "/images/categories/safety-systems.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "power-supplies",
+    "name": "Power Supplies",
+    "icon": "/images/categories/power-supplies.svg",
+    "productCount": 6
+  },
+  {
+    "slug": "sensors-switches",
+    "name": "Sensors & Switches",
+    "icon": "/images/categories/sensors-switches.svg",
+    "productCount": 6
+  }
+]
