@@ -63,7 +63,17 @@ export default function OrderSuccessPage() {
         </div>
       </div>
 
-      <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6">
+      <div id="invoice" className="mb-8 rounded-xl border border-slate-200 bg-white p-6">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <p className="text-lg font-bold text-primary">Alliance</p>
+            <p className="text-xs text-slate-500">Uttara, Dhaka, Bangladesh · info@alliance.com</p>
+          </div>
+          <div className="text-right text-sm text-slate-600">
+            <p className="font-semibold text-slate-900">Order #{order.orderNumber}</p>
+            <p>{new Date(order.createdAt).toLocaleDateString("en-US")}</p>
+          </div>
+        </div>
         <h2 className="mb-4 text-lg font-bold text-slate-900">Order Summary</h2>
         <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
@@ -79,7 +89,9 @@ export default function OrderSuccessPage() {
         </div>
       </div>
 
-      <InvoiceActions order={order} quote={quote} product={product} />
+      <div className="no-print">
+        <InvoiceActions order={order} quote={quote} product={product} />
+      </div>
     </div>
   );
 }

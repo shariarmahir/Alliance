@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -9,7 +10,7 @@
   --color-primary-dark: #005f9e;
   --color-accent: #ffb900;
   --color-accent-dark: #cc9400;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
@@ -17,25 +18,103 @@ body {
   color: #0f172a;
 }
 
+/* Glassmorphism animated buttons */
+.btn-glass,
+.btn-glass-accent {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+.btn-glass::after,
+.btn-glass-accent::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  z-index: 1;
+}
+.btn-glass:hover,
+.btn-glass-accent:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.03);
+}
+.btn-glass:hover::after,
+.btn-glass-accent:hover::after {
+  animation: glass-shine 0.9s ease;
+}
+.btn-glass:active,
+.btn-glass-accent:active {
+  transform: translateY(0);
+}
+@keyframes glass-shine {
+  0% {
+    left: -120%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
 .btn-glass {
-  @apply relative inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
     font-medium text-white bg-primary/80 backdrop-blur-md border border-white/20
-    shadow-lg shadow-primary/20 transition-all duration-200
-    hover:bg-primary hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02]
-    active:scale-[0.98];
+    shadow-lg shadow-primary/20
+    hover:bg-primary hover:shadow-xl hover:shadow-primary/30;
 }
 
 .btn-glass-accent {
-  @apply relative inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
     font-semibold text-slate-900 bg-accent/85 backdrop-blur-md border border-white/30
-    shadow-lg shadow-accent/30 transition-all duration-200
-    hover:bg-accent hover:shadow-xl hover:shadow-accent/40 hover:scale-[1.02]
-    active:scale-[0.98];
+    shadow-lg shadow-accent/30
+    hover:bg-accent hover:shadow-xl hover:shadow-accent/40;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice,
+  #invoice * {
+    visibility: visible;
+  }
+  #invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -76,37 +155,38 @@ body {
 
 :root {
   --background: #ffffff;
-  --foreground: #0f172a;
+  --foreground: #1f2937;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1f2937;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #1f2937;
   --primary: #007dcc;
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: #0f172a;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --secondary: #ebf7ff;
+  --secondary-foreground: #0e527c;
+  --muted: #f3f5f7;
+  --muted-foreground: #65758b;
   --accent: #ffb900;
-  --accent-foreground: #0f172a;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --accent-foreground: #10192d;
+  --destructive: #ef4343;
+  --destructive-foreground: #ffffff;
+  --border: #e1e7ef;
+  --input: #e1e7ef;
+  --ring: #007dcc;
+  --chart-1: #007dcc;
+  --chart-2: #ffb900;
+  --chart-3: #2a9d90;
+  --chart-4: #7a47d1;
+  --chart-5: #df3a3a;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #007dcc;
+  --sidebar: #19222e;
+  --sidebar-foreground: #e7ebef;
+  --sidebar-primary: #008ee6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: #2a3646;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a3646;
+  --sidebar-ring: #008ee6;
 }
 
 @layer base {
