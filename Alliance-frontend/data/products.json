@@ -5,11 +5,11 @@
     "name": "ControlLogix 5561 Processor Module",
     "brand": "allen-bradley",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "2 MB user memory",
@@ -32,7 +32,7 @@
       "I/O Points": "128,000 max",
       "Backplane": "ControlBus",
       "Mounting": "DIN Rail / Panel",
-      "Operating Temp": "0-60°C",
+      "Operating Temp": "0-60\u00b0C",
       "Comm Ports": "USB, RS-232"
     },
     "price": 3450,
@@ -47,11 +47,11 @@
     "name": "CompactLogix 5370 Controller",
     "brand": "allen-bradley",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "1 MB memory",
@@ -72,7 +72,7 @@
       "I/O Points": "16 local modules",
       "Comm Ports": "2x EtherNet/IP",
       "Mounting": "DIN Rail",
-      "Operating Temp": "0-55°C"
+      "Operating Temp": "0-55\u00b0C"
     },
     "price": 1890,
     "stock": "in-stock",
@@ -86,11 +86,11 @@
     "name": "SIMATIC S7-1200 CPU 1214C",
     "brand": "siemens",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "100 KB program memory",
@@ -126,11 +126,11 @@
     "name": "MELSEC iQ-F FX5U Compact PLC",
     "brand": "mitsubishi",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "32 I/O points",
@@ -151,7 +151,7 @@
       "Program Capacity": "64,000 steps",
       "Comm Ports": "Ethernet, RS-485",
       "Mounting": "DIN Rail / Screw",
-      "Operating Temp": "0-55°C"
+      "Operating Temp": "0-55\u00b0C"
     },
     "price": 610,
     "stock": "low-stock",
@@ -164,11 +164,11 @@
     "name": "SYSMAC CJ2M Series CPU Unit",
     "brand": "omron",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "20K steps program",
@@ -201,11 +201,11 @@
     "name": "Modicon M221 Logic Controller",
     "brand": "schneider-electric",
     "categorySlug": "plcs-machine-control",
-    "image": "/images/products/plcs-machine-control.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg",
-      "/images/products/plcs-machine-control.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "40 I/O relay",
@@ -225,7 +225,7 @@
       "I/O Points": "40 (24 DI / 16 DO Relay)",
       "Comm Ports": "Ethernet, Serial",
       "Mounting": "DIN Rail",
-      "Operating Temp": "-10 to 55°C"
+      "Operating Temp": "-10 to 55\u00b0C"
     },
     "price": 340,
     "stock": "out-of-stock",
@@ -238,11 +238,11 @@
     "name": "PowerFlex 525 AC Drive 5HP",
     "brand": "allen-bradley",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "5 HP / 3.7 kW",
@@ -277,11 +277,11 @@
     "name": "PowerFlex 753 AC Drive 25HP",
     "brand": "allen-bradley",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "25 HP / 18.5 kW",
@@ -316,11 +316,11 @@
     "name": "SINAMICS G120C Compact Drive",
     "brand": "siemens",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "7.5 kW",
@@ -355,11 +355,11 @@
     "name": "FREQROL-E800 Compact Inverter",
     "brand": "mitsubishi",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "3.7 kW",
@@ -392,11 +392,11 @@
     "name": "SYSDRIVE MX2 Series Inverter",
     "brand": "omron",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "0.4 kW",
@@ -429,11 +429,11 @@
     "name": "Altivar Machine ATV320 Drive",
     "brand": "schneider-electric",
     "categorySlug": "drives",
-    "image": "/images/products/drives.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/drives.svg",
-      "/images/products/drives.svg",
-      "/images/products/drives.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "1.5 kW",
@@ -466,11 +466,11 @@
     "name": "PanelView 800 7-inch Touch Terminal",
     "brand": "allen-bradley",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "7-inch color touch",
@@ -505,11 +505,11 @@
     "name": "PanelView Plus 7 Performance 10-inch",
     "brand": "allen-bradley",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "10.4-inch display",
@@ -543,11 +543,11 @@
     "name": "SIMATIC KTP700 Basic Panel",
     "brand": "siemens",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "7-inch TFT",
@@ -581,11 +581,11 @@
     "name": "GOT2000 GT2310 Operator Terminal",
     "brand": "mitsubishi",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "5.7-inch STN",
@@ -618,11 +618,11 @@
     "name": "NB-series 7-inch HMI Touchscreen",
     "brand": "omron",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "7-inch wide TFT",
@@ -655,11 +655,11 @@
     "name": "Harmony GXU 3.5-inch Terminal",
     "brand": "schneider-electric",
     "categorySlug": "hmi-mmi-oit",
-    "image": "/images/products/hmi-mmi-oit.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg",
-      "/images/products/hmi-mmi-oit.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "3.5-inch QVGA",
@@ -692,11 +692,11 @@
     "name": "IEC Contactor 9A 3-Pole",
     "brand": "allen-bradley",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "9 A rated current",
@@ -731,11 +731,11 @@
     "name": "Bulletin 509 NEMA Full Voltage Starter",
     "brand": "allen-bradley",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "NEMA Size 0",
@@ -769,11 +769,11 @@
     "name": "SIRIUS 3RT2 Contactor 9A",
     "brand": "siemens",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "9 A AC-3",
@@ -807,11 +807,11 @@
     "name": "Magnetic Contactor SD-T35",
     "brand": "mitsubishi",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "35 A rated",
@@ -844,11 +844,11 @@
     "name": "Advanced Type Contactor J7KNA",
     "brand": "omron",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "9 A rated",
@@ -881,11 +881,11 @@
     "name": "TeSys D Contactor 9A",
     "brand": "schneider-electric",
     "categorySlug": "contactors-starters",
-    "image": "/images/products/contactors-starters.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg",
-      "/images/products/contactors-starters.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "9 A AC-3",
@@ -918,11 +918,11 @@
     "name": "SMC-Type Solenoid Valve Bank Controller",
     "brand": "allen-bradley",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "16 output points",
@@ -956,11 +956,11 @@
     "name": "SIPART PS2 Electropneumatic Positioner",
     "brand": "siemens",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Single-acting",
@@ -993,11 +993,11 @@
     "name": "5-Port Solenoid Valve SY5000 Series",
     "brand": "mitsubishi",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "5-port 2-position",
@@ -1031,11 +1031,11 @@
     "name": "Compact Vacuum Ejector Unit",
     "brand": "omron",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Integrated ejector",
@@ -1069,11 +1069,11 @@
     "name": "ASCO Series 8551 Solenoid Valve",
     "brand": "schneider-electric",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "3/2-way",
@@ -1106,11 +1106,11 @@
     "name": "Danfoss PVG32 Proportional Valve Module",
     "brand": "danfoss",
     "categorySlug": "pneumatics",
-    "image": "/images/products/pneumatics.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg",
-      "/images/products/pneumatics.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Proportional flow control",
@@ -1143,11 +1143,11 @@
     "name": "Guardmaster Safety Relay",
     "brand": "allen-bradley",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Dual-channel input",
@@ -1181,11 +1181,11 @@
     "name": "SIRIUS Safety Position Switch",
     "brand": "siemens",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Metal housing",
@@ -1219,11 +1219,11 @@
     "name": "Safety Light Curtain Controller",
     "brand": "mitsubishi",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Type 4 light curtain",
@@ -1256,11 +1256,11 @@
     "name": "G9SA Series Safety Relay Unit",
     "brand": "omron",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "3 NO safety outputs",
@@ -1294,11 +1294,11 @@
     "name": "Preventa XCS-TA Safety Switch",
     "brand": "schneider-electric",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Solenoid interlock",
@@ -1331,11 +1331,11 @@
     "name": "Danfoss MCB 107 Safe Stop Option",
     "brand": "danfoss",
     "categorySlug": "safety-systems",
-    "image": "/images/products/safety-systems.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg",
-      "/images/products/safety-systems.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "STO SIL2",
@@ -1368,11 +1368,11 @@
     "name": "Performance Power Supply 120W 24V",
     "brand": "allen-bradley",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "120W output",
@@ -1407,11 +1407,11 @@
     "name": "SITOP PSU100L 24V/5A Power Supply",
     "brand": "siemens",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "120W output",
@@ -1446,11 +1446,11 @@
     "name": "MELSERVO Regenerative Power Supply Unit",
     "brand": "mitsubishi",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "10 kW capacity",
@@ -1483,11 +1483,11 @@
     "name": "S8VK-G Series Switching Power Supply",
     "brand": "omron",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "60W output",
@@ -1522,11 +1522,11 @@
     "name": "Phaseo ABL2 Regulated Power Supply",
     "brand": "schneider-electric",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "50W output",
@@ -1560,11 +1560,11 @@
     "name": "Danfoss MCF 107 Brake Resistor Option",
     "brand": "danfoss",
     "categorySlug": "power-supplies",
-    "image": "/images/products/power-supplies.svg",
+    "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg",
-      "/images/products/power-supplies.svg"
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Brake chopper option",
@@ -1597,11 +1597,11 @@
     "name": "Compact Inductive Proximity Sensor 18mm",
     "brand": "allen-bradley",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "18mm barrel",
@@ -1635,11 +1635,11 @@
     "name": "SIMATIC Photoelectric Sensor Diffuse",
     "brand": "siemens",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Diffuse reflective",
@@ -1673,11 +1673,11 @@
     "name": "Fiber Optic Amplifier Unit EX-20",
     "brand": "mitsubishi",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Fiber optic input",
@@ -1710,11 +1710,11 @@
     "name": "Cylindrical Proximity Sensor 10mm",
     "brand": "omron",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1638734255280-8bae834f8297?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "10mm sensing",
@@ -1725,7 +1725,7 @@
       "Long-range inductive proximity sensor for automation lines",
       "2-wire DC connection simplifies field wiring",
       "Extended sensing distance for non-flush mounting",
-      "Wide operating temperature range -25 to 70°C"
+      "Wide operating temperature range -25 to 70\u00b0C"
     ],
     "alternatePartNumbers": [
       "E2E2X10MD1"
@@ -1748,11 +1748,11 @@
     "name": "OsiSense XS4 Inductive Sensor",
     "brand": "schneider-electric",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "Cylindrical M18",
@@ -1785,11 +1785,11 @@
     "name": "Danfoss MBS 3000 Pressure Transmitter",
     "brand": "danfoss",
     "categorySlug": "sensors-switches",
-    "image": "/images/products/sensors-switches.svg",
+    "image": "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
     "gallery": [
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg",
-      "/images/products/sensors-switches.svg"
+      "https://images.unsplash.com/photo-1638734254958-4a11c989e9bb?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+      "https://images.unsplash.com/photo-1692719094491-2746e82a8595?crop=entropy&cs=srgb&fm=jpg&q=85&w=800"
     ],
     "shortSpecs": [
       "0-16 bar range",

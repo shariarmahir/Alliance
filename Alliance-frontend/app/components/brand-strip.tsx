@@ -12,14 +12,14 @@ export function BrandStrip() {
             Browse All
           </Link>
         </div>
-        <div className="grid grid-cols-3 items-center gap-6 sm:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {brands.map((b) => (
             <Link
               key={b.slug}
               href={`/products?brand=${b.slug}`}
-              className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-4 grayscale transition-all hover:grayscale-0 hover:shadow-md"
+              className="relative aspect-3/2 overflow-hidden rounded-lg border border-slate-200 bg-white p-5 transition-all hover:shadow-md"
             >
-              <Image src={b.logo} alt={b.name} width={100} height={40} className="h-8 w-auto object-contain" />
+              <Image src={b.logo} alt={b.name} fill sizes="200px" className="object-contain p-2" />
             </Link>
           ))}
         </div>

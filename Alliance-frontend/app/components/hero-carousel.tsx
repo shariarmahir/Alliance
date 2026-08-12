@@ -9,16 +9,19 @@ type HeroImageEntry = { slot: number; path: string };
 
 const SLIDE_COPY = [
   {
-    headline: "Industrial Automation Parts, Shipped Worldwide",
+    headlineLine1: "Industrial Electronics,",
+    headlineLine2: "Sourced Globally.",
     subheadline:
-      "PLCs, drives, HMIs, and control components from trusted global brands — sourced and shipped from Bangladesh.",
+      "PLCs, VFD drives, servo motors, power systems and automation parts. New, refurbished & repair — request a quotation and get it delivered anywhere.",
   },
   {
-    headline: "Genuine Parts. Verified Suppliers.",
+    headlineLine1: "Genuine Parts.",
+    headlineLine2: "Verified Suppliers.",
     subheadline: "Every part in our catalog is sourced from authorized channels with full traceability and warranty coverage.",
   },
   {
-    headline: "Fast Quotations. Reliable Lead Times.",
+    headlineLine1: "Fast Quotations.",
+    headlineLine2: "Reliable Lead Times.",
     subheadline: "Request a quote in minutes and get a dedicated response from our technical sales team.",
   },
 ];

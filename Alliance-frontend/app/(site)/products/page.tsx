@@ -18,7 +18,13 @@ export default async function ProductsPage({
   if (sp.inStock === "true") filtered = filtered.filter((p) => p.stock !== "out-of-stock");
   if (sp.q) {
     const q = sp.q.toLowerCase();
-    filtered = filtered.filter((p) => p.name.toLowerCase().includes(q) || p.partNumber.toLowerCase().includes(q));
+    filtered = filtered.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.partNumber.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().replace(/-/g, " ").includes(q) ||
+        p.alternatePartNumbers.some((alt) => alt.toLowerCase().includes(q))
+    );
   }
 
   const page = Math.max(1, Number(sp.page ?? "1"));

@@ -9,7 +9,14 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
   return (
     <div className="flex flex-col gap-3">
       <div className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-        <Image src={images[active]} alt={alt} fill className="object-contain p-8" priority />
+        <Image
+          src={images[active]}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 40vw, 90vw"
+          className="object-contain p-8"
+          priority
+        />
       </div>
       {images.length > 1 && (
         <div className="flex gap-2">
@@ -22,7 +29,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
                 i === active ? "border-primary ring-2 ring-primary/30" : "border-slate-200"
               }`}
             >
-              <Image src={img} alt="" fill className="object-contain p-2" />
+              <Image src={img} alt="" fill sizes="64px" className="object-contain p-2" />
             </button>
           ))}
         </div>

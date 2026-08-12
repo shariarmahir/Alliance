@@ -53,12 +53,12 @@ function freshArray<T>(file: string): T[] {
 // ---------------------------------------------------------------------------
 
 export const brands: Brand[] = [
-  { slug: "allen-bradley", name: "Allen Bradley", logo: "/images/brands/allen-bradley.svg" },
-  { slug: "siemens", name: "Siemens", logo: "/images/brands/siemens.svg" },
-  { slug: "mitsubishi", name: "Mitsubishi", logo: "/images/brands/mitsubishi.svg" },
-  { slug: "omron", name: "Omron", logo: "/images/brands/omron.svg" },
-  { slug: "schneider-electric", name: "Schneider Electric", logo: "/images/brands/schneider-electric.svg" },
-  { slug: "danfoss", name: "Danfoss", logo: "/images/brands/danfoss.svg" },
+  { slug: "allen-bradley", name: "Allen Bradley", logo: "/images/brands/allen-bradley.png" },
+  { slug: "siemens", name: "Siemens", logo: "/images/brands/siemens.png" },
+  { slug: "mitsubishi", name: "Mitsubishi", logo: "/images/brands/mitsubishi.png" },
+  { slug: "omron", name: "Omron", logo: "/images/brands/omron.png" },
+  { slug: "schneider-electric", name: "Schneider Electric", logo: "/images/brands/schneider-electric.png" },
+  { slug: "danfoss", name: "Danfoss", logo: "/images/brands/danfoss.png" },
 ];
 
 // ---------------------------------------------------------------------------

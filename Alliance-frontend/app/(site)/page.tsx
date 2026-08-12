@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -103,13 +102,19 @@ export default function Home() {
             </Link>
           </div>
           <div className="relative aspect-video overflow-hidden rounded-xl">
-            <Image
-              src="/images/uptime-support.svg"
-              alt="Field engineer supporting industrial equipment"
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover"
+            <video
+              src="/video/video1.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="size-full object-cover"
             />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-900/70 via-slate-900/10 to-transparent" />
+            <div className="absolute left-5 top-5 text-2xl font-extrabold leading-tight sm:text-3xl">
+              <span className="block text-white">Keep Product</span>
+              <span className="block text-accent">Moving</span>
+            </div>
           </div>
         </div>
       </section>
