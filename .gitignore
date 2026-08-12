@@ -1,0 +1,4 @@
+# AI agent tooling scratch space — isolated git worktrees created by
+# background agents. These are throwaway workspaces, not app code, and get
+# tracked as broken gitlinks (mode 160000) if accidentally `git add`-ed.
+.claude/worktrees/
