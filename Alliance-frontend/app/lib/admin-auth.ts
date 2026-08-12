@@ -2,7 +2,7 @@ import "server-only";
 import { readEmployees } from "@/app/lib/admin-employees";
 import type { AdminRole, AdminSession } from "@/app/lib/types";
 
-export const ADMIN_SESSION_COOKIE = "alliance_admin_session";
+export const ADMIN_SESSION_COOKIE = "autolink_admin_session";
 
 // MOCK ACCOUNTS — replace with real backend authentication before production.
 // These 2 hardcoded accounts must keep working unchanged for continuity with

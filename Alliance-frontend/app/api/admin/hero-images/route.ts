@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { saveHeroImage } from "@/app/lib/admin-catalog";
 import { requireAdminSession, isSessionResponse } from "../_auth";
 
@@ -26,6 +27,11 @@ export async function POST(request: NextRequest) {
 
   const buffer = Buffer.from(await image.arrayBuffer());
   const path = await saveHeroImage(slot, image.name, buffer);
+
+  // The storefront homepage is statically prerendered — without this, an
+  // uploaded hero image is written to disk correctly but never shows up
+  // until the next full production build.
+  revalidatePath("/");
 
   return NextResponse.json({ slot, path }, { status: 201 });
 }

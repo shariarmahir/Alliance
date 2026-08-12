@@ -4,13 +4,16 @@ import { categories } from "@/app/lib/mock-data";
 
 export function Footer() {
   return (
-    <footer className="mt-16 bg-slate-900 text-slate-300">
+    <footer className="mt-16 bg-primary text-white/80">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 md:grid-cols-4">
         <div>
-          <div className="mb-3 text-2xl font-extrabold text-white">
-            Alliance<span className="text-accent">.</span>
+          <div className="text-2xl font-extrabold tracking-tight text-white">
+            AutoLink<span className="text-accent">.</span>
           </div>
-          <p className="text-sm text-slate-400">
+          <div className="mb-3 mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">
+            Integrated Technologies
+          </div>
+          <p className="text-sm text-white/70">
             Your global partner for industrial electronics — PLCs, drives, servos, motors and power
             systems. New, refurbished &amp; repair. Shipping worldwide from Bangladesh.
           </p>
@@ -18,7 +21,7 @@ export function Footer() {
 
         <div>
           <h4 className="mb-4 font-semibold text-white">Categories</h4>
-          <ul className="space-y-2 text-sm text-slate-400">
+          <ul className="space-y-2 text-sm text-white/70">
             {categories.slice(0, 6).map((c) => (
               <li key={c.slug}>
                 <Link href={`/products?category=${c.slug}`} className="hover:text-accent">
@@ -31,7 +34,7 @@ export function Footer() {
 
         <div>
           <h4 className="mb-4 font-semibold text-white">Company</h4>
-          <ul className="space-y-2 text-sm text-slate-400">
+          <ul className="space-y-2 text-sm text-white/70">
             <li>
               <Link href="/products" className="hover:text-accent">All Products</Link>
             </li>
@@ -46,13 +49,13 @@ export function Footer() {
 
         <div>
           <h4 className="mb-4 font-semibold text-white">Get in Touch</h4>
-          <ul className="space-y-3 text-sm text-slate-400">
+          <ul className="space-y-3 text-sm text-white/70">
             <li className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-4 text-accent" /> Uttara, Dhaka, Bangladesh
             </li>
             <li className="flex items-center gap-2">
               <Mail className="size-4 text-accent" />
-              <a href="mailto:info@alliance.com" className="hover:text-accent">info@alliance.com</a>
+              <a href="mailto:info@autolink.com" className="hover:text-accent">info@autolink.com</a>
             </li>
             <li className="flex items-center gap-2">
               <Phone className="size-4 text-accent" />
@@ -62,9 +65,9 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-slate-400 sm:flex-row">
-          <p>&copy; Alliance 2026-2028. All rights reserved.</p>
+      <div className="border-t border-white/20">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-white/70 sm:flex-row">
+          <p>&copy; AutoLink Integrated Technologies 2026-2028. All rights reserved.</p>
           <p>
             Developed by <span className="font-semibold text-accent">Mahir Shariar Mahin</span>
           </p>

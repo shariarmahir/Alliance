@@ -4,10 +4,10 @@ import { brands } from "@/app/lib/mock-data";
 
 export function BrandStrip() {
   return (
-    <section className="border-y border-slate-200 bg-slate-50 py-10">
+    <section className="border-y border-slate-200 bg-slate-50 py-8">
       <div className="mx-auto max-w-7xl px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">Popular Brands Available</h2>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Popular Brands Available</h2>
           <Link href="/products" className="text-sm font-medium text-primary hover:underline">
             Browse All
           </Link>

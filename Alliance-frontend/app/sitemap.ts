@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { products } from "@/app/lib/mock-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://www.alliance.example";
+  const base = "https://www.autolink.example";
   const staticRoutes = ["", "/products"].map((path) => ({
     url: `${base}${path}`,
     lastModified: new Date(),

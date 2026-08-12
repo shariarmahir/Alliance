@@ -15,14 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Alliance — Industrial Electronics & Automation Parts", template: "%s | Alliance" },
+  title: { default: "AutoLink Integrated Technologies — Industrial Electronics & Automation Parts", template: "%s | AutoLink" },
   description:
-    "Alliance supplies PLCs, drives, servos, HMIs, and industrial automation components worldwide, shipped from Bangladesh.",
+    "AutoLink Integrated Technologies supplies PLCs, drives, servos, HMIs, and industrial automation components worldwide, shipped from Bangladesh.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-full flex-col">
         <Providers>
           {children}

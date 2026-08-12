@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronsLeft,
   ChevronsRight,
-  ShieldCheck,
   LayoutDashboard,
   Package,
   Boxes,
@@ -51,10 +51,14 @@ export function AdminSidebar({ items }: { items: AdminNavItem[] }) {
       )}
     >
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/20 ring-1 ring-sidebar-primary/40">
-          <ShieldCheck className="size-4 text-sidebar-primary" />
-        </div>
-        {!collapsed && <span className="truncate font-bold tracking-tight">Alliance Admin</span>}
+        <Image
+          src="/logo-mark.png"
+          alt="AutoLink"
+          width={32}
+          height={32}
+          className="size-8 shrink-0 object-contain"
+        />
+        {!collapsed && <span className="truncate font-bold tracking-tight">AutoLink Admin</span>}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">

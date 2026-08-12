@@ -79,7 +79,7 @@ export const reviews: Review[] = [
     author: "Rezaul Karim",
     country: "Bangladesh",
     rating: 5,
-    text: "Alliance sourced a discontinued Allen Bradley module for us within a week. Excellent communication throughout.",
+    text: "AutoLink sourced a discontinued Allen Bradley module for us within a week. Excellent communication throughout.",
   },
   {
     id: "rev-2",
@@ -126,7 +126,7 @@ export const faqs: FaqItem[] = [
   {
     question: "Do you ship internationally?",
     answer:
-      "Yes. Alliance ships worldwide from our Dhaka, Bangladesh facility via air and sea freight, with door-to-door courier options available for smaller orders.",
+      "Yes. AutoLink ships worldwide from our Dhaka, Bangladesh facility via air and sea freight, with door-to-door courier options available for smaller orders.",
   },
   {
     question: "How does the quotation process work?",

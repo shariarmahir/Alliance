@@ -8,7 +8,7 @@ import { formatPrice } from "@/app/lib/utils";
 import type { Order } from "@/app/lib/types";
 import { Card } from "@/app/components/ui/card";
 
-const ORDER_STORAGE_KEY = "alliance_order";
+const ORDER_STORAGE_KEY = "autolink_order";
 
 function buildInvoiceHtml(order: Order): string {
   const rows = order.items
@@ -20,7 +20,7 @@ function buildInvoiceHtml(order: Order): string {
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${order.orderNumber}</title>
     <style>body{font-family:Arial,sans-serif;color:#1e293b;padding:40px;max-width:800px;margin:auto}h1{color:#007DCC}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #e2e8f0;padding:10px;text-align:left;font-size:14px}th{background:#007DCC;color:#fff}.tot{text-align:right;font-weight:bold}.brand{font-size:26px;font-weight:800;color:#007DCC}</style></head><body>
-    <div class="brand">Alliance<span style="color:#FFB900">.</span></div><p>Uttara, Dhaka, Bangladesh · info@alliance.com · +8801713-116019</p>
+    <div class="brand">AutoLink<span style="color:#FFB900">.</span></div><p>Uttara, Dhaka, Bangladesh · info@autolink.com · +8801713-116019</p>
     <h1>Invoice</h1><p><b>Order:</b> ${order.orderNumber}<br><b>Tracking:</b> ${order.trackingId}<br><b>Date:</b> ${new Date(order.placedAt).toLocaleDateString()}</p>
     <p><b>Ship to:</b> ${order.address.name}, ${order.address.line} ${order.address.city}, ${order.address.country} · ${order.address.phone}</p>
     <table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>

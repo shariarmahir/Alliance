@@ -12,7 +12,7 @@ import { Card } from "@/app/components/ui/card";
 import { QuoteLineItem } from "@/app/components/quote-line-item";
 import { QuotationForm, type QuotationFormValues } from "@/app/components/quotation-form";
 
-const QUOTATION_STORAGE_KEY = "alliance_quotation";
+const QUOTATION_STORAGE_KEY = "autolink_quotation";
 
 const EMPTY_VALUES: QuotationFormValues = {
   fullName: "",

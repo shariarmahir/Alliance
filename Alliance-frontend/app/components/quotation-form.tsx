@@ -25,7 +25,7 @@ const CONTACT_METHODS: { id: ContactMethod; label: string }[] = [
 const LEAD_TIMES: { id: LeadTime; label: string; hint: string }[] = [
   { id: "standard", label: "Standard", hint: "No rush — within a few weeks" },
   { id: "urgent", label: "Urgent", hint: "Needed as soon as possible" },
-  { id: "flexible", label: "Flexible", hint: "Open to Alliance's recommendation" },
+  { id: "flexible", label: "Flexible", hint: "Open to AutoLink's recommendation" },
 ];
 
 export function QuotationForm({

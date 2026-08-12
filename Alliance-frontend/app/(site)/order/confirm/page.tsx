@@ -17,7 +17,7 @@ const OPTIONS: (DeliveryOption & { icon: typeof Truck })[] = [
   { id: "air", icon: Plane, name: "Priority Air Freight", eta: "1 – 3 business days", cost: 260 },
 ];
 
-const ORDER_STORAGE_KEY = "alliance_order";
+const ORDER_STORAGE_KEY = "autolink_order";
 
 function generateOrderNumber(): string {
   return `ALC-${Date.now().toString(36).toUpperCase()}`;
@@ -34,7 +34,7 @@ function defaultPreferredDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
-const QUOTATION_STORAGE_KEY = "alliance_quotation";
+const QUOTATION_STORAGE_KEY = "autolink_quotation";
 
 function defaultAddress(): DeliveryAddress {
   const fallback: DeliveryAddress = { name: "", line: "", city: "", country: "Bangladesh", phone: "" };

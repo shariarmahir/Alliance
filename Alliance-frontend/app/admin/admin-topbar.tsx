@@ -30,7 +30,11 @@ export function AdminTopbar({ session }: { session: AdminSession }) {
           </div>
           <DropdownMenuSeparator />
           <form action={logoutAction}>
-            <DropdownMenuItem variant="destructive" render={<button type="submit" className="w-full" />}>
+            <DropdownMenuItem
+              variant="destructive"
+              nativeButton
+              render={<button type="submit" className="w-full" />}
+            >
               <LogOut className="size-4" /> Log out
             </DropdownMenuItem>
           </form>

@@ -17,7 +17,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Emails</h1>
-        <p className="mt-1 text-sm text-muted-foreground">A preview of Alliance&apos;s shared inbox.</p>
+        <p className="mt-1 text-sm text-muted-foreground">A preview of AutoLink&apos;s shared inbox.</p>
       </div>
 
       <div className="flex items-start gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-secondary-foreground ring-1 ring-foreground/10">

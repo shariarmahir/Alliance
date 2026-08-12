@@ -13,7 +13,7 @@ type QuoteContextValue = {
   total: number;
 };
 
-const STORAGE_KEY = "alliance_quote";
+const STORAGE_KEY = "autolink_quote";
 const EMPTY: QuoteItem[] = [];
 
 const listeners = new Set<() => void>();

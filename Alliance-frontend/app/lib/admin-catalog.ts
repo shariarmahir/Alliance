@@ -130,7 +130,11 @@ export async function saveHeroImage(slot: number, filename: string, buffer: Buff
   const ext = path.extname(filename) || ".jpg";
   const finalName = `image${slot}${ext}`;
   await fs.writeFile(path.join(HERO_IMAGE_DIR, finalName), buffer);
-  const publicPath = `/images/hero/${finalName}`;
+  // Cache-bust: the filename is deterministic per slot, so replacing an image
+  // with the same extension produces an identical URL — the browser and
+  // Next's image optimizer would keep serving the old cached bytes without
+  // this query param changing on every upload.
+  const publicPath = `/images/hero/${finalName}?v=${Date.now()}`;
 
   const entries = await readHeroImages();
   const existing = entries.find((e) => e.slot === slot);
