@@ -53,7 +53,7 @@ export default async function AdminOverviewPage() {
           value={kpiStats.pendingQuotations.value.toString()}
           deltaPct={kpiStats.pendingQuotations.deltaPct}
           icon={FileClock}
-          tone="violet"
+          tone="terracotta"
         />
         <StatCard
           label="Active Clients"

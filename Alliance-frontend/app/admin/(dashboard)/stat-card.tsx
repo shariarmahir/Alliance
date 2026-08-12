@@ -2,13 +2,13 @@ import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 import { Card } from "@/app/components/ui/card";
 
-export type StatCardTone = "primary" | "accent" | "emerald" | "violet";
+export type StatCardTone = "primary" | "accent" | "emerald" | "terracotta";
 
 const TONE_STYLES: Record<StatCardTone, { top: string; iconBg: string; iconText: string }> = {
   primary: { top: "from-primary to-primary/40", iconBg: "bg-primary/10", iconText: "text-primary" },
   accent: { top: "from-accent to-accent/40", iconBg: "bg-accent/15", iconText: "text-accent-dark" },
   emerald: { top: "from-emerald-500 to-emerald-500/40", iconBg: "bg-emerald-500/10", iconText: "text-emerald-600" },
-  violet: { top: "from-violet-500 to-violet-500/40", iconBg: "bg-violet-500/10", iconText: "text-violet-600" },
+  terracotta: { top: "from-orange-700 to-orange-700/40", iconBg: "bg-orange-700/10", iconText: "text-orange-800" },
 };
 
 export function StatCard({

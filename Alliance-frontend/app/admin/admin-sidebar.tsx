@@ -151,7 +151,7 @@ export function AdminSidebar({ groups }: { groups: ResolvedNavGroup[] }) {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+        "sticky top-0 flex h-screen max-h-screen shrink-0 self-start flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
         collapsed ? "w-18" : "w-64"
       )}
     >

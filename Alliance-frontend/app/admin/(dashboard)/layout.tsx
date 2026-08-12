@@ -11,9 +11,9 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   if (!session) redirect("/admin/login");
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex h-screen overflow-hidden bg-muted/30">
       <AdminSidebar groups={navGroupsForRole(session.role)} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <AdminTopbar session={session} />
         <main className="flex-1 p-6">{children}</main>
       </div>
