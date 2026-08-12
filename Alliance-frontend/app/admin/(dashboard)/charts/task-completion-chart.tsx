@@ -79,7 +79,14 @@ export function TaskCompletionChart({ tasks }: { tasks: Task[] }) {
                   fontSize: 13,
                 }}
               />
-              <Bar dataKey="completed" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="completed"
+                fill="var(--color-chart-2)"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

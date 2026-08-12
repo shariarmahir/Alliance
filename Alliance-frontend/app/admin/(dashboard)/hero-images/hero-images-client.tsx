@@ -50,7 +50,7 @@ function HeroSlotCard({ slot, path, onChanged }: { slot: number; path: string | 
   const displaySrc = preview ?? path;
 
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="overflow-hidden p-0 transition-all duration-200 hover:shadow-md">
       <div className="relative aspect-[420/480] w-full bg-muted sm:aspect-[16/9]">
         {displaySrc ? (
           <Image src={displaySrc} alt={`Hero slot ${slot}`} fill sizes="(min-width: 640px) 33vw, 100vw" className="object-cover" />

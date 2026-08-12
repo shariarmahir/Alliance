@@ -48,14 +48,14 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
   }
 
   return (
-    <tr className="bg-card">
+    <tr className="bg-card transition-colors duration-200 hover:bg-muted/50">
       <td className="px-4 py-3 font-medium text-foreground">{order.orderNumber}</td>
       <td className="px-4 py-3 text-muted-foreground">{order.address.name}</td>
       <td className="px-4 py-3 text-muted-foreground">{order.items.length}</td>
       <td className="px-4 py-3 font-medium text-foreground">{formatPrice(order.grandTotal)}</td>
       <td className="px-4 py-3 text-muted-foreground">{new Date(order.placedAt).toLocaleDateString()}</td>
       <td className="px-4 py-3">
-        <Badge variant={STATUS_BADGE[order.status].variant}>{STATUS_BADGE[order.status].label}</Badge>
+        <Badge variant={STATUS_BADGE[order.status].variant} className="transition-colors duration-200">{STATUS_BADGE[order.status].label}</Badge>
       </td>
       <td className="px-4 py-3">
         {order.status === "pending" && (

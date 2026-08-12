@@ -46,7 +46,7 @@ function StockRow({ product, categoryName, onChanged }: { product: Product; cate
   const step = Math.max(1, Number(stepQty) || 1);
 
   return (
-    <tr className="bg-card">
+    <tr className="bg-card transition-colors duration-200 hover:bg-muted/50">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -62,7 +62,7 @@ function StockRow({ product, categoryName, onChanged }: { product: Product; cate
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{product.stockQty}</span>
-          <Badge variant={STOCK_BADGE[product.stock].variant}>{STOCK_BADGE[product.stock].label}</Badge>
+          <Badge variant={STOCK_BADGE[product.stock].variant} className="transition-colors duration-200">{STOCK_BADGE[product.stock].label}</Badge>
         </div>
       </td>
       <td className="px-4 py-3">

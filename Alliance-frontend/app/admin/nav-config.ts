@@ -22,6 +22,9 @@ export type AdminNavItem = {
   enabled: boolean; // false = visible but inert ("coming soon"), later phases enable it
 };
 
+// Flat source of truth for every route + its RBAC roles. Unchanged from
+// Phase 1-4 — DO NOT rename/remove hrefs here without also updating
+// proxy.ts's SUB_ADMIN_ALLOWED_PREFIXES/EXACT to match.
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Overview", href: "/admin", icon: "overview", roles: ["super"], enabled: true },
   { label: "Products", href: "/admin/products", icon: "products", roles: ["super", "sub"], enabled: true },
@@ -39,4 +42,55 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 
 export function navItemsForRole(role: AdminRole): AdminNavItem[] {
   return ADMIN_NAV_ITEMS.filter((item) => item.roles.includes(role));
+}
+
+// Presentation layer only: groups the flat ADMIN_NAV_ITEMS (by href) into the
+// fewer top-level sidebar sections from the redesign. No route paths change —
+// this only changes how existing items are visually organized/collapsed.
+// A group with a single href behaves as a direct link (no expand/collapse);
+// a group with multiple hrefs renders as a collapsible section whose visible
+// children are still filtered by the same per-item `roles` as before, so
+// RBAC is enforced identically to the old flat list.
+export type AdminNavGroup = {
+  label: string;
+  icon: AdminNavIcon;
+  hrefs: string[];
+};
+
+export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
+  { label: "Overview", icon: "overview", hrefs: ["/admin"] },
+  { label: "Products & Stock", icon: "products", hrefs: ["/admin/products", "/admin/stock"] },
+  { label: "Orders", icon: "orders", hrefs: ["/admin/orders"] },
+  { label: "Quotations", icon: "quotations", hrefs: ["/admin/quotations"] },
+  {
+    label: "Employees & Leave",
+    icon: "employees",
+    hrefs: ["/admin/employees", "/admin/tasks", "/admin/leave", "/admin/daily-report"],
+  },
+  {
+    label: "Hero & Settings",
+    icon: "hero-images",
+    hrefs: ["/admin/hero-images", "/admin/contact-requests", "/admin/emails"],
+  },
+];
+
+export type ResolvedNavGroup = {
+  label: string;
+  icon: AdminNavIcon;
+  items: AdminNavItem[];
+};
+
+// Resolves the presentation groups against the role-filtered flat item list,
+// dropping any group that ends up with zero visible items for this role (a
+// role can never see an empty section) and preserving ADMIN_NAV_ITEMS order
+// within each group.
+export function navGroupsForRole(role: AdminRole): ResolvedNavGroup[] {
+  const visible = navItemsForRole(role);
+  const byHref = new Map(visible.map((item) => [item.href, item]));
+
+  return ADMIN_NAV_GROUPS.map((group) => ({
+    label: group.label,
+    icon: group.icon,
+    items: group.hrefs.map((href) => byHref.get(href)).filter((item): item is AdminNavItem => Boolean(item)),
+  })).filter((group) => group.items.length > 0);
 }

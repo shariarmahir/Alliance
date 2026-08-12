@@ -70,6 +70,9 @@ export function RevenueChart() {
                 strokeWidth={2}
                 fill="url(#revenueFill)"
                 activeDot={{ r: 5 }}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>

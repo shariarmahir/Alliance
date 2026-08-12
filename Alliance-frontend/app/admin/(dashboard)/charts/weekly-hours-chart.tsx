@@ -50,7 +50,14 @@ export function WeeklyHoursChart({ reports }: { reports: DailyReport[] }) {
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
               <YAxis tickLine={false} axisLine={false} width={32} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
               <Tooltip content={<HoursTooltip />} cursor={{ fill: "var(--color-muted)" }} />
-              <Bar dataKey="hours" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="hours"
+                fill="var(--color-chart-1)"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

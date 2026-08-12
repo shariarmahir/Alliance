@@ -13,12 +13,18 @@ import {
 
 export function AdminTopbar({ session }: { session: AdminSession }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-4 border-b border-border bg-background/80 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-4 border-b border-border bg-background/80 px-6 shadow-sm backdrop-blur-md">
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-muted">
-          <UserCircle className="size-5 text-muted-foreground" />
+        <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors duration-200 hover:bg-muted">
+          <UserCircle className="size-5 text-primary" />
           <span className="max-w-[140px] truncate">{session.name}</span>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-secondary-foreground">
+          <span
+            className={
+              session.role === "super"
+                ? "rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary"
+                : "rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent-dark"
+            }
+          >
             {session.role === "super" ? "Super Admin" : "Sub Admin"}
           </span>
           <ChevronDown className="size-3.5 text-muted-foreground" />

@@ -52,7 +52,7 @@ function RosterTab({ employees }: { employees: Employee[] }) {
             </thead>
             <tbody className="divide-y divide-border">
               {employees.map((e) => (
-                <tr key={e.id} className="bg-card">
+                <tr key={e.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
                   <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{e.employeeIdNumber}</td>
                   <td className="px-4 py-3 text-muted-foreground">{DESIGNATION_LABEL[e.designation]}</td>
@@ -129,12 +129,12 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }
             </thead>
             <tbody className="divide-y divide-border">
               {sorted.map((t) => (
-                <tr key={t.id} className="bg-card">
+                <tr key={t.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
                   <td className="px-4 py-3 font-medium text-foreground">{t.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{employeeName(t.assigneeEmployeeId)}</td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={TASK_STATUS_BADGE[t.status].variant}>{TASK_STATUS_BADGE[t.status].label}</Badge>
+                    <Badge variant={TASK_STATUS_BADGE[t.status].variant} className="transition-colors duration-200">{TASK_STATUS_BADGE[t.status].label}</Badge>
                   </td>
                 </tr>
               ))}
@@ -175,7 +175,7 @@ function ReportsTab({ reports, requests, employees }: { reports: DailyReport[]; 
               </thead>
               <tbody className="divide-y divide-border">
                 {sorted.map((r) => (
-                  <tr key={r.id} className="bg-card">
+                  <tr key={r.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
                     <td className="px-4 py-3 text-muted-foreground">{new Date(r.date).toLocaleDateString()}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{employeeName(r.employeeId)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.hoursWorked}h</td>

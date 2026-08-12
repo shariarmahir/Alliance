@@ -16,7 +16,9 @@ export default async function AdminLoginPage() {
           <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/20 ring-1 ring-primary/40">
             <ShieldCheck className="size-6 text-primary" />
           </div>
-          <h1 className="text-xl font-bold text-white">Alliance Admin</h1>
+          <h1 className="text-xl font-bold text-white">
+            AutoLink<span className="text-accent">.</span> Admin
+          </h1>
           <p className="mt-1 text-sm text-white/50">Sign in to manage operations</p>
         </div>
         <LoginForm />

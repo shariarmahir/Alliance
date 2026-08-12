@@ -31,6 +31,9 @@ export function OrderRatioChart() {
                 paddingAngle={3}
                 strokeWidth={2}
                 stroke="var(--color-card)"
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
               >
                 {orderRatio.map((slice) => (
                   <Cell key={slice.status} fill={STATUS_META[slice.status].color} />

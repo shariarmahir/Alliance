@@ -146,7 +146,7 @@ function QuotationRow({ quotation, onChanged }: { quotation: Quotation; onChange
   }
 
   return (
-    <tr className="bg-card">
+    <tr className="bg-card transition-colors duration-200 hover:bg-muted/50">
       <td className="px-4 py-3 font-medium text-foreground">{quotation.details.fullName}</td>
       <td className="px-4 py-3 text-muted-foreground">{quotation.details.companyName}</td>
       <td className="px-4 py-3 text-muted-foreground">{quotation.items.length}</td>
@@ -155,7 +155,7 @@ function QuotationRow({ quotation, onChanged }: { quotation: Quotation; onChange
         {new Date(quotation.details.submittedAt).toLocaleDateString()}
       </td>
       <td className="px-4 py-3">
-        <Badge variant={STATUS_BADGE[quotation.status].variant}>{STATUS_BADGE[quotation.status].label}</Badge>
+        <Badge variant={STATUS_BADGE[quotation.status].variant} className="transition-colors duration-200">{STATUS_BADGE[quotation.status].label}</Badge>
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">

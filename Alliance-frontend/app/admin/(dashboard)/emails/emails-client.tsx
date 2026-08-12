@@ -44,7 +44,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium text-foreground">{email.from}</p>
-                  <Badge variant={email.status === "pending" ? "default" : "secondary"} className="shrink-0">
+                  <Badge variant={email.status === "pending" ? "default" : "secondary"} className="shrink-0 transition-colors duration-200">
                     {email.status === "pending" ? "Pending" : "Received"}
                   </Badge>
                 </div>
@@ -68,7 +68,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
                       {new Date(selected.receivedAt).toLocaleString()}
                     </p>
                   </div>
-                  <Badge variant={selected.status === "pending" ? "default" : "secondary"}>
+                  <Badge variant={selected.status === "pending" ? "default" : "secondary"} className="transition-colors duration-200">
                     {selected.status === "pending" ? "Pending" : "Received"}
                   </Badge>
                 </div>

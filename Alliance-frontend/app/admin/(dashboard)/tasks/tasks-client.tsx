@@ -56,7 +56,7 @@ function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 transition-all duration-200 hover:shadow-md">
       <p className="font-medium text-foreground">{task.title}</p>
       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
       <p className="mt-2 text-xs text-muted-foreground">Due {new Date(task.dueDate).toLocaleDateString()}</p>
@@ -90,7 +90,7 @@ export function TasksClient({ initialTasks }: { initialTasks: Task[] }) {
             <div key={col.status} className="space-y-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-foreground">{col.label}</h2>
-                <Badge variant="secondary">{tasks.length}</Badge>
+                <Badge variant="secondary" className="transition-colors duration-200">{tasks.length}</Badge>
               </div>
               {tasks.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-foreground/15 p-6 text-center text-xs text-muted-foreground">

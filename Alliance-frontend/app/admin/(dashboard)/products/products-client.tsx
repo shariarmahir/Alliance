@@ -73,7 +73,7 @@ export function ProductsClient({
               </thead>
               <tbody className="divide-y divide-border">
                 {products.map((p) => (
-                  <tr key={p.slug} className="bg-card">
+                  <tr key={p.slug} className="bg-card transition-colors duration-200 hover:bg-muted/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -90,7 +90,7 @@ export function ProductsClient({
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-foreground">{p.stockQty}</span>
-                        <Badge variant={STOCK_BADGE[p.stock].variant}>{STOCK_BADGE[p.stock].label}</Badge>
+                        <Badge variant={STOCK_BADGE[p.stock].variant} className="transition-colors duration-200">{STOCK_BADGE[p.stock].label}</Badge>
                       </div>
                     </td>
                   </tr>
