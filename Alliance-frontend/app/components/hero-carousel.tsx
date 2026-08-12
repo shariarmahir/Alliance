@@ -32,7 +32,7 @@ export function HeroCarousel() {
   const heroImages = readHeroImages().sort((a, b) => a.slot - b.slot);
   const slides = SLIDE_COPY.map((copy, i) => ({
     ...copy,
-    image: heroImages[i]?.path ?? "/images/hero/hero1.svg",
+    image: heroImages[i]?.path ?? "/images/hero/image1.jpg",
   }));
 
   return <HeroCarouselClient slides={slides} />;

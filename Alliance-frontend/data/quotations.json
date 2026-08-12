@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "25c31869-2941-4f85-92b7-39fe80abb0cc",
+    "items": [
+      {
+        "slug": "1756-l61",
+        "partNumber": "1756-L61",
+        "name": "ControlLogix 5561 Processor Module",
+        "brand": "allen-bradley",
+        "image": "/images/products/plcs-machine-control.svg",
+        "price": 3450,
+        "quantity": 1
+      }
+    ],
+    "total": 3450,
+    "details": {
+      "fullName": "Mahir Shariar Mahin Mahir",
+      "email": "itallinyou.justdoit@gmail.com",
+      "phone": "01521444725",
+      "jobTitle": "",
+      "companyName": "Mahir",
+      "country": "Bangladesh",
+      "taxId": "",
+      "companyWebsite": "",
+      "preferredContact": "email",
+      "leadTime": "standard",
+      "notes": "",
+      "submittedAt": "2026-08-12T00:50:09.822Z"
+    },
+    "status": "pending"
+  }
+]

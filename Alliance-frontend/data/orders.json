@@ -1,1 +1,33 @@
-[]
+[
+  {
+    "orderNumber": "ALC-MSPDHNEU",
+    "trackingId": "TRK165742BD",
+    "items": [
+      {
+        "slug": "1756-l61",
+        "partNumber": "1756-L61",
+        "name": "ControlLogix 5561 Processor Module",
+        "brand": "allen-bradley",
+        "image": "/images/products/plcs-machine-control.svg",
+        "price": 3450,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 3450,
+    "shippingCost": 140,
+    "grandTotal": 3590,
+    "deliveryOption": "express",
+    "deliveryOptionName": "Express Courier",
+    "deliveryEta": "3 – 5 business days",
+    "preferredDate": "2026-08-17",
+    "address": {
+      "name": "Mahir Shariar Mahin Mahir",
+      "line": "Kazipara,135/2 house , road no-9 , dhaka , bangladesh",
+      "city": "Dhaka",
+      "country": "Bangladesh",
+      "phone": "01521444725"
+    },
+    "placedAt": "2026-08-12T00:50:28.422Z",
+    "status": "pending"
+  }
+]
