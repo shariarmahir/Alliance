@@ -14,7 +14,9 @@ export default async function AdminLoginPage() {
       <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
         <div className="mb-6 flex flex-col items-center text-center">
           <Image src="/logo-mark.png" alt="AutoLink" width={56} height={56} className="mb-3 size-14 object-contain" />
-          <h1 className="text-xl font-bold text-white">AutoLink Admin</h1>
+          <h1 className="text-xl font-bold text-white">
+            AutoLink<span className="text-accent">.</span> Admin
+          </h1>
           <p className="mt-1 text-sm text-white/50">Sign in to manage operations</p>
         </div>
         <LoginForm />

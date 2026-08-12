@@ -59,7 +59,14 @@ export function LeaveDaysChart({ requests, employees }: { requests: LeaveRequest
                     fontSize: 13,
                   }}
                 />
-                <Bar dataKey="days" fill="var(--color-chart-4)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="days"
+                  fill="var(--color-chart-4)"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive
+                  animationDuration={700}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -39,24 +39,28 @@ export default async function AdminOverviewPage() {
           value={formatPrice(kpiStats.totalRevenue.value)}
           deltaPct={kpiStats.totalRevenue.deltaPct}
           icon={DollarSign}
+          tone="primary"
         />
         <StatCard
           label="Orders This Month"
           value={kpiStats.ordersThisMonth.value.toString()}
           deltaPct={kpiStats.ordersThisMonth.deltaPct}
           icon={ShoppingCart}
+          tone="accent"
         />
         <StatCard
           label="Pending Quotations"
           value={kpiStats.pendingQuotations.value.toString()}
           deltaPct={kpiStats.pendingQuotations.deltaPct}
           icon={FileClock}
+          tone="violet"
         />
         <StatCard
           label="Active Clients"
           value={kpiStats.activeClients.value.toString()}
           deltaPct={kpiStats.activeClients.deltaPct}
           icon={Users2}
+          tone="emerald"
         />
       </div>
 

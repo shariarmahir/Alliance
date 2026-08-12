@@ -36,7 +36,15 @@ export function TrafficChart() {
                   fontSize: 13,
                 }}
               />
-              <Bar dataKey="orders" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} maxBarSize={44} />
+              <Bar
+                dataKey="orders"
+                fill="var(--color-chart-3)"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={44}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

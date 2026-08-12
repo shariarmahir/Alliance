@@ -35,7 +35,15 @@ export function CountryChart() {
                   fontSize: 13,
                 }}
               />
-              <Bar dataKey="orders" fill="var(--color-chart-1)" radius={[0, 4, 4, 0]} maxBarSize={18}>
+              <Bar
+                dataKey="orders"
+                fill="var(--color-chart-1)"
+                radius={[0, 4, 4, 0]}
+                maxBarSize={18}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
+              >
                 <LabelList dataKey="orders" position="right" fill="var(--color-foreground)" fontSize={12} />
               </Bar>
             </BarChart>
