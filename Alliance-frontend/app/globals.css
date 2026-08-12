@@ -187,14 +187,14 @@ body {
   --chart-5: #f43f5e;
   --chart-6: #0ea5e9;
   --radius: 0.625rem;
-  --sidebar: #19222e;
-  --sidebar-foreground: #e7ebef;
-  --sidebar-primary: #008ee6;
+  --sidebar: #ffb900;
+  --sidebar-foreground: #3d2c00;
+  --sidebar-primary: #10192d;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2a3646;
+  --sidebar-accent: #cc9400;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2a3646;
-  --sidebar-ring: #008ee6;
+  --sidebar-border: #e6a800;
+  --sidebar-ring: #10192d;
 }
 
 @layer base {

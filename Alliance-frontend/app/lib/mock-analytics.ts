@@ -42,6 +42,34 @@ export const orderRatio: OrderRatioSlice[] = [
   { status: "cancelled", count: 24 },
 ];
 
+export const orderCountWeekly: RevenuePoint[] = [
+  { label: "Mon", value: 12 },
+  { label: "Tue", value: 18 },
+  { label: "Wed", value: 15 },
+  { label: "Thu", value: 22 },
+  { label: "Fri", value: 27 },
+  { label: "Sat", value: 19 },
+  { label: "Sun", value: 8 },
+];
+
+export const orderCountMonthly: RevenuePoint[] = [
+  { label: "Jan", value: 142 },
+  { label: "Feb", value: 128 },
+  { label: "Mar", value: 165 },
+  { label: "Apr", value: 151 },
+  { label: "May", value: 178 },
+  { label: "Jun", value: 196 },
+  { label: "Jul", value: 184 },
+  { label: "Aug", value: 214 },
+];
+
+export const orderCountYearly: RevenuePoint[] = [
+  { label: "2022", value: 1180 },
+  { label: "2023", value: 1540 },
+  { label: "2024", value: 1820 },
+  { label: "2025", value: 2140 },
+];
+
 export const clientsByCountry: CountryBreakdown[] = [
   { country: "Bangladesh", orders: 86 },
   { country: "United Arab Emirates", orders: 41 },

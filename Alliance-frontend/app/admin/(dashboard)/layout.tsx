@@ -2,8 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
 import { navGroupsForRole } from "@/app/admin/nav-config";
-import { AdminSidebar } from "@/app/admin/admin-sidebar";
-import { AdminTopbar } from "@/app/admin/admin-topbar";
+import { AdminShell } from "@/app/admin/admin-shell";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -11,12 +10,8 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   if (!session) redirect("/admin/login");
 
   return (
-    <div className="flex h-screen overflow-hidden bg-muted/30">
-      <AdminSidebar groups={navGroupsForRole(session.role)} />
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <AdminTopbar session={session} />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
+    <AdminShell groups={navGroupsForRole(session.role)} session={session}>
+      {children}
+    </AdminShell>
   );
 }

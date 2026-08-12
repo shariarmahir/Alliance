@@ -39,7 +39,7 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
 
   return (
     <>
-      <section className="relative aspect-16/6 w-full overflow-hidden bg-slate-900">
+      <section className="relative aspect-auto min-h-140 w-full overflow-hidden bg-slate-900 sm:aspect-16/6 sm:min-h-0">
         {slides.map((slide, i) => (
           <div
             key={i}
@@ -49,40 +49,40 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
             <div className="absolute inset-0 bg-primary/60" />
             <div className="absolute inset-0 bg-linear-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
 
-            <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-center px-4">
-              <span className="mb-4 w-fit rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+            <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-center px-4 py-6 sm:py-0">
+              <span className="mb-3 w-fit rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm sm:mb-4 sm:px-3 sm:text-[11px]">
                 Ships Worldwide From Bangladesh
               </span>
-              <h1 className="mb-4 max-w-2xl text-3xl font-extrabold leading-tight sm:text-5xl">
+              <h1 className="mb-3 max-w-2xl text-2xl font-extrabold leading-tight sm:mb-4 sm:text-3xl md:text-5xl">
                 <span className="block text-white">{slide.headlineLine1}</span>
                 <span className="block text-accent">{slide.headlineLine2}</span>
               </h1>
-              <p className="mb-6 max-w-xl text-sm text-slate-200 sm:text-base">{slide.subheadline}</p>
+              <p className="mb-4 max-w-xl text-xs text-slate-200 sm:mb-6 sm:text-sm md:text-base">{slide.subheadline}</p>
 
-              <form onSubmit={submit} className="mb-6 flex w-full max-w-xl">
+              <form onSubmit={submit} className="mb-4 flex w-full max-w-xl flex-col gap-2 sm:mb-6 sm:flex-row sm:gap-0">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search 50,000+ parts by number or brand..."
-                  className="h-12 w-full rounded-l-md border-0 bg-white px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  className="h-11 w-full min-w-0 rounded-md border-0 bg-white px-4 text-sm text-slate-900 outline-none placeholder:text-slate-400 sm:h-12 sm:rounded-l-md sm:rounded-r-none"
                 />
                 <button
                   type="submit"
-                  className="btn-glass-accent flex h-12 items-center gap-2 rounded-l-none rounded-r-md px-5"
+                  className="btn-glass-accent flex h-11 shrink-0 items-center justify-center gap-2 rounded-md px-5 sm:h-12 sm:rounded-l-none sm:rounded-r-md"
                 >
                   <Search className="size-4" /> Search
                 </button>
               </form>
 
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div className="flex flex-wrap gap-x-6 gap-y-2.5 sm:gap-x-8 sm:gap-y-3">
                 {FEATURES.map((f) => (
-                  <div key={f.title} className="flex items-center gap-2.5">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
-                      <f.icon className="size-4 text-accent" />
+                  <div key={f.title} className="flex items-center gap-2 sm:gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20 sm:size-9">
+                      <f.icon className="size-3.5 text-accent sm:size-4" />
                     </span>
                     <div className="leading-tight">
-                      <p className="text-xs font-semibold text-white">{f.title}</p>
-                      <p className="text-[11px] text-slate-300">{f.text}</p>
+                      <p className="text-[11px] font-semibold text-white sm:text-xs">{f.title}</p>
+                      <p className="hidden text-[11px] text-slate-300 sm:block">{f.text}</p>
                     </div>
                   </div>
                 ))}
@@ -91,25 +91,25 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
           </div>
         ))}
 
-        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2 sm:bottom-6">
           {slides.map((_, i) => (
             <button
               key={i}
               type="button"
               aria-label={`Go to slide ${i + 1}`}
               onClick={() => setActive(i)}
-              className={`h-2 rounded-full transition-all ${i === active ? "w-6 bg-accent" : "w-2 bg-white/50"}`}
+              className={`h-1.5 rounded-full transition-all sm:h-2 ${i === active ? "w-5 bg-accent sm:w-6" : "w-1.5 bg-white/50 sm:w-2"}`}
             />
           ))}
         </div>
       </section>
 
       <div className="bg-primary">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 py-8 sm:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-6 sm:gap-6 sm:py-8 md:grid-cols-4">
           {STATS.map((s) => (
             <div key={s.label} className="text-center">
-              <p className="text-3xl font-extrabold text-accent sm:text-4xl">{s.value}</p>
-              <p className="mt-1 text-xs font-medium text-white/80 sm:text-sm">{s.label}</p>
+              <p className="text-xl font-extrabold text-accent sm:text-3xl md:text-4xl">{s.value}</p>
+              <p className="mt-1 text-[11px] font-medium text-white/80 sm:text-xs md:text-sm">{s.label}</p>
             </div>
           ))}
         </div>

@@ -14,12 +14,32 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-5">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required autoComplete="username" placeholder="you@autolink.com" />
+        <Label htmlFor="email" className="text-slate-700">
+          Email
+        </Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="username"
+          placeholder="you@autolink.com"
+          className="h-11 border-slate-300 bg-white px-3.5 text-slate-900 placeholder:text-slate-400"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" required autoComplete="current-password" placeholder="••••••••" />
+        <Label htmlFor="password" className="text-slate-700">
+          Password
+        </Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+          className="h-11 border-slate-300 bg-white px-3.5 text-slate-900 placeholder:text-slate-400"
+        />
       </div>
 
       {state.error ? (

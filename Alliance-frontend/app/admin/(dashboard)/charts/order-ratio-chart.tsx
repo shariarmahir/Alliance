@@ -1,75 +1,68 @@
 "use client";
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { orderRatio } from "@/app/lib/mock-analytics";
-import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { useState } from "react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { orderCountWeekly, orderCountMonthly, orderCountYearly } from "@/app/lib/mock-analytics";
+import { Card, CardHeader, CardTitle, CardContent, CardAction } from "@/app/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/app/components/ui/chart";
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  confirmed: { label: "Confirmed", color: "var(--color-chart-3)" },
-  pending: { label: "Pending", color: "var(--color-chart-1)" },
-  cancelled: { label: "Cancelled", color: "var(--color-chart-5)" },
+type Range = "weekly" | "monthly" | "yearly";
+
+const DATA: Record<Range, typeof orderCountWeekly> = {
+  weekly: orderCountWeekly,
+  monthly: orderCountMonthly,
+  yearly: orderCountYearly,
 };
 
+const chartConfig = {
+  value: {
+    label: "Orders",
+    color: "var(--color-accent)",
+  },
+} satisfies ChartConfig;
+
 export function OrderRatioChart() {
-  const total = orderRatio.reduce((sum, s) => sum + s.count, 0);
+  const [range, setRange] = useState<Range>("weekly");
+  const data = DATA[range];
 
   return (
     <Card className="p-6">
       <CardHeader className="px-0">
-        <CardTitle className="text-base">Order Status Ratio</CardTitle>
+        <CardTitle className="text-base">Order Ratio</CardTitle>
+        <CardAction>
+          <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>
+            <TabsList>
+              <TabsTrigger value="weekly">Weekly</TabsTrigger>
+              <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly">Yearly</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardAction>
       </CardHeader>
       <CardContent className="px-0">
-        <div className="relative h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={orderRatio}
-                dataKey="count"
-                nameKey="status"
-                innerRadius={64}
-                outerRadius={92}
-                paddingAngle={3}
-                strokeWidth={2}
-                stroke="var(--color-card)"
-                isAnimationActive
-                animationDuration={700}
-                animationEasing="ease-out"
-              >
-                {orderRatio.map((slice) => (
-                  <Cell key={slice.status} fill={STATUS_META[slice.status].color} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value, _name, item) => [
-                  `${value} orders`,
-                  STATUS_META[item.payload.status as string].label,
-                ]}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-popover)",
-                  fontSize: 13,
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-foreground">{total}</span>
-            <span className="text-xs text-muted-foreground">Total Orders</span>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-4">
-          {orderRatio.map((slice) => (
-            <div key={slice.status} className="flex items-center gap-1.5 text-sm">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: STATUS_META[slice.status].color }}
-              />
-              <span className="text-muted-foreground">{STATUS_META[slice.status].label}</span>
-              <span className="font-semibold text-foreground">{slice.count}</span>
-            </div>
-          ))}
-        </div>
+        <ChartContainer config={chartConfig} className="aspect-auto h-64 w-full">
+          <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
+            <YAxis tickLine={false} axisLine={false} width={32} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
+            <ChartTooltip cursor={{ fill: "var(--color-accent)", fillOpacity: 0.08 }} content={<ChartTooltipContent />} />
+            <Bar
+              dataKey="value"
+              fill="var(--color-accent)"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={40}
+              isAnimationActive
+              animationDuration={700}
+              animationEasing="ease-out"
+            />
+          </BarChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

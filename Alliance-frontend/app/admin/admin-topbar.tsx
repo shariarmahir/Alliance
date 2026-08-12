@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, LogOut, UserCircle } from "lucide-react";
+import { ChevronDown, LogOut, Menu, UserCircle } from "lucide-react";
 import type { AdminSession } from "@/app/lib/types";
 import { logoutAction } from "./login/actions";
 import {
@@ -11,9 +11,18 @@ import {
   DropdownMenuSeparator,
 } from "@/app/components/ui/dropdown-menu";
 
-export function AdminTopbar({ session }: { session: AdminSession }) {
+export function AdminTopbar({ session, onOpenMobile }: { session: AdminSession; onOpenMobile: () => void }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-4 border-b border-border bg-background/80 px-6 shadow-sm backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 shadow-sm backdrop-blur-md sm:px-6 lg:justify-end">
+      <button
+        type="button"
+        onClick={onOpenMobile}
+        aria-label="Open menu"
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted lg:hidden"
+      >
+        <Menu className="size-5" />
+      </button>
+
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors duration-200 hover:bg-muted">
           <UserCircle className="size-5 text-primary" />
