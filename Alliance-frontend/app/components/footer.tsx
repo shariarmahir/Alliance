@@ -5,7 +5,7 @@ import { categories } from "@/app/lib/mock-data";
 export function Footer() {
   return (
     <footer className="mt-16 bg-primary text-white/80">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 md:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 md:grid-cols-5">
         <div>
           <div className="text-2xl font-extrabold tracking-tight text-white">
             AutoLink<span className="text-accent">.</span>
@@ -62,6 +62,26 @@ export function Footer() {
               <a href="tel:+8801713116019" className="hover:text-accent">+8801713-116019</a>
             </li>
           </ul>
+        </div>
+
+        <div>
+          <h4 className="mb-4 font-semibold text-white">Stock &amp; Price Alerts</h4>
+          <p className="mb-3 text-sm text-white/70">
+            New arrivals and obsolete finds, once a month. No resellers.
+          </p>
+          <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
+            <input
+              type="email"
+              placeholder="Work email"
+              className="min-w-0 flex-1 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-md bg-accent px-3 py-2 text-sm font-bold text-slate-900 hover:bg-accent-dark"
+            >
+              Join
+            </button>
+          </form>
         </div>
       </div>
 
