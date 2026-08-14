@@ -69,7 +69,7 @@ export function Footer() {
           <p className="mb-3 text-sm text-white/70">
             New arrivals and obsolete finds, once a month. No resellers.
           </p>
-          <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex gap-2">
             <input
               type="email"
               placeholder="Work email"
