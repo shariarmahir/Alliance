@@ -41,6 +41,58 @@
   text-transform: uppercase;
 }
 
+/* Slim scrollbar for scroll areas on the dark navy rail/drawer. The OS default
+   paints a wide light track that reads as a seam against #0d1626. Firefox gets
+   the standard properties; WebKit/Blink need the pseudo-elements. The track is
+   transparent so the rail colour shows through, and the thumb only gains
+   contrast on hover. */
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+
+.scrollbar-dark::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.18);
+  border-radius: 3px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.32);
+}
+
+/* Matching treatment for light scroll areas (email list, long tables). */
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(16 25 45 / 0.2) transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background-color: rgb(16 25 45 / 0.2);
+  border-radius: 3px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(16 25 45 / 0.35);
+}
+
 html {
   overflow-x: hidden;
 }

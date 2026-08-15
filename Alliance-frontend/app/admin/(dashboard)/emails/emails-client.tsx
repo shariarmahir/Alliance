@@ -44,7 +44,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
         <EmptyState>No emails to show.</EmptyState>
       ) : (
         <Panel className="grid overflow-hidden lg:grid-cols-[340px_1fr]">
-          <div className="max-h-128 overflow-y-auto border-b border-slate-line lg:max-h-144 lg:border-b-0 lg:border-r">
+          <div className="scrollbar-slim max-h-128 overflow-y-auto border-b border-slate-line lg:max-h-144 lg:border-b-0 lg:border-r">
             {sorted.map((email) => {
               const active = selectedId === email.id;
               const unread = email.status === "pending";

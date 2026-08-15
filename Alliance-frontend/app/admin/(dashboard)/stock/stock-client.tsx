@@ -212,7 +212,7 @@ export function StockClient({
         <EmptyState>No products in this view.</EmptyState>
       ) : (
         <Panel className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="scrollbar-slim overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <thead className="bg-surface">
                 <tr>

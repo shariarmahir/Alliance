@@ -62,7 +62,7 @@ function RosterTab({
             No employees yet. Add one to get started.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="scrollbar-slim overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <thead className="bg-surface">
                 <tr>
@@ -161,7 +161,7 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }
           No tasks in this view yet.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
+        <div className="scrollbar-slim overflow-x-auto rounded-[10px] border border-slate-line bg-white">
           <table className="w-full text-[12.5px]">
             <thead className="bg-surface">
               <tr>
@@ -219,7 +219,7 @@ function ReportsTab({
           No daily reports submitted yet.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
+        <div className="scrollbar-slim overflow-x-auto rounded-[10px] border border-slate-line bg-white">
           <table className="w-full text-[12.5px]">
             <thead className="bg-surface">
               <tr>

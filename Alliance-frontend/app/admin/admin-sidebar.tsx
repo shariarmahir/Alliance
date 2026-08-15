@@ -231,7 +231,7 @@ export function AdminSidebar({
             desktop rail keeps its tighter rhythm. */}
         <nav
           className={cn(
-            "flex-1 space-y-0.5 overflow-y-auto px-3 py-4",
+            "scrollbar-dark flex-1 space-y-0.5 overflow-y-auto px-3 py-4",
             drawerOnly
               ? "[&_a]:min-h-12 [&_a]:text-sm [&_button]:min-h-12 [&_button]:text-sm"
               : "max-lg:[&_a]:min-h-12 max-lg:[&_a]:text-sm max-lg:[&_button]:min-h-12 max-lg:[&_button]:text-sm"

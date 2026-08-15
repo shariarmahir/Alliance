@@ -38,7 +38,7 @@ export async function PendingQuotationsPanel() {
           No price requests waiting. Everything is quoted.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="scrollbar-slim overflow-x-auto">
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-surface">
