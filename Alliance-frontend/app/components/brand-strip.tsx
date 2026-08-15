@@ -17,7 +17,7 @@ export function BrandStrip() {
             <Link
               key={b.slug}
               href={`/products?brand=${b.slug}`}
-              className="relative aspect-3/2 overflow-hidden rounded-lg border border-slate-200 bg-white p-5 transition-all hover:shadow-md"
+              className="relative aspect-3/2 overflow-hidden rounded-xl border border-slate-200 bg-white p-5 transition-all hover:shadow-md"
             >
               <Image src={b.logo} alt={b.name} fill sizes="200px" className="object-contain p-2" />
             </Link>
