@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
-import { formatPrice } from "@/app/lib/utils";
 import type { QuoteItem } from "@/app/lib/types";
 import { QuantityStepper } from "./quantity-stepper";
 
@@ -31,12 +30,11 @@ export function QuoteLineItem({
           {item.partNumber}
         </Link>
         <p className="truncate text-sm text-slate-600">{item.name}</p>
-        <p className="mt-1 text-sm text-slate-500">{formatPrice(item.price)} / unit</p>
       </div>
 
       <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
         <QuantityStepper initial={item.quantity} onChange={onQtyChange} />
-        <p className="font-bold text-slate-900">{formatPrice(item.price * item.quantity)}</p>
+        <span className="text-xs font-semibold uppercase tracking-wide text-primary">Ask Price</span>
       </div>
 
       <button

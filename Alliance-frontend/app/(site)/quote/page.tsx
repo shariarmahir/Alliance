@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { FileText, ArrowRight, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useQuote } from "@/app/lib/quote-context";
-import { formatPrice } from "@/app/lib/utils";
 import type { QuotationDetails } from "@/app/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { QuoteLineItem } from "@/app/components/quote-line-item";
@@ -74,8 +73,8 @@ export default function QuotePage() {
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
         <ShoppingBag className="size-16 text-slate-300" />
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Your quotation is empty</h1>
-        <p className="mt-2 text-slate-500">Add products to request a quotation.</p>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900">Your price request list is empty</h1>
+        <p className="mt-2 text-slate-500">Add products to ask for a price.</p>
         <Link href="/products" className="btn-glass-accent mt-6">
           Browse Products
         </Link>
@@ -86,11 +85,11 @@ export default function QuotePage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-2 flex items-center gap-3 text-3xl font-extrabold text-slate-900">
-        <FileText className="size-8 text-primary" /> Create Quotation
+        <FileText className="size-8 text-primary" /> Ask Price
       </h1>
       <p className="mb-8 text-slate-500">
-        Review your items and share your details. Our team confirms availability &amp; final pricing
-        within one business day.
+        Confirm quantities and share your details. An engineer replies with a firm
+        quotation, including freight, within one business day.
       </p>
 
       <form onSubmit={submitQuotation} className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -111,30 +110,28 @@ export default function QuotePage() {
 
         <div>
           <Card className="sticky top-24 p-6">
-            <h2 className="mb-4 text-lg font-bold">Quotation Summary</h2>
+            <h2 className="mb-4 text-lg font-bold">Request Summary</h2>
             <div className="mb-4 max-h-56 space-y-2 overflow-auto text-sm">
               {items.map((item) => (
                 <div key={item.slug} className="flex justify-between gap-2">
                   <span className="line-clamp-1 text-slate-500">
                     {item.quantity}× {item.partNumber}
                   </span>
-                  <span className="font-medium text-slate-900">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
+                  <span className="font-medium text-primary">Ask Price</span>
                 </div>
               ))}
             </div>
             <div className="space-y-2 border-t border-slate-200 pt-3 text-sm">
               <div className="flex justify-between text-base font-extrabold">
-                <span>Estimated Total</span>
-                <span className="text-primary">{formatPrice(total)}</span>
+                <span>Lines</span>
+                <span className="text-primary">{items.length}</span>
               </div>
             </div>
             <button type="submit" disabled={submitting} className="btn-glass-accent mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60">
-              {submitting ? "Submitting..." : "Submit Quotation"} <ArrowRight className="size-5" />
+              {submitting ? "Submitting..." : "Send Price Request"} <ArrowRight className="size-5" />
             </button>
             <p className="mt-3 text-center text-xs text-slate-500">
-              Final pricing confirmed by our team within 1 business day.
+              Firm quotation, including freight, confirmed by our team within 1 business day.
             </p>
           </Card>
         </div>
