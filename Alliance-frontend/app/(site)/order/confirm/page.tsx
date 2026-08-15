@@ -119,7 +119,8 @@ export default function ConfirmOrderPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-extrabold text-slate-900">Confirm Your Order</h1>
+      <h1 className="mb-2 text-3xl font-extrabold text-slate-900">Confirm your order</h1>
+      <p className="mb-8 text-slate-500">Prices, freight and terms are exactly as issued on your quotation. Choose how it ships and when you want it.</p>
       <form onSubmit={confirmOrder} className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           <Card className="p-6">
