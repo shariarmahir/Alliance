@@ -32,7 +32,7 @@
       "I/O Points": "128,000 max",
       "Backplane": "ControlBus",
       "Mounting": "DIN Rail / Panel",
-      "Operating Temp": "0-60\u00b0C",
+      "Operating Temp": "0-60°C",
       "Comm Ports": "USB, RS-232"
     },
     "price": 3450,
@@ -72,7 +72,7 @@
       "I/O Points": "16 local modules",
       "Comm Ports": "2x EtherNet/IP",
       "Mounting": "DIN Rail",
-      "Operating Temp": "0-55\u00b0C"
+      "Operating Temp": "0-55°C"
     },
     "price": 1890,
     "stock": "in-stock",
@@ -151,7 +151,7 @@
       "Program Capacity": "64,000 steps",
       "Comm Ports": "Ethernet, RS-485",
       "Mounting": "DIN Rail / Screw",
-      "Operating Temp": "0-55\u00b0C"
+      "Operating Temp": "0-55°C"
     },
     "price": 610,
     "stock": "low-stock",
@@ -225,7 +225,7 @@
       "I/O Points": "40 (24 DI / 16 DO Relay)",
       "Comm Ports": "Ethernet, Serial",
       "Mounting": "DIN Rail",
-      "Operating Temp": "-10 to 55\u00b0C"
+      "Operating Temp": "-10 to 55°C"
     },
     "price": 340,
     "stock": "out-of-stock",
@@ -1725,7 +1725,7 @@
       "Long-range inductive proximity sensor for automation lines",
       "2-wire DC connection simplifies field wiring",
       "Extended sensing distance for non-flush mounting",
-      "Wide operating temperature range -25 to 70\u00b0C"
+      "Wide operating temperature range -25 to 70°C"
     ],
     "alternatePartNumbers": [
       "E2E2X10MD1"

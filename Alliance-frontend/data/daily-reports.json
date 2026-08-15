@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "caeae9bd-470a-4177-83d6-429ab063186e",
+    "employeeId": "de93c045-418c-4886-b9ac-f1dbc6ad806e",
+    "date": "2026-08-15",
+    "hoursWorked": 8,
+    "summary": "website almost done",
+    "submittedAt": "2026-08-15T11:02:34.972Z"
+  }
+]

@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "de93c045-418c-4886-b9ac-f1dbc6ad806e",
+    "employeeIdNumber": "emp-01",
+    "name": "Mahir Shariar Mahin Mahir",
+    "email": "itallinyou.justdoit@gmail.com",
+    "password": "101063",
+    "designation": "support-agent",
+    "createdAt": "2026-08-15T10:58:22.180Z"
+  }
+]
