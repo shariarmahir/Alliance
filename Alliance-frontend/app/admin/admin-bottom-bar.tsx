@@ -3,15 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/app/lib/utils";
-import type { ResolvedNavGroup } from "./nav-config";
+import type { AdminNavCounts, ResolvedNavGroup } from "./nav-config";
 
 // Design bundle 2e: on phones the 44px icon rail is replaced by a five-slot
 // bottom bar plus the full-height drawer. Slots are the four routes this role
 // actually reaches most, plus "More" which opens the drawer — so no navigation
 // depends on a cramped rail.
-const SLOT_BADGE: Record<string, string> = {
-  "/admin/quotations": "37",
-};
+function badgeFor(href: string, counts: AdminNavCounts): string | undefined {
+  const n =
+    href === "/admin/quotations"
+      ? counts.pendingQuotations
+      : href === "/admin/orders"
+        ? counts.pendingOrders
+        : href === "/admin/stock"
+          ? counts.lowStock
+          : 0;
+  return n > 0 ? String(n) : undefined;
+}
 
 type Slot = { href: string; label: string };
 
@@ -62,10 +70,12 @@ function SlotGlyph({ active, badge }: { active: boolean; badge?: string }) {
 export function AdminBottomBar({
   groups,
   role,
+  counts,
   onOpenMore,
 }: {
   groups: ResolvedNavGroup[];
   role: "super" | "sub";
+  counts: AdminNavCounts;
   onOpenMore: () => void;
 }) {
   const pathname = usePathname();
@@ -90,7 +100,7 @@ export function AdminBottomBar({
               active ? "font-semibold text-primary" : "font-medium text-[#8a94a6]"
             )}
           >
-            <SlotGlyph active={active} badge={SLOT_BADGE[slot.href]} />
+            <SlotGlyph active={active} badge={badgeFor(slot.href, counts)} />
             <span className="max-w-full truncate px-0.5">{slot.label}</span>
           </Link>
         );

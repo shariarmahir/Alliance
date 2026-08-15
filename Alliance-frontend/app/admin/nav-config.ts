@@ -80,6 +80,16 @@ export type ResolvedNavGroup = {
   items: AdminNavItem[];
 };
 
+// Live counts rendered beside nav rows. Read server-side in the dashboard
+// layout so the rail agrees with the screens instead of showing mock figures.
+export type AdminNavCounts = {
+  products: number;
+  lowStock: number;
+  pendingOrders: number;
+  pendingQuotations: number;
+  openContactRequests: number;
+};
+
 // Resolves the presentation groups against the role-filtered flat item list,
 // dropping any group that ends up with zero visible items for this role (a
 // role can never see an empty section) and preserving ADMIN_NAV_ITEMS order
