@@ -23,8 +23,8 @@ export default async function DailyReportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Daily Report</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Log your hours and a summary of today&apos;s work.</p>
+        <h1 className="mb-1 text-[23px] font-bold tracking-[-0.02em] text-ink">Daily Report</h1>
+        <p className="text-[13px] text-ink-muted">Log your hours and a summary of today&apos;s work.</p>
       </div>
       <DailyReportForm myReports={[...myReports]} />
     </div>

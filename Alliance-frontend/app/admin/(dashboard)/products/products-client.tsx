@@ -1,19 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
-import { Badge } from "@/app/components/ui/badge";
 import { formatPrice } from "@/app/lib/utils";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
 import { CategoriesTab } from "./categories-tab";
+import { PageHeader, Panel, EmptyState, Pill, TH, TD, ROW, type PillTone } from "../admin-ui";
 import type { Brand, Category, Product, StockStatus } from "@/app/lib/types";
 
-const STOCK_BADGE: Record<StockStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  "in-stock": { label: "In Stock", variant: "secondary" },
-  "low-stock": { label: "Low Stock", variant: "default" },
-  "out-of-stock": { label: "Out of Stock", variant: "destructive" },
+const STOCK_PILL: Record<StockStatus, { label: string; tone: PillTone }> = {
+  "in-stock": { label: "IN STOCK", tone: "ok" },
+  "low-stock": { label: "LOW", tone: "warn" },
+  "out-of-stock": { label: "OUT", tone: "danger" },
 };
 
 export function ProductsClient({
@@ -26,86 +27,128 @@ export function ProductsClient({
   brands: Brand[];
 }) {
   const router = useRouter();
-  const products = initialProducts;
-  const categories = initialCategories;
+  const [query, setQuery] = useState("");
 
   // Server data is refreshed after any admin write; router.refresh() re-runs
   // the server component (page.tsx), which re-reads mock-data.ts and passes
-  // fresh props down to this client component (see mock-data.ts's per-request
-  // re-evaluation caveat) — no local client state to go stale here.
+  // fresh props down — no local client state to go stale here.
   function refresh() {
     router.refresh();
   }
 
-  const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug;
+  const categoryName = (slug: string) =>
+    initialCategories.find((c) => c.slug === slug)?.name ?? slug;
+
+  const q = query.trim().toLowerCase();
+  const products = q
+    ? initialProducts.filter(
+        (p) =>
+          p.partNumber.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q) ||
+          p.brand.toLowerCase().includes(q)
+      )
+    : initialProducts;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Products</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage the product catalog, run bulk imports, and create categories.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Products"
+        subtitle="Manage the product catalog, run bulk imports, and create categories."
+      />
 
       <Tabs defaultValue="catalog">
         <TabsList>
           <TabsTrigger value="catalog">Catalog</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk Import</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk import</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="catalog" className="mt-4">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{products.length} products</p>
-            <AddProductDialog categories={categories} brands={brands} onCreated={refresh} />
+        <TabsContent value="catalog" className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search part number, name or brand"
+                className="w-full max-w-xs rounded-md border border-[#dde3ea] px-3 py-2 text-[12.5px] text-ink outline-none transition-colors placeholder:text-[#8a94a6] focus:border-primary"
+              />
+              <span className="font-mono text-[11px] text-[#8a94a6]">
+                {products.length} OF {initialProducts.length}
+              </span>
+            </div>
+            <AddProductDialog categories={initialCategories} brands={brands} onCreated={refresh} />
           </div>
 
-          <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-            <table className="w-full text-sm">
-              <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Product</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
-                  <th className="px-4 py-3 font-medium">Stock</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {products.map((p) => (
-                  <tr key={p.slug} className="bg-card transition-colors duration-200 hover:bg-muted/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                          <Image src={p.image} alt={p.name} fill sizes="40px" className="object-contain p-1" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-foreground">{p.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">{p.partNumber}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{categoryName(p.categorySlug)}</td>
-                    <td className="px-4 py-3 font-medium text-foreground">{formatPrice(p.price)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-foreground">{p.stockQty}</span>
-                        <Badge variant={STOCK_BADGE[p.stock].variant} className="transition-colors duration-200">{STOCK_BADGE[p.stock].label}</Badge>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {products.length === 0 ? (
+            <EmptyState>
+              {initialProducts.length === 0
+                ? "No products yet. Add one or run a bulk import."
+                : `Nothing matches “${query}”.`}
+            </EmptyState>
+          ) : (
+            <Panel className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-surface">
+                    <tr>
+                      <th className={TH}>PRODUCT</th>
+                      <th className={TH}>CATEGORY</th>
+                      <th className={TH}>BRAND</th>
+                      <th className={TH}>PRICE</th>
+                      <th className={TH}>STOCK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => (
+                      <tr key={p.slug} className={ROW}>
+                        <td className={TD}>
+                          <div className="flex items-center gap-3">
+                            <div className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface">
+                              <Image
+                                src={p.image}
+                                alt=""
+                                fill
+                                sizes="40px"
+                                className="object-contain p-1"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate font-mono text-[12px] font-semibold text-ink">
+                                {p.partNumber}
+                              </p>
+                              <p className="truncate text-[11px] text-[#8a94a6]">{p.name}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className={`${TD} text-ink-muted`}>{categoryName(p.categorySlug)}</td>
+                        <td className={`${TD} text-ink-muted`}>{p.brand}</td>
+                        <td className={`${TD} font-mono font-semibold text-ink`}>
+                          {formatPrice(p.price)}
+                        </td>
+                        <td className={TD}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-8 shrink-0 font-mono font-bold text-ink">
+                              {p.stockQty}
+                            </span>
+                            <Pill tone={STOCK_PILL[p.stock].tone}>{STOCK_PILL[p.stock].label}</Pill>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          )}
         </TabsContent>
 
         <TabsContent value="bulk" className="mt-4">
-          <BulkImportTab categories={categories} onImported={refresh} />
+          <BulkImportTab categories={initialCategories} onImported={refresh} />
         </TabsContent>
 
         <TabsContent value="categories" className="mt-4">
-          <CategoriesTab categories={categories} onCreated={refresh} />
+          <CategoriesTab categories={initialCategories} onCreated={refresh} />
         </TabsContent>
       </Tabs>
     </div>

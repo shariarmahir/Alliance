@@ -58,7 +58,7 @@ export function DailyReportForm({ myReports }: { myReports: DailyReport[] }) {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="font-heading text-base font-medium text-foreground">Submit Daily Report</h2>
+        <h2 className="text-[14px] font-bold text-ink">Submit Daily Report</h2>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -91,19 +91,19 @@ export function DailyReportForm({ myReports }: { myReports: DailyReport[] }) {
       </Card>
 
       <div className="space-y-3">
-        <h2 className="font-heading text-base font-medium text-foreground">Your Reports</h2>
+        <h2 className="text-[14px] font-bold text-ink">Your Reports</h2>
         {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-[10px] border border-dashed border-slate-line bg-white p-8 text-center text-[13px] text-ink-muted">
             You haven&apos;t submitted any daily reports yet.
           </div>
         ) : (
           sorted.map((r) => (
             <Card key={r.id} className="p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground">{new Date(r.date).toLocaleDateString()}</p>
-                <p className="text-sm text-muted-foreground">{r.hoursWorked}h</p>
+                <p className="text-[12.5px] font-semibold text-ink">{new Date(r.date).toLocaleDateString()}</p>
+                <p className="text-[12.5px] text-ink-muted">{r.hoursWorked}h</p>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{r.summary}</p>
+              <p className="mt-1 text-[12.5px] text-ink-muted">{r.summary}</p>
             </Card>
           ))
         )}

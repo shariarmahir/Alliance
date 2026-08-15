@@ -68,7 +68,7 @@ export function LeaveRequestForm({ myRequests }: { myRequests: LeaveRequest[] })
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="font-heading text-base font-medium text-foreground">Request Leave</h2>
+        <h2 className="text-[14px] font-bold text-ink">Request Leave</h2>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -92,19 +92,19 @@ export function LeaveRequestForm({ myRequests }: { myRequests: LeaveRequest[] })
       </Card>
 
       <div className="space-y-3">
-        <h2 className="font-heading text-base font-medium text-foreground">Your Requests</h2>
+        <h2 className="text-[14px] font-bold text-ink">Your Requests</h2>
         {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-[10px] border border-dashed border-slate-line bg-white p-8 text-center text-[13px] text-ink-muted">
             You haven&apos;t submitted any leave requests yet.
           </div>
         ) : (
           sorted.map((r) => (
             <Card key={r.id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-[12.5px] font-semibold text-ink">
                   {new Date(r.startDate).toLocaleDateString()} – {new Date(r.endDate).toLocaleDateString()}
                 </p>
-                <p className="text-sm text-muted-foreground">{r.reason}</p>
+                <p className="text-[12.5px] text-ink-muted">{r.reason}</p>
               </div>
               <Badge variant={STATUS_BADGE[r.status].variant}>{STATUS_BADGE[r.status].label}</Badge>
             </Card>

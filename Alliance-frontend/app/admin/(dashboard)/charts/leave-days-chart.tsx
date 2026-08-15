@@ -36,7 +36,7 @@ export function LeaveDaysChart({ requests, employees }: { requests: LeaveRequest
       </CardHeader>
       <CardContent className="px-0">
         {data.length === 0 ? (
-          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No employees yet.</div>
+          <div className="flex h-64 items-center justify-center text-[13px] text-ink-muted">No employees yet.</div>
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">

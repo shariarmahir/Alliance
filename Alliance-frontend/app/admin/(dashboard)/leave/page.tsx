@@ -20,8 +20,8 @@ export default async function LeavePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Leave Requests</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Review the leave calendar and approve or reject requests.</p>
+          <h1 className="mb-1 text-[23px] font-bold tracking-[-0.02em] text-ink">Leave Requests</h1>
+          <p className="text-[13px] text-ink-muted">Review the leave calendar and approve or reject requests.</p>
         </div>
         <LeaveCalendar requests={[...requests]} employees={[...employees]} />
         <LeavePendingList requests={[...requests]} employees={[...employees]} />
@@ -35,8 +35,8 @@ export default async function LeavePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Leave Requests</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Submit a leave request and track its approval status.</p>
+        <h1 className="mb-1 text-[23px] font-bold tracking-[-0.02em] text-ink">Leave Requests</h1>
+        <p className="text-[13px] text-ink-muted">Submit a leave request and track its approval status.</p>
       </div>
       <LeaveRequestForm myRequests={[...myRequests]} />
     </div>

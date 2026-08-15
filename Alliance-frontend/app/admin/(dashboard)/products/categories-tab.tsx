@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { Card, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -58,7 +57,9 @@ export function CategoriesTab({ categories, onCreated }: { categories: Category[
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{categories.length} categories</p>
+        <p className="font-mono text-[11px] text-[#8a94a6]">
+          {categories.length} CATEGORIES
+        </p>
         <Dialog
           open={open}
           onOpenChange={(next) => {
@@ -98,15 +99,18 @@ export function CategoriesTab({ categories, onCreated }: { categories: Category[
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {categories.map((c) => (
-          <Card key={c.slug} className="items-center gap-3 p-6 text-center">
-            <div className="relative mx-auto size-12">
-              <Image src={c.icon} alt={c.name} fill sizes="48px" className="object-contain" />
+          <div
+            key={c.slug}
+            className="rounded-[10px] border border-slate-line bg-white p-5 text-center transition-colors hover:border-primary/40"
+          >
+            <div className="relative mx-auto mb-3 size-12">
+              <Image src={c.icon} alt="" fill sizes="48px" className="object-contain" />
             </div>
-            <CardContent className="p-0">
-              <p className="font-medium text-foreground">{c.name}</p>
-              <p className="text-xs text-muted-foreground">{c.productCount} products</p>
-            </CardContent>
-          </Card>
+            <p className="text-[13px] font-semibold text-ink">{c.name}</p>
+            <p className="mt-0.5 font-mono text-[11px] text-[#8a94a6]">
+              {c.productCount} PRODUCTS
+            </p>
+          </div>
         ))}
       </div>
     </div>

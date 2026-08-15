@@ -71,7 +71,7 @@ export function AdminTopbar({ session, onOpenMobile }: { session: AdminSession; 
         <DropdownMenuContent align="end" className="w-56">
           <div className="flex flex-col px-1.5 py-1">
             <span className="text-sm font-medium text-foreground">{session.name}</span>
-            <span className="text-xs text-muted-foreground">{session.email}</span>
+            <span className="text-[11px] text-[#8a94a6]">{session.email}</span>
           </div>
           <DropdownMenuSeparator />
           <form action={logoutAction}>
