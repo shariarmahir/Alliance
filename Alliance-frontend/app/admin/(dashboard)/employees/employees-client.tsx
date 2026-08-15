@@ -39,9 +39,9 @@ function RosterTab({ employees }: { employees: Employee[] }) {
           No employees yet. Add one to get started.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Employee ID</th>
@@ -117,9 +117,9 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }
           No tasks in this view yet.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Assignee</th>
@@ -163,9 +163,9 @@ function ReportsTab({ reports, requests, employees }: { reports: DailyReport[]; 
             No daily reports submitted yet.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+          <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
                 <tr>
                   <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Employee</th>

@@ -1,85 +1,85 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  ChevronDown,
-  LayoutDashboard,
-  Package,
-  Boxes,
-  Image as ImageIcon,
-  Users,
-  ClipboardList,
-  FileText,
-  Mail,
-  MessageSquare,
-  ListChecks,
-  CalendarDays,
-  NotebookPen,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/app/lib/utils";
-import type { AdminNavItem, AdminNavIcon, ResolvedNavGroup } from "./nav-config";
+import type { AdminNavItem, ResolvedNavGroup } from "./nav-config";
 
-const ICONS: Record<AdminNavIcon, LucideIcon> = {
-  overview: LayoutDashboard,
-  products: Package,
-  stock: Boxes,
-  "hero-images": ImageIcon,
-  orders: ClipboardList,
-  quotations: FileText,
-  "contact-requests": MessageSquare,
-  emails: Mail,
-  employees: Users,
-  tasks: ListChecks,
-  leave: CalendarDays,
-  "daily-report": NotebookPen,
-};
+// The design bundle marks nav rows with small square glyphs rather than an
+// icon set: the active row gets a solid tile, inactive rows an outlined one.
+function NavGlyph({ active }: { active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "size-4 shrink-0 rounded",
+        active ? "bg-[#3ea5e8]" : "border-[1.5px] border-white/50"
+      )}
+    />
+  );
+}
 
 function isActive(pathname: string, href: string) {
   return pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`));
 }
 
+// Per-route trailing meta from the design (counts, "12 LOW" pills). Values are
+// mock, matching the rest of the admin's mock-analytics layer.
+const ITEM_META: Record<string, { count?: string; pill?: string }> = {
+  "/admin/products": { count: "1,284" },
+  "/admin/stock": { pill: "12 LOW" },
+};
+
+const GROUP_BADGE: Record<string, string> = {
+  Orders: "9",
+  Quotations: "37",
+};
+
 function NavLink({
   item,
-  collapsed,
   indent,
   onNavigate,
 }: {
   item: AdminNavItem;
-  collapsed: boolean;
   indent?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const active = isActive(pathname, item.href);
-  const Icon = ICONS[item.icon];
+  const meta = ITEM_META[item.href];
 
   if (!item.enabled) {
     return (
       <div
         title="Coming soon"
+        className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] text-white/30"
+      >
+        <NavGlyph active={false} />
+        {item.label}
+      </div>
+    );
+  }
+
+  // Child rows sit deeper in the rail and drop the glyph, per the design.
+  if (indent) {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
         className={cn(
-          "flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/35",
-          collapsed && "justify-center px-0",
-          indent && !collapsed && "pl-4"
+          "flex items-center justify-between rounded-lg py-2.5 pl-10 pr-3.5 text-[12.5px] transition-colors",
+          active ? "text-white" : "text-white/60 hover:text-white"
         )}
       >
-        <Icon className="size-4.5 shrink-0" />
-        {!collapsed && (
-          <span className="flex flex-1 items-center justify-between">
-            {item.label}
-            <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-              Soon
-            </span>
+        {item.label}
+        {meta?.count && <span className="font-mono text-[10.5px] text-white/35">{meta.count}</span>}
+        {meta?.pill && (
+          <span className="rounded bg-accent/[0.18] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-accent">
+            {meta.pill}
           </span>
         )}
-      </div>
+      </Link>
     );
   }
 
@@ -88,77 +88,61 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-        collapsed && "justify-center px-0",
-        indent && !collapsed && "pl-4",
+        "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-          : "text-sidebar-foreground/70 hover:translate-x-0.5 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+          ? "border-l-[3px] border-accent bg-white/[0.08] font-semibold text-white"
+          : "font-medium text-white/[0.72] hover:bg-white/5 hover:text-white"
       )}
     >
-      {active && (
-        <span className="absolute inset-y-1 left-0 w-1 rounded-full bg-linear-to-b from-sidebar-primary to-primary" />
-      )}
-      <Icon className={cn("size-4.5 shrink-0 transition-transform duration-200", active && "text-sidebar-primary")} />
-      {!collapsed && item.label}
+      <NavGlyph active={active} />
+      {item.label}
     </Link>
   );
 }
 
-function NavGroup({
-  group,
-  collapsed,
-  onNavigate,
-}: {
-  group: ResolvedNavGroup;
-  collapsed: boolean;
-  onNavigate?: () => void;
-}) {
+function NavGroup({ group, onNavigate }: { group: ResolvedNavGroup; onNavigate?: () => void }) {
   const pathname = usePathname();
   const groupActive = group.items.some((item) => isActive(pathname, item.href));
   const [open, setOpen] = useState(groupActive);
+  const badge = GROUP_BADGE[group.label];
 
-  // Single-item groups (e.g. Overview, Orders, Quotations) render as a
-  // direct link — no expand/collapse chrome needed.
   if (group.items.length === 1) {
-    return <NavLink item={group.items[0]} collapsed={collapsed} onNavigate={onNavigate} />;
+    return (
+      <div className="relative">
+        <NavLink item={group.items[0]} onNavigate={onNavigate} />
+        {badge && (
+          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 rounded-[10px] bg-accent px-2 py-0.5 font-mono text-[10px] font-bold text-ink">
+            {badge}
+          </span>
+        )}
+      </div>
+    );
   }
-
-  const Icon = ICONS[group.icon];
 
   return (
     <div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
         className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",
-          collapsed && "justify-center px-0",
+          "flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
           groupActive
-            ? "text-sidebar-accent-foreground"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            ? "font-semibold text-white"
+            : "font-medium text-white/[0.72] hover:bg-white/5 hover:text-white"
         )}
       >
-        <Icon className={cn("size-4.5 shrink-0", groupActive && "text-sidebar-primary")} />
-        {!collapsed && (
-          <>
-            <span className="flex-1 text-left">{group.label}</span>
-            <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-200", open && "rotate-180")} />
-          </>
-        )}
+        <span className="flex items-center gap-3">
+          <NavGlyph active={groupActive} />
+          {group.label}
+        </span>
+        <span className="text-[11px] text-white/40">{open ? "⌄" : "›"}</span>
       </button>
-      {!collapsed && (
-        <div
-          className={cn(
-            "grid overflow-hidden transition-all duration-200 ease-out",
-            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-          )}
-        >
-          <div className="min-h-0 space-y-1 pt-1">
-            {group.items.map((item) => (
-              <NavLink key={item.href} item={item} collapsed={collapsed} indent onNavigate={onNavigate} />
-            ))}
-          </div>
+      {open && (
+        <div className="mt-0.5 space-y-0.5">
+          {group.items.map((item) => (
+            <NavLink key={item.href} item={item} indent onNavigate={onNavigate} />
+          ))}
         </div>
       )}
     </div>
@@ -174,13 +158,11 @@ export function AdminSidebar({
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/60 lg:hidden"
           onClick={onCloseMobile}
           aria-hidden="true"
         />
@@ -188,52 +170,43 @@ export function AdminSidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 -translate-x-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:translate-x-0 lg:transition-[width]",
-          mobileOpen && "translate-x-0",
-          collapsed ? "lg:w-18" : "lg:w-64"
+          "fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 -translate-x-full flex-col bg-[#0d1626] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[248px] lg:translate-x-0",
+          mobileOpen && "translate-x-0"
         )}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <Image
-            src="/logo-mark.png"
-            alt="AutoLink"
-            width={32}
-            height={32}
-            className="size-8 shrink-0 object-contain"
-          />
-          {!collapsed && (
-            <div className="flex-1 truncate leading-none">
-              <div className="truncate text-base font-extrabold tracking-tight text-primary">
-                AutoLink<span className="text-sidebar-primary">.</span>
-              </div>
-              <div className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/60">
-                Integrated Technologies
-              </div>
-            </div>
-          )}
+        <div className="flex items-center gap-2.5 border-b border-white/[0.08] px-4.5 pb-5 pt-4.5">
+          <span className="text-[19px] font-bold leading-none text-white">
+            AutoLink<span className="text-accent">.</span>
+          </span>
           <button
             type="button"
             onClick={onCloseMobile}
             aria-label="Close menu"
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground lg:hidden"
+            className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
           {groups.map((group) => (
-            <NavGroup key={group.label} group={group} collapsed={collapsed} onNavigate={onCloseMobile} />
+            <NavGroup key={group.label} group={group} onNavigate={onCloseMobile} />
           ))}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setCollapsed((c) => !c)}
-          className="hidden h-12 items-center justify-center gap-2 border-t border-sidebar-border text-sm text-sidebar-foreground/60 transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground lg:flex"
-        >
-          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
-        </button>
+        <div className="mx-3 mb-4 rounded-[9px] border border-white/[0.09] bg-white/5 p-3.5">
+          <p className="mono-label mb-1 text-[10px] text-accent">CONTACT REQUESTS</p>
+          <p className="mb-2.5 text-[11.5px] leading-[1.55] text-white/60">
+            Unanswered enquiries from the storefront
+          </p>
+          <Link
+            href="/admin/contact-requests"
+            onClick={onCloseMobile}
+            className="flex items-center justify-center rounded-[7px] border border-white/20 bg-white/[0.12] py-2.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-white/20"
+          >
+            Open inbox
+          </Link>
+        </div>
       </aside>
     </>
   );

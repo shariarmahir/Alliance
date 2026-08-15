@@ -20,7 +20,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
         <p className="mt-1 text-sm text-muted-foreground">A preview of AutoLink&apos;s shared inbox.</p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-secondary-foreground ring-1 ring-foreground/10">
+      <div className="flex items-start gap-2 rounded-[10px] border border-tint-line bg-[#f4faff] p-3 text-sm text-[#00618f]">
         <Info className="mt-0.5 size-4 shrink-0" />
         <span>Preview only — not connected to a live mailbox.</span>
       </div>
@@ -30,7 +30,7 @@ export function EmailsClient({ emails }: { emails: MockEmail[] }) {
           No emails to show.
         </div>
       ) : (
-        <div className="grid gap-4 overflow-hidden rounded-xl ring-1 ring-foreground/10 lg:grid-cols-[340px_1fr]">
+        <div className="grid gap-4 overflow-hidden rounded-[10px] border border-slate-line bg-white lg:grid-cols-[340px_1fr]">
           <div className="max-h-[32rem] divide-y divide-border overflow-y-auto bg-card lg:max-h-[36rem]">
             {sorted.map((email) => (
               <button

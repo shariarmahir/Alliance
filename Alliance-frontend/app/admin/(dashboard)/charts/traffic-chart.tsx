@@ -1,67 +1,38 @@
-"use client";
+// Design bundle renders site traffic as a headline session count plus a
+// 14-bar sparkline that deepens in colour toward today. Static bars — no
+// Recharts needed at this size, and it keeps the panel a server component.
+const BARS = [38, 46, 41, 55, 62, 51, 44, 66, 72, 58, 80, 74, 88, 100];
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { trafficSources } from "@/app/lib/mock-analytics";
-import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/app/components/ui/chart";
-
-const chartConfig = {
-  orders: {
-    label: "Orders",
-    color: "var(--color-primary)",
-  },
-} satisfies ChartConfig;
+function barColor(height: number) {
+  if (height >= 95) return "bg-primary";
+  if (height >= 75) return "bg-[#3ea5e8]";
+  if (height >= 60) return "bg-[#9fd2f0]";
+  return "bg-tint-line";
+}
 
 export function TrafficChart() {
   return (
-    <Card className="p-6">
-      <CardHeader className="px-0">
-        <CardTitle className="text-base">Order Source Performance</CardTitle>
-      </CardHeader>
-      <CardContent className="px-0">
-        <ChartContainer config={chartConfig} className="aspect-auto h-72 w-full">
-          <BarChart data={trafficSources} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={1} />
-                <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.55} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-            <XAxis
-              dataKey="source"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
-              interval={0}
-              angle={-15}
-              textAnchor="end"
-              height={50}
-            />
-            <YAxis tickLine={false} axisLine={false} width={32} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
-            <ChartTooltip
-              cursor={{ fill: "var(--color-primary)", fillOpacity: 0.08 }}
-              content={<ChartTooltipContent formatter={(value) => [`${value} orders`, ""]} />}
-            />
-            <Bar
-              dataKey="orders"
-              fill="url(#trafficFill)"
-              stroke="var(--color-primary)"
-              strokeWidth={1}
-              radius={[6, 6, 0, 0]}
-              maxBarSize={44}
-              isAnimationActive
-              animationDuration={700}
-              animationEasing="ease-out"
-            />
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <div className="rounded-[10px] border border-slate-line bg-white p-5">
+      <div className="mb-3.5 flex items-baseline justify-between">
+        <p className="text-[15px] font-bold text-ink">Site traffic</p>
+        <span className="font-mono text-[11px] text-[#8a94a6]">28 DAYS</span>
+      </div>
+      <p className="mb-0.5 font-mono text-2xl font-bold text-ink">64,180</p>
+      <p className="mb-4 text-[11.5px] font-semibold text-ok">↑ 9.6% sessions · 3.4% request rate</p>
+
+      <div className="flex h-24 items-end gap-1">
+        {BARS.map((h, i) => (
+          <span
+            key={i}
+            className={`flex-1 rounded-t-sm ${barColor(h)}`}
+            style={{ height: `${h}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between font-mono text-[10.5px] text-[#8a94a6]">
+        <span>28 DAYS AGO</span>
+        <span>TODAY</span>
+      </div>
+    </div>
   );
 }

@@ -42,7 +42,7 @@ function ContactRequestCard({ request, onChanged }: { request: ContactRequest; o
   }
 
   return (
-    <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors duration-200 hover:bg-muted/50">
+    <div className="rounded-[10px] border border-slate-line bg-white p-4 transition-colors duration-200 hover:bg-muted/50">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
