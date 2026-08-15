@@ -29,5 +29,54 @@
     },
     "placedAt": "2026-08-12T00:50:28.422Z",
     "status": "pending"
+  },
+  {
+    "orderNumber": "ALC-MSTQXS1Z",
+    "trackingId": "TRK695178BD",
+    "items": [
+      {
+        "slug": "1756-l61",
+        "partNumber": "1756-L61",
+        "name": "ControlLogix 5561 Processor Module",
+        "brand": "allen-bradley",
+        "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 3450,
+        "quantity": 1
+      },
+      {
+        "slug": "powerflex-525-5hp",
+        "partNumber": "25B-D010N104",
+        "name": "PowerFlex 525 AC Drive 5HP",
+        "brand": "allen-bradley",
+        "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 1150,
+        "quantity": 1
+      },
+      {
+        "slug": "fx5u-32mt",
+        "partNumber": "FX5U-32MT/ES",
+        "name": "MELSEC iQ-F FX5U Compact PLC",
+        "brand": "mitsubishi",
+        "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 610,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 5210,
+    "shippingCost": 140,
+    "grandTotal": 5350,
+    "deliveryOption": "express",
+    "deliveryOptionName": "Express Courier",
+    "deliveryEta": "3 – 5 business days",
+    "preferredDate": "2026-08-20",
+    "address": {
+      "name": "Mahir Shariar Mahin Mahir",
+      "line": "Kazipara,135/2 house , road no-9 , dhaka , bangladesh",
+      "city": "Dhaka",
+      "country": "Bangladesh",
+      "phone": "01521444725"
+    },
+    "placedAt": "2026-08-15T02:18:00.647Z",
+    "status": "pending"
   }
 ]
