@@ -39,7 +39,15 @@ later project.
    few genuinely new sections (stats bar, most-requested grid, FAQ accordion).
 6. **No product ratings/reviews are added to cards or PLP rows.** No rating data model
    exists for individual products (only site-wide client testimonials); fabricating
-   mock ratings was explicitly rejected.
+   mock ratings was explicitly rejected. **Correction found during planning:**
+   `app/components/top-seller-card.tsx` already has its own pre-existing `TopSeller`
+   mock type (`app/lib/top-sellers.ts`) with `rating`/`reviews` fields and a
+   `RatingStars` display, decoupled from the catalog `Product` type. This existing
+   card is reused as-is for the "Most requested parts" section instead of `ProductCard`
+   (it already matches the bundle's card layout more closely). Its rating display is
+   kept since it's pre-existing data, not newly fabricated — but its price display and
+   "Create Quotation" button are converted to the same price-free "Ask Price" pattern
+   as everywhere else on the storefront.
 7. **Reuse existing image assets.** `public/images/categories/*.svg` and
    `public/images/brands/*.png` already cover what the bundle's `assets/cat/*` and
    `assets/brands/*` need. No new hero/factory/team photography is added — the
@@ -81,8 +89,8 @@ later project.
 **New (bundle sections without an existing equivalent):**
 - A stats bar section on the landing page (ISO cert / parts catalogued / quote
   turnaround / warranty — static copy, no new data source)
-- A "Most requested parts" grid section (reuses `ProductCard` + existing top-sellers
-  data from `app/lib/top-sellers.ts`)
+- A "Most requested parts" grid section (reuses the existing `TopSellerCard` +
+  `app/lib/top-sellers.ts` data, restyled to drop prices per decision 6's correction)
 - An FAQ accordion, added alongside the existing "We Are Here To Help You" contact
   panel (that panel already covers the bundle's contact-form requirement, so it is
   extended rather than duplicated)
