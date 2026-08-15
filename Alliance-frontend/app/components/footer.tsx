@@ -118,7 +118,10 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-2 py-5 text-[11.5px] text-white/50 sm:flex-row">
-          <p>&copy; AutoLink Integrated Technologies 2026–2028. All rights reserved. Developed by Mahir Shariar Mahin.</p>
+          <p>
+            &copy; AutoLink Integrated Technologies 2026–2028. All rights reserved. Developed by{" "}
+            <span className="credit-shine font-semibold">Mahir Shariar Mahin</span>.
+          </p>
           <p className="flex gap-5">
             <span>English · USD</span>
             <span>Terms</span>

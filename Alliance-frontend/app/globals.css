@@ -138,6 +138,45 @@ body {
   }
 }
 
+/* Developer credit in the footer: accent text carrying the same shine sweep as
+   the CTAs. A button's white overlay gradient doesn't read on inline text, so
+   the highlight travels through the text fill via background-clip instead. */
+@keyframes credit-shine {
+  0% {
+    background-position: 180% 0;
+  }
+  55%,
+  100% {
+    background-position: -80% 0;
+  }
+}
+.credit-shine {
+  color: var(--color-accent);
+  background-image: linear-gradient(
+    110deg,
+    var(--color-accent) 0%,
+    var(--color-accent) 38%,
+    #fff3d0 50%,
+    var(--color-accent) 62%,
+    var(--color-accent) 100%
+  );
+  background-size: 220% 100%;
+  background-position: 180% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: credit-shine 3.4s ease-in-out infinite;
+  transition: filter 0.25s ease;
+}
+.credit-shine:hover {
+  filter: brightness(1.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .credit-shine {
+    animation: none;
+  }
+}
+
 /* Glassmorphism animated buttons */
 .btn-glass,
 .btn-glass-accent {
