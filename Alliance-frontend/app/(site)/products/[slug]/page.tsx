@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/app/lib/mock-data";
-import { formatPrice } from "@/app/lib/utils";
 import { Badge } from "@/app/components/ui/badge";
 import { ProductGallery } from "@/app/components/product-gallery";
 import { QuoteCta } from "@/app/components/quote-cta";
@@ -62,7 +61,13 @@ export default async function ProductDetailPage({
             </span>
           </div>
 
-          <p className="mb-6 text-3xl font-bold text-slate-900">{formatPrice(product.price)}</p>
+          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-semibold text-primary">Ask Price</p>
+            <p className="mt-1 text-sm text-slate-600">
+              No price shown until an engineer confirms stock and freight. Firm
+              quotation valid 14 days, typically returned within 4 working hours.
+            </p>
+          </div>
 
           <ul className="mb-6 space-y-2 text-sm text-slate-700">
             {product.description.map((d) => (

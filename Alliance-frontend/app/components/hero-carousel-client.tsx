@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Truck, Headset, ShieldCheck } from "lucide-react";
 
@@ -59,7 +60,7 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
               </h1>
               <p className="mb-4 max-w-xl text-xs text-slate-200 sm:mb-6 sm:text-sm md:text-base">{slide.subheadline}</p>
 
-              <form onSubmit={submit} className="mb-4 flex w-full max-w-xl flex-col gap-2 sm:mb-6 sm:flex-row sm:gap-0">
+              <form onSubmit={submit} className="mb-4 flex w-full max-w-xl flex-col gap-2 sm:mb-3 sm:flex-row sm:gap-0">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -70,9 +71,15 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
                   type="submit"
                   className="btn-glass-accent flex h-11 shrink-0 items-center justify-center gap-2 rounded-md px-5 sm:h-12 sm:rounded-l-none sm:rounded-r-md"
                 >
-                  <Search className="size-4" /> Search
+                  <Search className="size-4" /> Ask a Price
                 </button>
               </form>
+              <Link
+                href="/products"
+                className="mb-4 inline-flex w-fit items-center gap-2 rounded-md border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:mb-6"
+              >
+                Browse the catalogue
+              </Link>
 
               <div className="flex flex-wrap gap-x-6 gap-y-2.5 sm:gap-x-8 sm:gap-y-3">
                 {FEATURES.map((f) => (

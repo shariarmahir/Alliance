@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/app/lib/types";
-import { formatPrice } from "@/app/lib/utils";
 import { Badge } from "@/app/components/ui/badge";
 import { RequestQuoteButton } from "@/app/components/request-quote-button";
 
@@ -30,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
       <ul className="my-2 space-y-1 text-xs text-slate-600">
         {product.shortSpecs.slice(0, 2).map((s) => <li key={s}>• {s}</li>)}
       </ul>
-      <p className="mb-3 text-lg font-bold text-slate-900">{formatPrice(product.price)}</p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary">Ask Price</p>
       <div className="mt-auto flex flex-col gap-2">
         <Link href={`/products/${product.slug}`} className="btn-glass">View Details</Link>
         <RequestQuoteButton product={product} />

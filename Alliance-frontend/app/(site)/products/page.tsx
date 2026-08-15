@@ -38,7 +38,10 @@ export default async function ProductsPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
         <ProductFilters categories={[...categories]} brands={brands} />
         <div>
-          <p className="mb-4 text-sm text-slate-600">{filtered.length} results</p>
+          <p className="mb-4 text-sm text-slate-600">
+            Showing <span className="font-semibold text-slate-900">{start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)}</span> of{" "}
+            <span className="font-semibold text-slate-900">{filtered.length}</span> results
+          </p>
           <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3">
             {paged.map((p) => <ProductCard key={p.slug} product={p} />)}
           </div>

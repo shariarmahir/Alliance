@@ -11,13 +11,13 @@ export function RequestQuoteButton({ product }: { product: Product }) {
 
   function requestQuote() {
     addItem(product, 1);
-    toast.success("Added to your quotation");
+    toast.success("Added to your price request");
     router.push("/quote");
   }
 
   return (
     <button type="button" onClick={requestQuote} className="btn-glass-accent">
-      Create Quotation
+      Ask Price
     </button>
   );
 }

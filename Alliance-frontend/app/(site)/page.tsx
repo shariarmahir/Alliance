@@ -19,6 +19,7 @@ import { CategoryGrid } from "@/app/components/category-grid";
 import { BrandStrip } from "@/app/components/brand-strip";
 import { ClientReviews } from "@/app/components/client-reviews";
 import { TopSellerCard } from "@/app/components/top-seller-card";
+import { FaqAccordion } from "@/app/components/faq-accordion";
 import { topSellers } from "@/app/lib/top-sellers";
 
 const uptimeTags = [
@@ -69,10 +70,55 @@ const differenceItems = [
   { icon: Clock, title: "Available 24/7/365", text: "Don't wait to get help. Our experts are available around the clock, every day of the year." },
 ];
 
+const faqs = [
+  {
+    question: "Why don't you publish prices?",
+    answer:
+      "Automation stock and freight move weekly, and most orders are multi-line. Send an Ask Price request and we reply with a firm quotation valid 14 days, including delivery.",
+  },
+  {
+    question: "Are the parts new or surplus?",
+    answer:
+      "Both — every listing states its condition. New parts are factory sealed; surplus parts are function-tested and covered by the same AutoLink warranty.",
+  },
+  {
+    question: "Do you ship to my country?",
+    answer: "Yes — we ship to 100+ countries, with export documentation included on every order.",
+  },
+  {
+    question: "What payment terms do you offer?",
+    answer: "Terms are confirmed on your quotation; typical terms are 50% advance with balance before dispatch.",
+  },
+  {
+    question: "Can you repair a unit instead of replacing it?",
+    answer: "Often, yes — mention it in your Ask Price notes and our engineers will offer a repair route where available.",
+  },
+];
+
 export default function Home() {
   return (
     <div>
       <HeroCarousel />
+
+      <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50 sm:grid-cols-4">
+        <div className="border-r border-slate-200 px-6 py-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Quality System</p>
+          <p className="mt-1 text-lg font-bold text-primary">ISO 9001:2015</p>
+        </div>
+        <div className="border-slate-200 px-6 py-5 sm:border-r">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Parts Catalogued</p>
+          <p className="mt-1 text-lg font-bold text-primary">50,000+</p>
+        </div>
+        <div className="border-r border-t border-slate-200 px-6 py-5 sm:border-t-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Quote Turnaround</p>
+          <p className="mt-1 text-lg font-bold text-primary">4 working hours</p>
+        </div>
+        <div className="border-t border-slate-200 px-6 py-5 sm:border-t-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Warranty</p>
+          <p className="mt-1 text-lg font-bold text-primary">2 years</p>
+        </div>
+      </div>
+
       <CategoryGrid />
 
       {/* Protect Uptime. Reduce Downtime. */}
@@ -129,6 +175,24 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {topSellers.map((p) => (
+            <TopSellerCard key={p.id} product={p} />
+          ))}
+        </div>
+      </section>
+
+      {/* Most Requested Parts */}
+      <section className="mx-auto max-w-7xl px-4 py-12">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Most Requested Parts</h2>
+            <p className="mt-1 text-sm text-slate-500">Ranked by price requests received this month</p>
+          </div>
+          <Link href="/products" className="text-sm font-medium text-primary hover:underline">
+            Browse All
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {topSellers.slice(4, 8).map((p) => (
             <TopSellerCard key={p.id} product={p} />
           ))}
         </div>
@@ -207,7 +271,16 @@ export default function Home() {
 
       {/* We Are Here To Help You */}
       <section id="contact" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60 sm:p-8">
+        <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+          <div>
+            <h2 className="mb-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Frequently Asked</h2>
+            <p className="mb-5 text-sm text-slate-600">
+              Still unsure? WhatsApp an engineer on{" "}
+              <a href="tel:+8801713116019" className="font-semibold text-primary">+8801713-116019</a>.
+            </p>
+            <FaqAccordion items={faqs} />
+          </div>
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60 sm:p-8">
           <div
             className="pointer-events-none absolute inset-0 text-primary opacity-[0.05]"
             style={{
@@ -266,6 +339,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </div>
       </section>
     </div>
   );

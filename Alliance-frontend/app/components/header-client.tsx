@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
+import { useQuote } from "@/app/lib/quote-context";
 import type { Category } from "@/app/lib/types";
 
 export function HeaderClient({ categories }: { categories: Category[] }) {
@@ -18,6 +19,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const { count } = useQuote();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -126,8 +128,16 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
               <User className="size-4" />
               <span className="hidden sm:inline">Login</span>
             </Link>
-            <Link href="/products" className="btn-glass flex h-11 items-center">
-              Browse Catalog
+            <Link
+              href="/quote"
+              className="flex h-11 items-center gap-2 rounded-lg bg-[#10192d] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1a2740]"
+            >
+              Price Requests
+              {count > 0 && (
+                <span className="flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-xs font-bold text-[#10192d]">
+                  {count}
+                </span>
+              )}
             </Link>
           </div>
 

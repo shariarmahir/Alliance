@@ -18,7 +18,7 @@ export function QuoteCta({ product }: { product: Product }) {
 
   function requestQuote() {
     addItem(product, qty);
-    toast.success("Added to your quotation");
+    toast.success("Added to your price request");
     router.push("/quote");
   }
 
@@ -26,7 +26,7 @@ export function QuoteCta({ product }: { product: Product }) {
     <div className="flex flex-col gap-3">
       <QuantityStepper initial={1} onChange={setQty} />
       <button type="button" onClick={requestQuote} className="btn-glass-accent">
-        Create Quotation
+        Ask Price for This Part
       </button>
     </div>
   );

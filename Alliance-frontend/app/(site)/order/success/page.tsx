@@ -109,9 +109,10 @@ function OrderSuccessContent() {
     <div className="mx-auto max-w-4xl px-4 py-12">
       <div className="flex flex-col items-center text-center">
         <CheckCircle2 className="size-20 text-green-500" />
-        <h1 className="mt-4 text-3xl font-extrabold text-slate-900">Order Confirmed Successfully!</h1>
+        <h1 className="mt-4 text-3xl font-extrabold text-slate-900">Order confirmed</h1>
         <p className="mt-2 text-slate-500">
-          Thank you. A confirmation has been sent and your order is being prepared.
+          Your parts are being picked and an engineer will confirm handover to
+          courier shortly.
         </p>
       </div>
 
