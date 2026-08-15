@@ -4,7 +4,8 @@
 
 export type TopSeller = {
   id: string;
-  name: string;
+  partNumber: string; // rendered in IBM Plex Mono as the card's primary identity
+  name: string; // descriptive line beneath the part number
   brand: string;
   image: string;
   price: number;
@@ -29,26 +30,60 @@ const PIMG = [
 const slug = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const NAMES = [
-  "1762-L40AWA MicroLogix 1200 PLC",
-  "PowerFlex 525 AC Drive 5HP",
-  "Kinetix 5500 Servo Drive",
-  "WEG W22 IE3 Electric Motor 7.5kW",
-  "1606-XLP95E Power Supply",
-  "E3Z-D61 Photoelectric Sensor",
-  "PanelView Plus 7 Standard HMI",
-  "1756-L71 ControlLogix Processor",
+// Part number / description / brand triples, matching the parts named in the
+// design bundle so cards read the way the spec renders them.
+const PARTS: { partNumber: string; name: string; brand: string }[] = [
+  {
+    partNumber: "1762-L40AWA",
+    name: "MicroLogix 1200 controller, 24 discrete inputs, 16 relay outputs, 120/240 V AC",
+    brand: "Allen-Bradley",
+  },
+  {
+    partNumber: "FR-E740-095SC",
+    name: "FR-E700 inverter, 3.7 kW, 400 V three-phase, built-in EMC filter",
+    brand: "Mitsubishi",
+  },
+  {
+    partNumber: "6AV2124-0GC01",
+    name: 'SIMATIC HMI TP700 Comfort panel, 7" widescreen TFT, PROFINET',
+    brand: "Siemens",
+  },
+  {
+    partNumber: "R88D-KN04H-ECT",
+    name: "Accurax G5 servo drive, 400 W, EtherCAT, single-phase 230 V",
+    brand: "Omron",
+  },
+  {
+    partNumber: "1756-L83E",
+    name: "ControlLogix 5580 processor, 40 MB memory, dual Gigabit EtherNet/IP",
+    brand: "Allen-Bradley",
+  },
+  {
+    partNumber: "6ES7214-1AG40-0XB0",
+    name: "SIMATIC S7-1200 CPU 1214C, 14 DI / 10 DO / 2 AI, PROFINET",
+    brand: "Siemens",
+  },
+  {
+    partNumber: "CJ2M-CPU31",
+    name: "CJ2M CPU unit with built-in EtherNet/IP, 20 k steps program capacity",
+    brand: "Omron",
+  },
+  {
+    partNumber: "1606-XLE120E",
+    name: "24 V DC 5 A DIN-rail switched-mode power supply",
+    brand: "Allen-Bradley",
+  },
 ];
 
-const BRANDS = ["Allen Bradley", "Siemens", "ABB", "Schneider Electric", "Mitsubishi", "Omron", "Fanuc", "Yaskawa"];
 const CONDITIONS: TopSeller["condition"][] = ["New", "Refurbished", "Repair / Exchange"];
 
-export const topSellers: TopSeller[] = NAMES.map((name, i) => {
+export const topSellers: TopSeller[] = PARTS.map((part, i) => {
   const price = 145 + ((i * 137) % 1850);
   return {
-    id: slug(name),
-    name,
-    brand: BRANDS[i % BRANDS.length],
+    id: slug(part.partNumber),
+    partNumber: part.partNumber,
+    name: part.name,
+    brand: part.brand,
     image: PIMG[i % PIMG.length],
     price,
     oldPrice: price + 80 + (i % 6) * 45,

@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 import type { QuoteItem } from "@/app/lib/types";
 import { QuantityStepper } from "./quantity-stepper";
 
@@ -16,34 +15,35 @@ export function QuoteLineItem({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-      <Link
-        href={`/products/${item.slug}`}
-        className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-slate-50"
-      >
-        <Image src={item.image} alt={item.name} fill className="object-contain p-2" />
-      </Link>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase text-primary">{item.brand}</p>
-        <Link href={`/products/${item.slug}`} className="font-semibold text-slate-900 hover:text-primary">
-          {item.partNumber}
+    <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-hairline p-4.5 last:border-b-0 sm:grid-cols-[1fr_150px_40px]">
+      <div className="flex min-w-0 gap-3.5">
+        <Link
+          href={`/products/${item.slug}`}
+          className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-hairline bg-surface"
+        >
+          <Image src={item.image} alt={item.name} fill className="object-contain p-2" />
         </Link>
-        <p className="truncate text-sm text-slate-600">{item.name}</p>
+        <span className="min-w-0">
+          <span className="mono-label block text-[10px] tracking-[0.07em] text-primary">{item.brand}</span>
+          <Link
+            href={`/products/${item.slug}`}
+            className="my-0.5 block font-mono text-[15px] font-semibold text-ink hover:text-primary"
+          >
+            {item.partNumber}
+          </Link>
+          <span className="block truncate text-xs text-[#8a94a6]">{item.name}</span>
+        </span>
       </div>
 
-      <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
-        <QuantityStepper initial={item.quantity} onChange={onQtyChange} />
-        <span className="text-xs font-semibold uppercase tracking-wide text-primary">Ask Price</span>
-      </div>
+      <QuantityStepper initial={item.quantity} onChange={onQtyChange} />
 
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${item.name}`}
-        className="self-start text-slate-400 hover:text-red-600 sm:self-center"
+        className="text-center text-[17px] text-[#c8d0da] transition-colors hover:text-[#e04545]"
       >
-        <Trash2 className="size-5" />
+        ×
       </button>
     </div>
   );

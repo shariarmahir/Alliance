@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Star, Quote } from "lucide-react";
 import type { Review } from "@/app/lib/types";
 
 export function ClientReviewsCarousel({ reviews }: { reviews: Review[] }) {
@@ -56,30 +55,25 @@ export function ClientReviewsCarousel({ reviews }: { reviews: Review[] }) {
             ref={(el) => {
               cardRefs.current[i] = el;
             }}
-            className="relative flex w-[270px] shrink-0 snap-start flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:w-[310px]"
+            className="relative flex w-[300px] shrink-0 snap-start flex-col rounded-[10px] border border-slate-line bg-white p-6 transition-shadow hover:shadow-md sm:w-[380px]"
           >
-            <Quote className="absolute right-4 top-4 size-7 text-primary/10" />
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: 5 }).map((_, s) => (
-                <Star
-                  key={s}
-                  className={`size-3.5 ${s < r.rating ? "fill-accent text-accent" : "fill-slate-200 text-slate-200"}`}
-                />
-              ))}
-            </div>
-            <p className="mt-3 flex-1 text-xs leading-relaxed text-slate-600">&ldquo;{r.text}&rdquo;</p>
-            <div className="mt-5 flex items-center gap-2.5 border-t border-slate-100 pt-3.5">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            <span className="font-mono text-[13px] tracking-[0.08em] text-accent">
+              {"★".repeat(r.rating)}
+              <span className="text-[#d7dee7]">{"★".repeat(5 - r.rating)}</span>
+            </span>
+            <p className="mb-4.5 mt-3 flex-1 text-sm leading-[1.7] text-[#31405a]">{r.text}</p>
+            <div className="flex items-center gap-3">
+              <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-tint text-[13px] font-bold text-primary">
                 {r.author
                   .split(" ")
                   .map((n) => n[0])
                   .slice(0, 2)
                   .join("")}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{r.author}</p>
-                <p className="text-xs text-slate-500">{r.country}</p>
-              </div>
+              </span>
+              <span>
+                <strong className="block text-[13.5px] font-semibold text-ink">{r.author}</strong>
+                <span className="text-xs text-[#8a94a6]">{r.country}</span>
+              </span>
             </div>
           </article>
         ))}

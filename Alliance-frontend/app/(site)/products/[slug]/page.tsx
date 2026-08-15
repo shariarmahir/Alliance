@@ -1,22 +1,43 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/app/lib/mock-data";
-import { Badge } from "@/app/components/ui/badge";
 import { ProductGallery } from "@/app/components/product-gallery";
 import { QuoteCta } from "@/app/components/quote-cta";
-import { ProductCard } from "@/app/components/product-card";
 import type { Product } from "@/app/lib/types";
 
-const stockLabel: Record<Product["stock"], string> = {
-  "in-stock": "In Stock",
-  "low-stock": "Low Stock",
-  "out-of-stock": "Out of Stock",
+// Status pills across the top of the buy column — colour-coded per the bundle.
+const stockPill: Record<Product["stock"], { bg: string; fg: string; dot: string; label: (q: number) => string }> = {
+  "in-stock": {
+    bg: "bg-ok-bg",
+    fg: "text-ok",
+    dot: "bg-ok-dot",
+    label: (q) => `In stock — ${q} units`,
+  },
+  "low-stock": {
+    bg: "bg-warn-bg",
+    fg: "text-warn",
+    dot: "bg-accent",
+    label: (q) => `Low stock — ${q} units`,
+  },
+  "out-of-stock": {
+    bg: "bg-[#f2f4f7]",
+    fg: "text-ink-soft",
+    dot: "bg-[#9aa6b6]",
+    label: () => "Sourced to order — 5–7 days",
+  },
 };
-const stockVariant: Record<Product["stock"], "default" | "secondary" | "destructive"> = {
-  "in-stock": "default",
-  "low-stock": "secondary",
-  "out-of-stock": "destructive",
+
+const conditionLabel: Record<Product["stock"], string> = {
+  "in-stock": "New, factory sealed",
+  "low-stock": "Tested surplus",
+  "out-of-stock": "Obsolete series",
+};
+
+const leadTime: Record<Product["stock"], string> = {
+  "in-stock": "Same-day dispatch · 3–5 days air",
+  "low-stock": "Dispatch within 24 hours",
+  "out-of-stock": "Sourced to order · 5–7 working days",
 };
 
 export async function generateMetadata({
@@ -43,83 +64,178 @@ export default async function ProductDetailPage({
   if (!product) notFound();
 
   const related = getRelatedProducts(slug);
+  const pill = stockPill[product.stock];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <ProductGallery images={product.gallery} alt={product.name} />
+    <div className="mx-auto max-w-[1360px] px-8 pb-8 pt-4.5">
+      <nav className="mb-5 text-xs text-[#8a94a6]">
+        <Link href="/" className="hover:text-primary">
+          Home
+        </Link>
+        <span className="mx-1.5 text-[#c8d0da]">/</span>
+        <Link href="/products" className="hover:text-primary">
+          All products
+        </Link>
+        <span className="mx-1.5 text-[#c8d0da]">/</span>
+        <span className="text-ink">{product.partNumber}</span>
+      </nav>
 
+      <div className="grid grid-cols-1 gap-11 lg:grid-cols-[520px_1fr]">
         <div>
-          <p className="text-sm font-medium uppercase text-primary">{product.brand}</p>
-          <h1 className="mb-2 text-2xl font-bold text-slate-900">{product.partNumber}</h1>
-          <p className="mb-4 text-slate-600">{product.name}</p>
+          <ProductGallery images={product.gallery} alt={product.name} />
+          <div className="mt-5 flex gap-3 rounded-[10px] border border-slate-line bg-surface p-4">
+            <span className="size-[34px] shrink-0 rounded-md border border-tint-line bg-tint" />
+            <span>
+              <strong className="mb-1 block text-[13.5px] font-semibold text-ink">
+                Not sure this is the right part?
+              </strong>
+              <span className="text-[12.5px] leading-[1.6] text-ink-muted">
+                Send a photo of the nameplate on WhatsApp —{" "}
+                <a
+                  href="https://wa.me/8801713116019"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono font-semibold text-primary"
+                >
+                  +8801713-116019
+                </a>
+              </span>
+            </span>
+          </div>
+        </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <Badge variant={stockVariant[product.stock]}>{stockLabel[product.stock]}</Badge>
-            <span className="flex items-center gap-1 text-sm text-slate-600">
-              <ShieldCheck className="size-4 text-primary" /> {product.warrantyYears}-Year Warranty
+        <div className="min-w-0">
+          <div className="mb-2.5 flex items-center gap-3">
+            <span className="mono-label text-[11.5px] tracking-[0.1em] text-primary">{product.brand}</span>
+            <span className="h-3 w-px bg-[#dde3ea]" />
+            <span className="text-xs text-[#8a94a6]">{conditionLabel[product.stock]}</span>
+          </div>
+
+          <h1 className="mb-2 font-mono text-3xl font-bold leading-[1.05] tracking-[-0.02em] text-ink md:text-[38px]">
+            {product.partNumber}
+          </h1>
+          <p className="mb-4 text-base leading-[1.6] text-ink-soft">{product.name}</p>
+
+          <div className="mb-5.5 flex flex-wrap gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ${pill.bg} ${pill.fg}`}
+            >
+              <span className={`size-[7px] rounded-full ${pill.dot}`} />
+              {pill.label(product.stockQty)}
+            </span>
+            <span className="rounded-md bg-tint px-3 py-1.5 text-xs font-semibold text-[#00618f]">
+              {conditionLabel[product.stock]}
+            </span>
+            <span className="rounded-md bg-[#f2f4f7] px-3 py-1.5 text-xs font-semibold text-ink-soft">
+              {product.warrantyYears}-year AutoLink warranty
             </span>
           </div>
 
-          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <p className="text-sm font-semibold text-primary">Ask Price</p>
-            <p className="mt-1 text-sm text-slate-600">
-              No price shown until an engineer confirms stock and freight. Firm
-              quotation valid 14 days, typically returned within 4 working hours.
-            </p>
+          <div className="mb-5.5 grid grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-slate-line bg-slate-line sm:grid-cols-2">
+            <div className="bg-white px-4 py-3.5">
+              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">CONDITION</p>
+              <p className="text-[13.5px] font-semibold text-ink">{conditionLabel[product.stock]}</p>
+            </div>
+            <div className="bg-white px-4 py-3.5">
+              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">LEAD TIME</p>
+              <p className="text-[13.5px] font-semibold text-ink">{leadTime[product.stock]}</p>
+            </div>
+            <div className="bg-white px-4 py-3.5">
+              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">ALSO KNOWN AS</p>
+              <p className="font-mono text-[13.5px] font-semibold text-ink">
+                {product.alternatePartNumbers.length > 0
+                  ? product.alternatePartNumbers.join(" · ")
+                  : product.partNumber}
+              </p>
+            </div>
+            <div className="bg-white px-4 py-3.5">
+              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">REPAIR ROUTE</p>
+              <p className="text-[13.5px] font-semibold text-ink">Exchange available — 5 working days</p>
+            </div>
           </div>
 
-          <ul className="mb-6 space-y-2 text-sm text-slate-700">
+          <QuoteCta product={product} />
+
+          <div className="mt-5.5 flex gap-6 overflow-x-auto border-b border-slate-line text-[13px] font-semibold text-[#64748b]">
+            <span className="whitespace-nowrap border-b-2 border-accent pb-2.5 text-ink">Overview</span>
+            <a href="#specifications" className="whitespace-nowrap pb-2.5 hover:text-primary">
+              Specifications
+            </a>
+            <Link href="/contact" className="whitespace-nowrap pb-2.5 hover:text-primary">
+              Repair &amp; exchange
+            </Link>
+          </div>
+          <ul className="mt-4 list-disc space-y-1 pl-4.5 text-[13.5px] leading-[1.85] text-ink-soft">
             {product.description.map((d) => (
-              <li key={d} className="flex gap-2">
-                <span className="text-primary">•</span>
-                <span>{d}</span>
-              </li>
+              <li key={d}>{d}</li>
             ))}
           </ul>
-
-          {product.alternatePartNumbers.length > 0 && (
-            <div className="mb-6">
-              <p className="mb-1 text-sm font-semibold text-slate-900">Also Known As</p>
-              <p className="text-sm text-slate-600">{product.alternatePartNumbers.join(", ")}</p>
-            </div>
-          )}
-
-          <QuoteCta product={product} />
         </div>
       </div>
 
-      <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div id="specifications" className="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-2">
         <div>
-          <h2 className="mb-4 text-lg font-bold text-slate-900">Specifications</h2>
-          <table className="w-full overflow-hidden rounded-lg border border-slate-200 text-sm">
+          <h2 className="mb-3 text-lg font-bold text-ink">Specifications</h2>
+          <table className="w-full overflow-hidden rounded-[10px] border border-slate-line text-[13px]">
             <tbody>
               {Object.entries(product.specifications).map(([key, value], i) => (
-                <tr key={key} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                  <td className="border-b border-slate-200 px-4 py-2.5 font-medium text-slate-700">{key}</td>
-                  <td className="border-b border-slate-200 px-4 py-2.5 text-slate-600">{value}</td>
+                <tr key={key} className={i % 2 === 0 ? "bg-surface" : "bg-white"}>
+                  <td className="w-[44%] border-b border-slate-line px-4 py-3 font-semibold text-ink-soft">
+                    {key}
+                  </td>
+                  <td className="border-b border-slate-line px-4 py-3 text-ink-muted">{value}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="flex flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-6">
-          <ShieldCheck className="mb-3 size-10 text-primary" />
-          <h3 className="mb-2 text-lg font-bold text-slate-900">{product.warrantyYears}-Year Manufacturer Warranty</h3>
-          <p className="text-sm text-slate-600">
-            This part is covered by a {product.warrantyYears}-year warranty against defects in materials and
-            workmanship. Contact our support team for warranty claims or technical assistance.
+        <div className="rounded-[10px] border border-slate-line bg-[#0d1626] p-5">
+          <p className="mono-label mb-1.5 text-[11px] tracking-[0.1em] text-accent">TALK TO AN ENGINEER</p>
+          <p className="mb-3.5 text-[13px] leading-[1.7] text-white/[0.72]">
+            Cross-reference an obsolete number, check firmware revision, or arrange a repair instead of a
+            replacement.
           </p>
+          <div className="flex flex-wrap gap-2.5">
+            <a
+              href="https://wa.me/8801713116019"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md border border-white/[0.28] bg-white/[0.13] px-4.5 py-2.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/[0.22]"
+            >
+              WhatsApp an engineer
+            </a>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center rounded-md px-4.5 py-2.5 text-[13px] font-semibold text-white/75 transition-colors hover:text-white"
+            >
+              Request a call back
+            </Link>
+          </div>
         </div>
       </div>
 
       {related.length > 0 && (
-        <div className="mt-14">
-          <h2 className="mb-6 text-xl font-bold text-slate-900">Customers Also Bought</h2>
+        <div className="mt-10">
+          <h2 className="mb-4 text-xl font-bold text-ink">Engineers also asked about</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((p) => (
-              <ProductCard key={p.slug} product={p} />
+              <Link
+                key={p.slug}
+                href={`/products/${p.slug}`}
+                className="flex gap-3.5 rounded-[10px] border border-slate-line p-3.5 transition-all hover:border-primary hover:shadow-[0_8px_20px_rgba(16,25,45,.07)]"
+              >
+                <span className="flex size-[60px] shrink-0 items-center justify-center rounded-md bg-surface">
+                  <span className="mono-label text-[10px] text-primary">{p.brand.slice(0, 3)}</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="mono-label block text-[10px] tracking-[0.07em] text-primary">{p.brand}</span>
+                  <span className="my-1 block truncate font-mono text-[13px] font-semibold text-ink">
+                    {p.partNumber}
+                  </span>
+                  <span className="line-clamp-2 text-[11.5px] text-[#8a94a6]">{p.name}</span>
+                </span>
+              </Link>
             ))}
           </div>
         </div>

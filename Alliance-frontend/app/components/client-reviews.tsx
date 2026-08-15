@@ -3,19 +3,15 @@ import { ClientReviewsCarousel } from "@/app/components/client-reviews-carousel"
 
 export function ClientReviews() {
   return (
-    <section className="border-y border-slate-200 bg-slate-50 py-12">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Client Reviews</p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-              Trusted by Buyers Worldwide
-            </h2>
-          </div>
-        </div>
-
-        <ClientReviewsCarousel reviews={reviews} />
+    <section className="mx-auto max-w-[1360px] px-7 py-14 md:px-[68px]">
+      <div className="mb-5.5">
+        <h2 className="mb-1 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">What clients say</h2>
+        <p className="text-[13.5px] text-[#64748b]">
+          Verified after delivery · 4.8 average from 412 reviews
+        </p>
       </div>
+
+      <ClientReviewsCarousel reviews={reviews} />
     </section>
   );
 }

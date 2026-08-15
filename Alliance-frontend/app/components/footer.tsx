@@ -1,95 +1,128 @@
 import Link from "next/link";
-import { MapPin, Mail, Phone } from "lucide-react";
 import { categories } from "@/app/lib/mock-data";
 
 export function Footer() {
   return (
-    <footer className="mt-16 bg-primary text-white/80">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 md:grid-cols-5">
-        <div>
-          <div className="text-2xl font-extrabold tracking-tight text-white">
-            AutoLink<span className="text-accent">.</span>
+    <footer className="bg-[#0d1626] text-white/[0.68]">
+      <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">
+        <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
+          <div>
+            <div className="mb-4 text-[21px] font-bold text-white">
+              AutoLink<span className="text-accent">.</span>
+            </div>
+            <p className="mb-4 text-[12.5px] leading-[1.75] text-white/60">
+              Industrial electronics and automation spares, supplied worldwide from Bangladesh since 2009.
+            </p>
+            <p className="font-mono text-[12.5px] leading-[1.9] text-white/[0.78]">
+              Uttara, Dhaka, Bangladesh
+              <br />
+              <a href="mailto:info@autolink.com" className="hover:text-accent">
+                info@autolink.com
+              </a>
+              <br />
+              <a href="tel:+8801713116019" className="hover:text-accent">
+                +8801713-116019
+              </a>
+            </p>
           </div>
-          <div className="mb-3 mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">
-            Integrated Technologies
-          </div>
-          <p className="text-sm text-white/70">
-            Your global partner for industrial electronics — PLCs, drives, servos, motors and power
-            systems. New, refurbished &amp; repair. Shipping worldwide from Bangladesh.
-          </p>
-        </div>
 
-        <div>
-          <h4 className="mb-4 font-semibold text-white">Categories</h4>
-          <ul className="space-y-2 text-sm text-white/70">
-            {categories.slice(0, 6).map((c) => (
-              <li key={c.slug}>
-                <Link href={`/products?category=${c.slug}`} className="hover:text-accent">
-                  {c.name}
+          <div>
+            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">CATALOGUE</p>
+            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+              {categories.slice(0, 5).map((c) => (
+                <li key={c.slug}>
+                  <Link href={`/products?category=${c.slug}`} className="hover:text-accent">
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/products" className="hover:text-accent">
+                  All products
                 </Link>
               </li>
-            ))}
-          </ul>
+            </ul>
+          </div>
+
+          <div>
+            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">SERVICES</p>
+            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+              <li>
+                <Link href="/quote" className="hover:text-accent">
+                  Ask Price
+                </Link>
+              </li>
+              <li>
+                <Link href="/#services" className="hover:text-accent">
+                  Repair &amp; exchange
+                </Link>
+              </li>
+              <li>
+                <Link href="/#services" className="hover:text-accent">
+                  Critical spares
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-accent">
+                  Sell us your parts
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">COMPANY</p>
+            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+              <li>
+                <Link href="/contact" className="hover:text-accent">
+                  About AutoLink
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-accent">
+                  Quality &amp; ISO
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-accent">
+                  Export &amp; shipping
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-accent">
+                  Terms of trade
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">STOCK &amp; PRICE ALERTS</p>
+            <form className="mb-3 flex gap-2">
+              <input
+                type="email"
+                placeholder="Work email"
+                className="min-w-0 flex-1 rounded-[7px] border border-white/20 bg-white/[0.07] px-3 py-2.5 text-[12.5px] text-white outline-none placeholder:text-white/50 focus:border-accent"
+              />
+              <button
+                type="button"
+                className="shrink-0 rounded-[7px] bg-accent px-3.5 py-2.5 text-[12.5px] font-bold text-ink hover:bg-accent-dark"
+              >
+                Join
+              </button>
+            </form>
+            <p className="text-[11.5px] leading-[1.6] text-white/45">
+              New arrivals and obsolete finds, once a month. No resellers.
+            </p>
+          </div>
         </div>
 
-        <div>
-          <h4 className="mb-4 font-semibold text-white">Company</h4>
-          <ul className="space-y-2 text-sm text-white/70">
-            <li>
-              <Link href="/products" className="hover:text-accent">All Products</Link>
-            </li>
-            <li>
-              <Link href="/#services" className="hover:text-accent">Services &amp; Support</Link>
-            </li>
-            <li>
-              <Link href="/#contact" className="hover:text-accent">Contact Us</Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="mb-4 font-semibold text-white">Get in Touch</h4>
-          <ul className="space-y-3 text-sm text-white/70">
-            <li className="flex items-start gap-2">
-              <MapPin className="mt-0.5 size-4 text-accent" /> Uttara, Dhaka, Bangladesh
-            </li>
-            <li className="flex items-center gap-2">
-              <Mail className="size-4 text-accent" />
-              <a href="mailto:info@autolink.com" className="hover:text-accent">info@autolink.com</a>
-            </li>
-            <li className="flex items-center gap-2">
-              <Phone className="size-4 text-accent" />
-              <a href="tel:+8801713116019" className="hover:text-accent">+8801713-116019</a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="mb-4 font-semibold text-white">Stock &amp; Price Alerts</h4>
-          <p className="mb-3 text-sm text-white/70">
-            New arrivals and obsolete finds, once a month. No resellers.
-          </p>
-          <form className="flex gap-2">
-            <input
-              type="email"
-              placeholder="Work email"
-              className="min-w-0 flex-1 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent"
-            />
-            <button
-              type="button"
-              className="shrink-0 rounded-md bg-accent px-3 py-2 text-sm font-bold text-slate-900 hover:bg-accent-dark"
-            >
-              Join
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="border-t border-white/20">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-white/70 sm:flex-row">
-          <p>&copy; AutoLink Integrated Technologies 2026-2028. All rights reserved.</p>
-          <p>
-            Developed by <span className="font-semibold text-accent">Mahir Shariar Mahin</span>
+        <div className="flex flex-col items-center justify-between gap-2 py-5 text-[11.5px] text-white/50 sm:flex-row">
+          <p>&copy; AutoLink Integrated Technologies 2026–2028. All rights reserved. Developed by Mahir Shariar Mahin.</p>
+          <p className="flex gap-5">
+            <span>English · USD</span>
+            <span>Terms</span>
+            <span>Privacy</span>
           </p>
         </div>
       </div>

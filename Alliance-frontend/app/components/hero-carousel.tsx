@@ -9,20 +9,22 @@ type HeroImageEntry = { slot: number; path: string };
 
 const SLIDE_COPY = [
   {
-    headlineLine1: "Industrial Electronics,",
-    headlineLine2: "Sourced Globally.",
+    headlineLine1: "The part that stops your line,",
+    headlineLine2: "in stock today",
     subheadline:
-      "PLCs, VFD drives, servo motors, power systems and automation parts. New, refurbished & repair — request a quotation and get it delivered anywhere.",
+      "PLCs, drives, servos, HMIs and power components from 60+ manufacturers — quoted in four working hours, shipped worldwide from Dhaka.",
   },
   {
-    headlineLine1: "Genuine Parts.",
-    headlineLine2: "Verified Suppliers.",
-    subheadline: "Every part in our catalog is sourced from authorized channels with full traceability and warranty coverage.",
+    headlineLine1: "Genuine parts.",
+    headlineLine2: "Verified suppliers.",
+    subheadline:
+      "Every unit inspected, function-tested and covered by an AutoLink warranty before it leaves Uttara.",
   },
   {
-    headlineLine1: "Fast Quotations.",
-    headlineLine2: "Reliable Lead Times.",
-    subheadline: "Request a quote in minutes and get a dedicated response from our technical sales team.",
+    headlineLine1: "Obsolete numbers,",
+    headlineLine2: "found and tested",
+    subheadline:
+      "If it is discontinued, we hunt it down or offer a bench-tested equivalent — with the cross-reference confirmed by an engineer.",
   },
 ];
 

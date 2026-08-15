@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -10,7 +10,35 @@
   --color-primary-dark: #005f9e;
   --color-accent: #ffb900;
   --color-accent-dark: #cc9400;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Design-bundle palette (Storefront.dc.html "SYSTEM" panel) */
+  --color-ink: #10192d;
+  --color-ink-soft: #43506a;
+  --color-ink-muted: #5b6a80;
+  --color-slate-line: #e3e7ec;
+  --color-hairline: #eef1f5;
+  --color-surface: #f7f9fc;
+  --color-surface-blue: #f2f7fb;
+  --color-tint: #eaf5fd;
+  --color-tint-line: #cfe7f7;
+  --color-ok: #0b7a4b;
+  --color-ok-bg: #e7f7ee;
+  --color-ok-dot: #12a366;
+  --color-warn: #8a5c00;
+  --color-warn-bg: #fff5e0;
+
+  --font-sans: "Archivo", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Part numbers, SKUs, counts and metric labels — the bundle sets these in
+   IBM Plex Mono throughout, so it gets a named utility rather than repeating
+   `font-mono tracking-[.08em]` on every occurrence. */
+.mono-label {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 html {
@@ -19,9 +47,43 @@ html {
 
 body {
   background: #ffffff;
-  color: #0f172a;
+  color: #10192d;
   overflow-x: hidden;
   max-width: 100vw;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Continuous sheen on the hero / summary CTAs — the bundle runs this on a
+   loop rather than only on hover (`animation: sheen 3.4s ease-in-out infinite`). */
+@keyframes sheen {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  55%,
+  100% {
+    transform: translateX(260%) skewX(-20deg);
+  }
+}
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 38%;
+  height: 100%;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: sheen 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-sheen::after {
+    animation: none;
+  }
 }
 
 /* Glassmorphism animated buttons */
@@ -180,13 +242,14 @@ body {
   --border: #e1e7ef;
   --input: #e1e7ef;
   --ring: #007dcc;
+  /* Bundle spec: 10px card · 8px control. --radius drives rounded-lg. */
+  --radius: 0.625rem;
   --chart-1: #007dcc;
   --chart-2: #ffb900;
   --chart-3: #10b981;
   --chart-4: #8b5cf6;
   --chart-5: #f43f5e;
   --chart-6: #0ea5e9;
-  --radius: 0.625rem;
   --sidebar: #ffb900;
   --sidebar-foreground: #3d2c00;
   --sidebar-primary: #10192d;
@@ -195,6 +258,11 @@ body {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #e6a800;
   --sidebar-ring: #10192d;
+}
+
+/* The bundle's control radius is a flat 8px, not a ratio of the card radius. */
+@theme inline {
+  --radius-md: 8px;
 }
 
 @layer base {

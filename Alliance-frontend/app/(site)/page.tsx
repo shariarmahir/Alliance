@@ -1,73 +1,77 @@
 import Link from "next/link";
-import {
-  ShieldCheck,
-  Wrench,
-  Radio,
-  Zap as ZapIcon,
-  BadgeCheck,
-  Truck,
-  RotateCcw,
-  Clock,
-  Rocket,
-  Headset,
-  Mail,
-  Phone,
-  ArrowUpRight,
-} from "lucide-react";
+import { ShieldCheck, Radio, RotateCcw, Clock } from "lucide-react";
 import { HeroCarousel } from "@/app/components/hero-carousel";
 import { CategoryGrid } from "@/app/components/category-grid";
 import { BrandStrip } from "@/app/components/brand-strip";
 import { ClientReviews } from "@/app/components/client-reviews";
 import { TopSellerCard } from "@/app/components/top-seller-card";
 import { FaqAccordion } from "@/app/components/faq-accordion";
+import { HomeEnquiryForm } from "@/app/components/home-enquiry-form";
 import { topSellers } from "@/app/lib/top-sellers";
 
 const uptimeTags = [
-  { icon: ShieldCheck, label: "Automation Parts" },
-  { icon: RotateCcw, label: "Repair & Exchange" },
-  { icon: Clock, label: "Lifecycle Management" },
-  { icon: Radio, label: "Operations Support" },
+  { icon: ShieldCheck, label: "Automation spares" },
+  { icon: RotateCcw, label: "Repair & exchange" },
+  { icon: Clock, label: "Lifecycle management" },
+  { icon: Radio, label: "On-site support" },
+];
+
+const heroStats = [
+  { label: "Quality System", value: "ISO 9001:2015" },
+  { label: "Parts Catalogued", value: "42,000+" },
+  { label: "Quote Turnaround", value: "4 working hours" },
+  { label: "Warranty", value: "2 years" },
 ];
 
 const trustStats = [
-  { label: "ISO Certified", value: "9001:2015" },
-  { label: "Products Available", value: "20+ Million" },
-  { label: "AutoLink Warranty", value: "2 Year" },
-  { label: "Shipping To", value: "100+ Countries" },
-  { label: "Direct Lines", value: "450+" },
-  { label: "Engineers", value: "350+" },
+  { label: "Manufacturers", value: "60+" },
+  { label: "Countries Served", value: "100+" },
+  { label: "Test Bench Pass", value: "99.4%" },
+  { label: "Engineers On Call", value: "38" },
+  { label: "Warehouse", value: "18,000 ft²" },
+  { label: "Trading Since", value: "2009" },
 ];
 
+// The bundle marks each service with a flat geometric glyph rather than an
+// icon set — shape + colour are the only differentiators.
 const services = [
   {
-    icon: Wrench,
-    title: "Repair Services",
-    text: "AutoLink's expert repair team restores your critical equipment with precision, extending its lifespan and minimizing downtime.",
+    glyph: "bg-primary [clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]",
+    title: "Repair & exchange",
+    text: "Board-level repair for drives, HMIs and power supplies with a tested-and-returned guarantee.",
+    cta: "Learn more",
+    href: "/contact",
   },
   {
-    icon: Radio,
-    title: "AutoLink Remote",
-    text: "Live expert technical assistance from an AutoLink-qualified engineer. Get back up and running with the troubleshooting help you need.",
+    glyph: "bg-accent rounded-full",
+    title: "Ask an engineer",
+    text: "Send a photo of the nameplate on WhatsApp and get the right part number back, not a catalogue link.",
+    cta: "Start a chat",
+    href: "https://wa.me/8801713116019",
   },
   {
-    icon: BadgeCheck,
-    title: "Ask An Engineer",
-    text: "Talk to an AutoLink engineer about your specific product or project. Eliminate guesswork and get the help you need.",
+    glyph: "bg-ink",
+    title: "Critical spares programme",
+    text: "We hold your line-critical stock in Dhaka and release it against a standing agreement.",
+    cta: "Learn more",
+    href: "/contact",
   },
   {
-    icon: Truck,
-    title: "Sell To Us",
-    text: "Get cash for surplus or used parts and products, adding to your bottom line. Simple & easy process.",
+    glyph: "bg-primary rounded-md",
+    title: "Sell us your surplus",
+    text: "Turn shelved automation stock into working capital. Send a list, get an offer.",
+    cta: "Send a list",
+    href: "/contact",
   },
 ];
 
 const differenceItems = [
-  { icon: ShieldCheck, title: "Standard 2 Year Warranty", text: "Most products ship with a full 2 year AutoLink warranty. Extended warranty options available." },
-  { icon: Rocket, title: "Same Day Shipping", text: "1M+ products ship the same day and millions more with rush processing available." },
-  { icon: BadgeCheck, title: "ISO Certified", text: "Third party audited & certified materials, processes & services." },
-  { icon: RotateCcw, title: "30 Day Money-Back Guarantee", text: "Send the product back for any reason for a refund, less any applicable restocking fee." },
-  { icon: ZapIcon, title: "Rush Process", text: "Faster processing and a guaranteed ship date available on millions of qualified products." },
-  { icon: Clock, title: "Available 24/7/365", text: "Don't wait to get help. Our experts are available around the clock, every day of the year." },
+  { title: "Two-year warranty", text: "On new and tested surplus alike, extendable to five." },
+  { title: "Quote in 4 hours", text: "Working hours GMT+6, with stock and lead time confirmed." },
+  { title: "Function-tested", text: "Every unit powered up and logged before dispatch." },
+  { title: "Export documentation", text: "Commercial invoice, packing list, HS codes and CoC included." },
+  { title: "Obsolete sourcing", text: "If it is discontinued, we hunt it or offer a tested equivalent." },
+  { title: "One engineer, start to finish", text: "The person who quotes your part follows the shipment." },
 ];
 
 const faqs = [
@@ -100,126 +104,121 @@ export default function Home() {
     <div>
       <HeroCarousel />
 
-      <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50 sm:grid-cols-4">
-        <div className="border-r border-slate-200 px-6 py-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Quality System</p>
-          <p className="mt-1 text-lg font-bold text-primary">ISO 9001:2015</p>
-        </div>
-        <div className="border-slate-200 px-6 py-5 sm:border-r">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Parts Catalogued</p>
-          <p className="mt-1 text-lg font-bold text-primary">50,000+</p>
-        </div>
-        <div className="border-r border-t border-slate-200 px-6 py-5 sm:border-t-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Quote Turnaround</p>
-          <p className="mt-1 text-lg font-bold text-primary">4 working hours</p>
-        </div>
-        <div className="border-t border-slate-200 px-6 py-5 sm:border-t-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Warranty</p>
-          <p className="mt-1 text-lg font-bold text-primary">2 years</p>
-        </div>
+      <div className="grid grid-cols-2 gap-px border-b border-slate-line bg-slate-line sm:grid-cols-4">
+        {heroStats.map((s) => (
+          <div key={s.label} className="bg-surface px-7 py-5">
+            <p className="mono-label text-[10.5px] tracking-[0.09em] text-[#8a94a6]">{s.label}</p>
+            <p className="mt-1 text-[19px] font-bold text-primary">{s.value}</p>
+          </div>
+        ))}
       </div>
 
       <CategoryGrid />
 
-      {/* Protect Uptime. Reduce Downtime. */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
+      {/* Protect uptime. Reduce downtime. */}
+      <section className="mx-auto max-w-[1360px] px-7 py-15 md:px-[68px]">
+        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[1fr_1.05fr]">
           <div>
-            <h2 className="mb-3 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-              Protect Uptime. Reduce Downtime.
+            <h2 className="mb-3.5 text-[28px] font-bold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[32px]">
+              Protect uptime.
+              <br />
+              Reduce downtime.
             </h2>
-            <div className="mb-4 flex flex-wrap gap-2">
+            <p className="mb-5.5 max-w-[440px] text-[15px] leading-[1.7] text-[#4c5a72]">
+              AutoLink keeps spares, repairs and lifecycle plans in one place, so maintenance teams stop
+              chasing discontinued part numbers across three continents.
+            </p>
+            <div className="mb-6 flex flex-wrap gap-2.5">
               {uptimeTags.map((t) => (
                 <span
                   key={t.label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+                  className="inline-flex items-center gap-1.5 rounded-[20px] border border-tint-line bg-tint px-3.5 py-2 text-[12.5px] font-semibold text-[#00618f]"
                 >
-                  <t.icon className="size-3.5 text-primary" />
+                  <t.icon className="size-3.5" />
                   {t.label}
                 </span>
               ))}
             </div>
-            <p className="mb-5 max-w-lg text-sm leading-relaxed text-slate-600">
-              AutoLink delivers automation parts, repair services, and lifecycle solutions that reduce
-              downtime and keep maintenance, engineering, and operations teams running.
-            </p>
-            <Link href="/products" className="text-sm font-semibold text-primary hover:underline">
-              Discuss Your Uptime Needs →
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2.5 border-b-[1.5px] border-[#b9dcf3] pb-1 text-sm font-semibold text-primary"
+            >
+              Discuss your uptime plan →
             </Link>
           </div>
-          <div className="relative aspect-video overflow-hidden rounded-xl">
+          <div className="relative h-[326px] overflow-hidden rounded-xl bg-[#0d1626]">
             <video
               src="/video/video1.mp4"
               autoPlay
               loop
               muted
               playsInline
-              className="size-full object-cover"
+              className="size-full object-cover opacity-[0.82]"
             />
-            <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-900/70 via-slate-900/10 to-transparent" />
-            <div className="absolute left-5 top-5 text-2xl font-extrabold leading-tight sm:text-3xl">
-              <span className="block text-white">Keep Product</span>
-              <span className="block text-accent">Moving</span>
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-[#0b1420]/10 to-[#0b1420]/[0.72]" />
+            <span className="absolute left-1/2 top-1/2 flex size-[70px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[1.5px] border-white/50 bg-white/20 backdrop-blur-sm">
+              <span className="ml-1.5 size-0 border-y-[11px] border-l-[17px] border-y-transparent border-l-white" />
+            </span>
+            <div className="absolute bottom-6 left-6">
+              <p className="mono-label mb-1 text-[11px] tracking-[0.1em] text-accent">02:14 — CASE FILM</p>
+              <p className="text-[21px] font-bold text-white">Keeping 42 knit lines running</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Top Selling Products */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Top Selling Products</h2>
-          <Link href="/products" className="text-sm font-medium text-primary hover:underline">
-            Browse All
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {topSellers.map((p) => (
-            <TopSellerCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
-
-      {/* Most Requested Parts */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
-        <div className="mb-6 flex items-center justify-between">
+      {/* Most requested parts */}
+      <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Most Requested Parts</h2>
-            <p className="mt-1 text-sm text-slate-500">Ranked by price requests received this month</p>
+            <h2 className="mb-1 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
+              Most requested parts
+            </h2>
+            <p className="text-[13.5px] text-[#64748b]">Ranked by price requests received</p>
           </div>
-          <Link href="/products" className="text-sm font-medium text-primary hover:underline">
-            Browse All
-          </Link>
+          <div className="flex rounded-[9px] border border-slate-line bg-[#f2f4f7] p-1">
+            <span className="rounded-md bg-white px-5 py-2 text-[13px] font-semibold text-ink shadow-[0_1px_3px_rgba(16,25,45,.12)]">
+              This week
+            </span>
+            <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
+              This month
+            </Link>
+            <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
+              This year
+            </Link>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {topSellers.slice(4, 8).map((p) => (
-            <TopSellerCard key={p.id} product={p} />
+        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
+          {topSellers.slice(0, 4).map((p, i) => (
+            <TopSellerCard key={p.id} product={p} rank={i === 0 ? 1 : undefined} />
           ))}
         </div>
       </section>
 
-      {/* Quality Parts and Services You Can Trust */}
-      <section className="bg-secondary py-12">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-center">
+      {/* Quality parts and services you can trust */}
+      <section className="border-y border-slate-line bg-surface-blue py-14">
+        <div className="mx-auto max-w-[1360px] px-7 md:px-[68px]">
+          <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-[1fr_1.15fr]">
             <div>
-              <h2 className="mb-3 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Quality Parts and Services You Can Trust
+              <h2 className="mb-3.5 text-2xl font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-[29px]">
+                Quality parts and services you can trust
               </h2>
-              <p className="max-w-lg text-sm leading-relaxed text-slate-600">
-                Automation, industrial, electrical, and MRO components to keep your business running
-                smoothly. From obsolete and hard-to-find equipment to on-site services and expert repair
-                capabilities, we&apos;ve got what you need.
+              <p className="mb-5 text-[14.5px] leading-[1.7] text-[#4c5a72]">
+                New, factory-sealed and tested surplus automation components — every unit inspected,
+                function-tested and covered by an AutoLink warranty before it leaves Uttara.
               </p>
-              <Link href="/products" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
-                Learn About Us
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2.5 border-b-[1.5px] border-[#b9dcf3] pb-1 text-sm font-semibold text-primary"
+              >
+                Learn about AutoLink →
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-[#dbe4ec] bg-[#dbe4ec] sm:grid-cols-3">
               {trustStats.map((s) => (
-                <div key={s.label} className="border-l-2 border-primary/30 pl-3">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500">{s.label}</p>
-                  <p className="text-lg font-bold text-primary">{s.value}</p>
+                <div key={s.label} className="bg-white p-5">
+                  <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">{s.label}</p>
+                  <p className="text-[22px] font-bold text-ink">{s.value}</p>
                 </div>
               ))}
             </div>
@@ -227,20 +226,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services & Support */}
-      <section id="services" className="mx-auto max-w-7xl px-4 py-12">
-        <h2 className="mb-6 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Services &amp; Support</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Services & support */}
+      <section id="services" className="mx-auto max-w-[1360px] px-7 py-14 md:px-[68px]">
+        <h2 className="mb-5.5 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
+          Services &amp; support
+        </h2>
+        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
           {services.map((s) => (
             <div
               key={s.title}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white hover:shadow-md"
+              className="rounded-[10px] border border-slate-line bg-white p-5.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)]"
             >
-              <s.icon className="mb-3 size-7 text-primary" />
-              <h3 className="mb-1.5 text-sm font-semibold text-slate-900">{s.title}</h3>
-              <p className="text-xs leading-relaxed text-slate-600">{s.text}</p>
-              <Link href="/products" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">
-                Learn More
+              <span className={`mb-4 block size-[26px] ${s.glyph}`} />
+              <strong className="mb-1.5 block text-base font-semibold text-ink">{s.title}</strong>
+              <p className="mb-3.5 text-[12.5px] leading-[1.6] text-[#64748b]">{s.text}</p>
+              <Link href={s.href} className="text-[12.5px] font-semibold text-primary hover:underline">
+                {s.cta} →
               </Link>
             </div>
           ))}
@@ -249,18 +250,25 @@ export default function Home() {
 
       <BrandStrip />
 
-      {/* The AutoLink Difference */}
-      <section className="bg-primary py-12 text-white">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-8 text-center text-xl font-bold tracking-tight sm:text-2xl">The AutoLink Difference</h2>
-          <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-            {differenceItems.map((d) => (
+      {/* The AutoLink difference */}
+      <section className="mt-14 bg-[#0d1626] py-13">
+        <div className="mx-auto max-w-[1360px] px-7 md:px-[68px]">
+          <h2 className="mb-1.5 text-center text-2xl font-bold tracking-[-0.02em] text-white sm:text-[28px]">
+            The AutoLink difference
+          </h2>
+          <p className="mb-8.5 text-center text-sm text-white/60">
+            Six commitments we put in writing on every quotation
+          </p>
+          <div className="grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+            {differenceItems.map((d, i) => (
               <div key={d.title} className="flex gap-3.5">
-                <d.icon className="size-7 shrink-0 text-accent" />
-                <div>
-                  <h3 className="mb-1 text-sm font-semibold">{d.title}</h3>
-                  <p className="text-xs leading-relaxed text-white/80">{d.text}</p>
-                </div>
+                <span className="flex size-[34px] shrink-0 items-center justify-center rounded-md border border-accent/35 bg-accent/[0.16] font-mono text-[13px] font-bold text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>
+                  <strong className="mb-1 block text-[15px] font-semibold text-white">{d.title}</strong>
+                  <span className="text-[12.5px] leading-[1.6] text-white/[0.62]">{d.text}</span>
+                </span>
               </div>
             ))}
           </div>
@@ -269,77 +277,33 @@ export default function Home() {
 
       <ClientReviews />
 
-      {/* We Are Here To Help You */}
-      <section id="contact" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+      {/* Frequently asked + We are here to help you */}
+      <section id="contact" className="mx-auto max-w-[1360px] px-7 pb-16 pt-15 md:px-[68px]">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_1.2fr] lg:items-start">
           <div>
-            <h2 className="mb-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Frequently Asked</h2>
-            <p className="mb-5 text-sm text-slate-600">
+            <h2 className="mb-2 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
+              Frequently asked
+            </h2>
+            <p className="mb-5 text-[13.5px] leading-[1.7] text-[#64748b]">
               Still unsure? WhatsApp an engineer on{" "}
-              <a href="tel:+8801713116019" className="font-semibold text-primary">+8801713-116019</a>.
+              <a href="tel:+8801713116019" className="font-mono font-semibold text-primary">
+                +8801713-116019
+              </a>
+              .
             </p>
             <FaqAccordion items={faqs} />
           </div>
-          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/60 sm:p-8">
-          <div
-            className="pointer-events-none absolute inset-0 text-primary opacity-[0.05]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
-              backgroundSize: "28px 28px",
-            }}
-          />
-          <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-accent/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full bg-primary/10 blur-3xl" />
-
-          <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
-            <div className="flex gap-5">
-              <div className="hidden shrink-0 items-center justify-center rounded-xl bg-primary/10 p-3.5 ring-1 ring-primary/15 sm:flex">
-                <Headset className="size-7 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-extrabold tracking-tight text-primary sm:text-2xl">
-                  We Are Here To Help You
-                </h2>
-                <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-600">
-                  If you have questions, need a price or repair quote, or are ready to place an
-                  order, our team is here to assist you — every step of the way.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex w-full shrink-0 flex-col items-stretch gap-4 lg:w-auto lg:items-end">
-              <Link
-                href="/contact"
-                className="btn-glass-accent group w-full justify-center py-3 text-base lg:w-auto"
-              >
-                Contact Us
-                <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </Link>
-              <div className="flex flex-col gap-2.5 sm:flex-row lg:flex-col lg:items-end">
-                <a
-                  href="mailto:info@autolink.com"
-                  className="flex items-center gap-2.5 rounded-lg px-1 text-sm font-medium text-slate-600 transition-colors hover:text-primary"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/15">
-                    <Mail className="size-4 text-primary" />
-                  </span>
-                  info@autolink.com
-                </a>
-                <a
-                  href="tel:+8801713116019"
-                  className="flex items-center gap-2.5 rounded-lg px-1 text-sm font-medium text-slate-600 transition-colors hover:text-primary"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/15">
-                    <Phone className="size-4 text-primary" />
-                  </span>
-                  +8801713-116019
-                </a>
-              </div>
-            </div>
+          <div className="relative overflow-hidden rounded-xl border border-slate-line bg-surface p-6 sm:p-8">
+            <h2 className="mb-1.5 text-[22px] font-bold tracking-[-0.02em] text-ink sm:text-2xl">
+              We are here to help you
+            </h2>
+            <p className="mb-5.5 text-[13.5px] leading-[1.6] text-ink-muted">
+              Send the part number or a photo of the nameplate. An engineer replies within four working
+              hours.
+            </p>
+            <HomeEnquiryForm />
           </div>
         </div>
-      </div>
       </section>
     </div>
   );

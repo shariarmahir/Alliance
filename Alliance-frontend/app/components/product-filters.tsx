@@ -83,7 +83,7 @@ export function ProductFilters({ categories, brands }: { categories: Category[];
         </div>
       )}
 
-      <aside className="hidden flex-col gap-6 rounded-xl border border-slate-200 bg-white p-4 lg:sticky lg:top-24 lg:flex lg:h-fit">
+      <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">
         <FilterBody
           categories={categories}
           brands={brands}
@@ -117,93 +117,95 @@ function FilterBody({
 }) {
   return (
     <>
-      <div>
-        <Label htmlFor="filter-search" className="mb-2 block text-sm font-semibold text-slate-900">
-          Search
-        </Label>
-        <input
-          id="filter-search"
-          type="text"
-          defaultValue={q}
-          placeholder="Part number or description..."
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              updateParams({ q: (e.target as HTMLInputElement).value || null });
-            }
-          }}
-          onBlur={(e) => updateParams({ q: e.target.value || null })}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
-      </div>
+      <div className="mb-4 overflow-hidden rounded-[10px] border border-slate-line">
+        <div className="bg-[#0d1626] px-4 py-3.5">
+          <strong className="text-[13px] font-semibold text-white">Product search</strong>
+        </div>
+        <div className="flex flex-col gap-3.5 p-4">
+          <label className="block">
+            <span className="mono-label mb-1.5 block text-[10.5px] tracking-[0.06em] text-ink-muted">
+              PART NUMBER OR KEYWORD
+            </span>
+            <input
+              id="filter-search"
+              type="text"
+              defaultValue={q}
+              placeholder="1762-"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updateParams({ q: (e.target as HTMLInputElement).value || null });
+                }
+              }}
+              onBlur={(e) => updateParams({ q: e.target.value || null })}
+              className="w-full rounded-[7px] border border-[#dde3ea] px-2.5 py-2.5 font-mono text-[13px] text-ink outline-none focus:border-primary"
+            />
+          </label>
 
-      <div className="mt-6">
-        <p className="mb-2 text-sm font-semibold text-slate-900">Category</p>
-        <div className="flex flex-col gap-1.5">
-          <button
-            type="button"
-            onClick={() => updateParams({ category: null })}
-            className={cn(
-              "rounded-md px-2 py-1.5 text-left text-sm",
-              activeCategory === "" ? "bg-primary/10 font-medium text-primary" : "text-slate-600 hover:bg-slate-50"
-            )}
-          >
-            All Categories
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              onClick={() => updateParams({ category: activeCategory === c.slug ? null : c.slug })}
-              className={cn(
-                "flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm",
-                activeCategory === c.slug ? "bg-primary/10 font-medium text-primary" : "text-slate-600 hover:bg-slate-50"
-              )}
+          <label className="block">
+            <span className="mono-label mb-1.5 block text-[10.5px] tracking-[0.06em] text-ink-muted">
+              CATEGORY
+            </span>
+            <select
+              value={activeCategory}
+              onChange={(e) => updateParams({ category: e.target.value || null })}
+              className="w-full rounded-[7px] border border-[#dde3ea] px-2.5 py-2.5 text-[13px] text-ink outline-none focus:border-primary"
             >
-              <span>{c.name}</span>
-              <span className="text-xs text-slate-400">{c.productCount}</span>
-            </button>
-          ))}
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name} ({c.productCount})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="filter-instock" className="text-[12.5px] font-medium text-ink-soft">
+              In stock only
+            </Label>
+            <Switch
+              id="filter-instock"
+              checked={inStockOnly}
+              onCheckedChange={(checked) => updateParams({ inStock: checked ? "true" : null })}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="mt-6">
-        <p className="mb-2 text-sm font-semibold text-slate-900">Brand</p>
-        <div className="flex flex-col gap-1.5">
+      <div className="rounded-[10px] border border-slate-line p-4">
+        <strong className="mb-3 block text-[12.5px] font-semibold text-ink">Brand</strong>
+        <div className="flex flex-col gap-2.5 text-[12.5px] text-ink-soft">
           <button
             type="button"
             onClick={() => updateParams({ brand: null })}
             className={cn(
-              "rounded-md px-2 py-1.5 text-left text-sm",
-              activeBrand === "" ? "bg-primary/10 font-medium text-primary" : "text-slate-600 hover:bg-slate-50"
+              "text-left transition-colors hover:text-primary",
+              activeBrand === "" && "font-semibold text-primary"
             )}
           >
-            All Brands
+            All brands
           </button>
           {brands.map((b) => (
             <button
               key={b.slug}
               type="button"
               onClick={() => updateParams({ brand: activeBrand === b.slug ? null : b.slug })}
-              className={cn(
-                "rounded-md px-2 py-1.5 text-left text-sm",
-                activeBrand === b.slug ? "bg-primary/10 font-medium text-primary" : "text-slate-600 hover:bg-slate-50"
-              )}
+              className="flex items-center justify-between text-left transition-colors hover:text-primary"
             >
-              {b.name}
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex size-[15px] items-center justify-center rounded border text-[10px] font-bold text-white",
+                    activeBrand === b.slug ? "border-primary bg-primary" : "border-[#c8d0da]"
+                  )}
+                >
+                  {activeBrand === b.slug ? "✓" : ""}
+                </span>
+                {b.name}
+              </span>
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="mt-6 flex items-center justify-between">
-        <Label htmlFor="filter-instock" className="text-sm font-semibold text-slate-900">
-          In Stock Only
-        </Label>
-        <Switch
-          id="filter-instock"
-          checked={inStockOnly}
-          onCheckedChange={(checked) => updateParams({ inStock: checked ? "true" : null })}
-        />
       </div>
     </>
   );
