@@ -76,7 +76,7 @@ export function Footer() {
               className="min-w-0 flex-1 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent"
             />
             <button
-              type="submit"
+              type="button"
               className="shrink-0 rounded-md bg-accent px-3 py-2 text-sm font-bold text-slate-900 hover:bg-accent-dark"
             >
               Join

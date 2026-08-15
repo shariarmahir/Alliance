@@ -11,7 +11,7 @@ export function RequestQuoteButton({ product }: { product: Product }) {
 
   function requestQuote() {
     addItem(product, 1);
-    toast.success("Added to your quotation");
+    toast.success("Added to your price request");
     router.push("/quote");
   }
 

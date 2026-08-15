@@ -192,7 +192,7 @@ export default function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {topSellers.slice(0, 4).map((p) => (
+          {topSellers.slice(4, 8).map((p) => (
             <TopSellerCard key={p.id} product={p} />
           ))}
         </div>

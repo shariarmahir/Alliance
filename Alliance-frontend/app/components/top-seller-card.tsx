@@ -37,7 +37,7 @@ export function TopSellerCard({ product }: { product: TopSeller }) {
         <RatingStars rating={product.rating} count={product.reviews} />
         <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">Ask Price</p>
         <Link href={browseHref} className="btn-glass-accent mt-1 w-full">
-          Ask Price
+          View Part
         </Link>
       </div>
     </Card>
