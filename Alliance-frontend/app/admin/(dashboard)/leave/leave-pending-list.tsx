@@ -3,18 +3,43 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Card } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import type { Employee, LeaveRequest, LeaveStatus } from "@/app/lib/types";
 
-const STATUS_BADGE: Record<LeaveStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  pending: { label: "Pending", variant: "default" },
-  approved: { label: "Approved", variant: "secondary" },
-  rejected: { label: "Rejected", variant: "destructive" },
+const STATUS_LABEL: Record<LeaveStatus, { label: string; cls: string }> = {
+  pending: { label: "PENDING", cls: "text-warn" },
+  approved: { label: "APPROVED", cls: "text-ok" },
+  rejected: { label: "DECLINED", cls: "text-[#c22]" },
 };
 
-function LeaveRow({ request, employeeName, onChanged }: { request: LeaveRequest; employeeName: string; onChanged: () => void }) {
+// "17–19 AUG" / "5–6 AUG" — the compact mono range the bundle puts on each card.
+function dateRange(start: string, end: string): string {
+  const s = new Date(start);
+  const e = new Date(end);
+  const month = e.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  if (s.getMonth() === e.getMonth()) {
+    return s.getDate() === e.getDate()
+      ? `${s.getDate()} ${month}`
+      : `${s.getDate()}–${e.getDate()} ${month}`;
+  }
+  const sMonth = s.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  return `${s.getDate()} ${sMonth} – ${e.getDate()} ${month}`;
+}
+
+function daysBetween(start: string, end: string): number {
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000) + 1;
+}
+
+// Pending requests get the full card with Approve/Decline; already-decided ones
+// collapse to a single quiet row, per the design.
+function PendingCard({
+  request,
+  employeeName,
+  onChanged,
+}: {
+  request: LeaveRequest;
+  employeeName: string;
+  onChanged: () => void;
+}) {
   const [busy, setBusy] = useState(false);
 
   async function setStatus(status: "approved" | "rejected") {
@@ -30,7 +55,7 @@ function LeaveRow({ request, employeeName, onChanged }: { request: LeaveRequest;
         toast.error(data.error ?? "Could not update leave request.");
         return;
       }
-      toast.success(`Leave request ${status}.`);
+      toast.success(status === "approved" ? "Leave approved." : "Leave declined.");
       onChanged();
     } catch {
       toast.error("Could not update leave request.");
@@ -40,60 +65,98 @@ function LeaveRow({ request, employeeName, onChanged }: { request: LeaveRequest;
   }
 
   return (
-    <Card className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="font-medium text-foreground">{employeeName}</p>
-        <p className="text-sm text-muted-foreground">
-          {new Date(request.startDate).toLocaleDateString()} – {new Date(request.endDate).toLocaleDateString()}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">{request.reason}</p>
+    <div className="mb-2.5 rounded-lg border border-slate-line bg-surface p-3.5">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <strong className="text-[12.5px] font-semibold text-ink">{employeeName}</strong>
+        <span className="shrink-0 font-mono text-[10.5px] font-medium text-warn">
+          {dateRange(request.startDate, request.endDate)}
+        </span>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant={STATUS_BADGE[request.status].variant}>{STATUS_BADGE[request.status].label}</Badge>
-        {request.status === "pending" && (
-          <>
-            <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => setStatus("approved")}>
-              Approve
-            </Button>
-            <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => setStatus("rejected")}>
-              Reject
-            </Button>
-          </>
-        )}
+      <p className="mb-3 text-[11.5px] leading-[1.6] text-ink-muted">{request.reason}</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setStatus("approved")}
+          className="flex-1 rounded-[7px] bg-ok-dot py-2 text-[11.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setStatus("rejected")}
+          className="flex-1 rounded-[7px] border border-[#dde3ea] py-2 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-[#e04545] hover:text-[#c22] disabled:opacity-50"
+        >
+          Decline
+        </button>
       </div>
-    </Card>
+    </div>
   );
 }
 
-// Pending-first list of leave requests across all employees, with
-// approve/reject actions — the super-admin approval surface referenced by
-// both the Employees -> Leave Requests tab and this shared /admin/leave page.
-export function LeavePendingList({ requests, employees }: { requests: LeaveRequest[]; employees: Employee[] }) {
+export function LeavePendingList({
+  requests,
+  employees,
+}: {
+  requests: LeaveRequest[];
+  employees: Employee[];
+}) {
   const router = useRouter();
-
-  function refresh() {
-    router.refresh();
-  }
 
   function employeeName(id: string): string {
     return employees.find((e) => e.id === id)?.name ?? "Unknown";
   }
 
-  const sorted = [...requests].sort((a, b) => {
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (a.status !== "pending" && b.status === "pending") return 1;
-    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
-  });
+  const pending = requests.filter((r) => r.status === "pending");
+  const decided = requests
+    .filter((r) => r.status !== "pending")
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .slice(0, 4);
+
+  const daysTaken = requests
+    .filter((r) => r.status === "approved")
+    .reduce((sum, r) => sum + daysBetween(r.startDate, r.endDate), 0);
+  const allocated = employees.length * 21;
 
   return (
-    <div className="space-y-3">
-      <h2 className="font-heading text-base font-medium text-foreground">Leave Requests</h2>
-      {sorted.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-muted-foreground">
-          No leave requests yet.
-        </div>
+    <div className="rounded-[10px] border border-slate-line bg-white p-4.5">
+      <p className="mb-3 text-[14px] font-bold text-ink">Leave requests</p>
+
+      {requests.length === 0 ? (
+        <p className="py-6 text-center text-[12px] text-ink-muted">No leave requests yet.</p>
       ) : (
-        sorted.map((r) => <LeaveRow key={r.id} request={r} employeeName={employeeName(r.employeeId)} onChanged={refresh} />)
+        <>
+          {pending.map((r) => (
+            <PendingCard
+              key={r.id}
+              request={r}
+              employeeName={employeeName(r.employeeId)}
+              onChanged={() => router.refresh()}
+            />
+          ))}
+
+          {decided.map((r) => (
+            <div
+              key={r.id}
+              className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-hairline px-3.5 py-2.5 text-[12px] text-ink-muted last:mb-0"
+            >
+              <span className="min-w-0 truncate">
+                {employeeName(r.employeeId)} · {dateRange(r.startDate, r.endDate)}
+              </span>
+              <span className={`shrink-0 font-mono text-[10.5px] font-semibold ${STATUS_LABEL[r.status].cls}`}>
+                {STATUS_LABEL[r.status].label}
+              </span>
+            </div>
+          ))}
+
+          {allocated > 0 && (
+            <p className="mt-3 text-[11.5px] text-[#8a94a6]">
+              Monthly report: {daysTaken} day{daysTaken === 1 ? "" : "s"} taken of {allocated}{" "}
+              allocated.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,108 +1,134 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Card } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
 import { cn } from "@/app/lib/utils";
 import type { Employee, LeaveRequest } from "@/app/lib/types";
 
-const EMPLOYEE_COLORS = [
-  "bg-blue-500/15 text-blue-700 dark:text-blue-300",
-  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300",
-  "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
-  "bg-orange-500/15 text-orange-700 dark:text-orange-300",
-];
-
-function colorForEmployee(employeeId: string, employees: Employee[]): string {
-  const idx = employees.findIndex((e) => e.id === employeeId);
-  return EMPLOYEE_COLORS[idx >= 0 ? idx % EMPLOYEE_COLORS.length : 0];
-}
-
 function toIso(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
-// Month-grid calendar showing approved leave spans per employee, color-coded
-// by employee. Read-only view — approve/reject actions live in the list
-// below it, matching the spec's "confirm leave or cancel leave with a
-// calendar" requirement.
-export function LeaveCalendar({ requests, employees }: { requests: LeaveRequest[]; employees: Employee[] }) {
+// Compact month grid from the design bundle: a 7-column mono numeral grid
+// where a day carrying leave is tinted rather than expanded into a cell with
+// names — approved days go green, pending days amber, today gets a blue ring.
+export function LeaveCalendar({
+  requests,
+  employees,
+}: {
+  requests: LeaveRequest[];
+  employees: Employee[];
+}) {
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const approved = useMemo(() => requests.filter((r) => r.status === "approved"), [requests]);
-
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startOffset = firstDay.getDay();
+  const startOffset = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayIso = toIso(new Date());
 
-  const cells: (Date | null)[] = [
-    ...Array.from({ length: startOffset }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1)),
+  // Leading blanks are filled with trailing days of the previous month, shown
+  // greyed — the bundle's grid never starts with empty holes.
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const cells = [
+    ...Array.from({ length: startOffset }, (_, i) => ({
+      day: prevMonthDays - startOffset + i + 1,
+      outside: true,
+      iso: null as string | null,
+    })),
+    ...Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      outside: false,
+      iso: toIso(new Date(year, month, i + 1)),
+    })),
   ];
 
-  function employeeName(id: string): string {
-    return employees.find((e) => e.id === id)?.name ?? "Unknown";
-  }
+  const byDay = useMemo(() => {
+    const map = new Map<string, LeaveRequest["status"]>();
+    for (const r of requests) {
+      if (r.status === "rejected") continue;
+      for (let d = new Date(r.startDate); toIso(d) <= r.endDate; d.setDate(d.getDate() + 1)) {
+        const iso = toIso(d);
+        // Approved wins over pending when two employees overlap on a day.
+        if (r.status === "approved" || !map.has(iso)) map.set(iso, r.status);
+      }
+    }
+    return map;
+  }, [requests]);
 
-  function leaveOnDay(date: Date): LeaveRequest[] {
-    const iso = toIso(date);
-    return approved.filter((r) => iso >= r.startDate && iso <= r.endDate);
-  }
+  const monthLabel = cursor.toLocaleDateString("en-GB", { month: "long" });
+  const onLeave = employees.length;
 
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-heading text-base font-medium text-foreground">
-          {cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-        </h2>
+    <div className="rounded-[10px] border border-slate-line bg-white p-4.5">
+      <div className="mb-3.5 flex items-center justify-between">
+        <p className="text-[14px] font-bold text-ink">Leave calendar — {monthLabel}</p>
         <div className="flex items-center gap-1">
-          <Button type="button" variant="outline" size="icon-sm" onClick={() => setCursor(new Date(year, month - 1, 1))}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button type="button" variant="outline" size="icon-sm" onClick={() => setCursor(new Date(year, month + 1, 1))}>
-            <ChevronRight className="size-4" />
-          </Button>
+          <button
+            type="button"
+            aria-label="Previous month"
+            onClick={() => setCursor(new Date(year, month - 1, 1))}
+            className="flex size-6 items-center justify-center rounded border border-slate-line text-[11px] text-ink-muted transition-colors hover:border-primary hover:text-primary"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Next month"
+            onClick={() => setCursor(new Date(year, month + 1, 1))}
+            className="flex size-6 items-center justify-center rounded border border-slate-line text-[11px] text-ink-muted transition-colors hover:border-primary hover:text-primary"
+          >
+            ›
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-          <div key={d} className="py-1">
-            {d}
-          </div>
+      <div className="mb-1.5 grid grid-cols-7 gap-1 text-center font-mono text-[9.5px] font-semibold text-[#8a94a6]">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <span key={i}>{d}</span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((date, idx) => {
-          if (!date) return <div key={idx} className="min-h-20 rounded-lg" />;
-          const dayLeave = leaveOnDay(date);
+
+      <div className="grid grid-cols-7 gap-1 text-center font-mono text-[11.5px] text-ink-soft">
+        {cells.map((cell, idx) => {
+          const status = cell.iso ? byDay.get(cell.iso) : undefined;
+          const isToday = cell.iso === todayIso;
           return (
-            <div key={idx} className="min-h-20 rounded-lg border border-border/60 p-1 text-left">
-              <p className="text-xs text-muted-foreground">{date.getDate()}</p>
-              <div className="mt-1 space-y-0.5">
-                {dayLeave.slice(0, 2).map((r) => (
-                  <div
-                    key={r.id}
-                    title={employeeName(r.employeeId)}
-                    className={cn("truncate rounded px-1 py-0.5 text-[10px] font-medium", colorForEmployee(r.employeeId, employees))}
-                  >
-                    {employeeName(r.employeeId)}
-                  </div>
-                ))}
-                {dayLeave.length > 2 && <p className="text-[10px] text-muted-foreground">+{dayLeave.length - 2} more</p>}
-              </div>
-            </div>
+            <span
+              key={idx}
+              className={cn(
+                "rounded-[5px] py-1.5",
+                cell.outside && "text-[#c8d0da]",
+                status === "approved" && "bg-ok-bg text-ok",
+                status === "pending" && "bg-warn-bg text-warn",
+                isToday && "border border-primary font-semibold text-primary"
+              )}
+            >
+              {cell.day}
+            </span>
           );
         })}
       </div>
-    </Card>
+
+      <div className="mt-3.5 flex gap-3.5 text-[11px] text-ink-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-xs bg-ok-dot" />
+          Approved
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-xs bg-accent" />
+          Pending
+        </span>
+        {onLeave > 0 && (
+          <span className="ml-auto font-mono text-[10.5px] text-[#8a94a6]">
+            {onLeave} ON ROSTER
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

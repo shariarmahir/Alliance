@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/app/lib/utils";
+import { logoutAction } from "./login/actions";
+import type { AdminSession } from "@/app/lib/types";
 import type { AdminNavItem, ResolvedNavGroup } from "./nav-config";
 
 // The design bundle marks nav rows with small square glyphs rather than an
@@ -149,15 +151,28 @@ function NavGroup({ group, onNavigate }: { group: ResolvedNavGroup; onNavigate?:
   );
 }
 
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export function AdminSidebar({
   groups,
+  session,
   mobileOpen,
   onCloseMobile,
 }: {
   groups: ResolvedNavGroup[];
+  session: AdminSession;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }) {
+  const superAdmin = session.role === "super";
+
   return (
     <>
       {mobileOpen && (
@@ -170,7 +185,7 @@ export function AdminSidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 -translate-x-full flex-col bg-[#0d1626] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[248px] lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[300px] max-w-[86vw] shrink-0 -translate-x-full flex-col bg-[#0d1626] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[248px] lg:max-w-none lg:translate-x-0",
           mobileOpen && "translate-x-0"
         )}
       >
@@ -188,25 +203,54 @@ export function AdminSidebar({
           </button>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        {/* Drawer-only identity card (design 2e). The desktop rail doesn't need
+            it — the topbar already carries the user pill. */}
+        <div className="mx-3 mt-4 flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.06] p-3.5 lg:hidden">
+          <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[#3ea5e8]/20 text-[13px] font-bold text-[#3ea5e8]">
+            {initials(session.name)}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[13.5px] font-semibold text-white">
+              {session.name}
+            </span>
+            <span className="mono-label text-[10px] text-accent">
+              {superAdmin ? "SUPER ADMIN · FULL ACCESS" : "SUB ADMIN"}
+            </span>
+          </span>
+        </div>
+
+        {/* 48px-tall rows on phones per the design; the desktop rail keeps its
+            tighter rhythm. */}
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4 max-lg:[&_a]:min-h-12 max-lg:[&_a]:text-sm max-lg:[&_button]:min-h-12 max-lg:[&_button]:text-sm">
           {groups.map((group) => (
             <NavGroup key={group.label} group={group} onNavigate={onCloseMobile} />
           ))}
         </nav>
 
-        <div className="mx-3 mb-4 rounded-[9px] border border-white/[0.09] bg-white/5 p-3.5">
-          <p className="mono-label mb-1 text-[10px] text-accent">CONTACT REQUESTS</p>
-          <p className="mb-2.5 text-[11.5px] leading-[1.55] text-white/60">
-            Unanswered enquiries from the storefront
-          </p>
-          <Link
-            href="/admin/contact-requests"
-            onClick={onCloseMobile}
-            className="flex items-center justify-center rounded-[7px] border border-white/20 bg-white/[0.12] py-2.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-white/20"
+        {superAdmin && (
+          <div className="mx-3 mb-4 rounded-[9px] border border-white/[0.09] bg-white/5 p-3.5 max-lg:hidden">
+            <p className="mono-label mb-1 text-[10px] text-accent">CONTACT REQUESTS</p>
+            <p className="mb-2.5 text-[11.5px] leading-[1.55] text-white/60">
+              Unanswered enquiries from the storefront
+            </p>
+            <Link
+              href="/admin/contact-requests"
+              onClick={onCloseMobile}
+              className="flex items-center justify-center rounded-[7px] border border-white/20 bg-white/[0.12] py-2.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-white/20"
+            >
+              Open inbox
+            </Link>
+          </div>
+        )}
+
+        <form action={logoutAction} className="mx-3 mb-4 lg:hidden">
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center rounded-[9px] border border-white/[0.18] bg-white/10 py-3.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-white/20"
           >
-            Open inbox
-          </Link>
-        </div>
+            Sign out
+          </button>
+        </form>
       </aside>
     </>
   );

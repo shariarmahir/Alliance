@@ -3,73 +3,113 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
-import { Badge } from "@/app/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { AddEmployeeDialog } from "./add-employee-dialog";
-import { AssignTaskDialog } from "./assign-task-dialog";
+import { AssignTaskInline } from "./assign-task-inline";
 import { LeaveCalendar } from "../leave/leave-calendar";
 import { LeavePendingList } from "../leave/leave-pending-list";
 import { LeaveDaysChart } from "../charts/leave-days-chart";
 import type { Employee, Task, TaskStatus, LeaveRequest, DailyReport } from "@/app/lib/types";
 
 const DESIGNATION_LABEL: Record<Employee["designation"], string> = {
-  "sales-associate": "Sales Associate",
-  "warehouse-staff": "Warehouse Staff",
-  "support-agent": "Support Agent",
-  "catalog-manager": "Catalog Manager",
+  "sales-associate": "Sales associate",
+  "warehouse-staff": "Warehouse staff",
+  "support-agent": "Support agent",
+  "catalog-manager": "Catalog manager",
 };
 
-const TASK_STATUS_BADGE: Record<TaskStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  pending: { label: "Pending", variant: "default" },
-  "in-progress": { label: "In Progress", variant: "secondary" },
-  completed: { label: "Completed", variant: "secondary" },
+const TASK_STATUS_PILL: Record<TaskStatus, { label: string; cls: string }> = {
+  pending: { label: "PENDING", cls: "bg-[#f2f4f7] text-ink-muted" },
+  "in-progress": { label: "IN PROGRESS", cls: "bg-warn-bg text-warn" },
+  completed: { label: "COMPLETED", cls: "bg-ok-bg text-ok" },
 };
 
-function RosterTab({ employees }: { employees: Employee[] }) {
+const TH = "mono-label px-4 py-2.5 text-left text-[10px] tracking-[0.07em] text-[#8a94a6]";
+const TD = "border-b border-[#f2f4f7] px-4 py-3";
+
+// "DS TIME" in the design is the average hours logged per daily report — the
+// closest real signal we have to the bundle's mock desk-time figure. Green at
+// or above a full day, amber below it.
+function avgHours(reports: DailyReport[]): { label: string; low: boolean } | null {
+  if (reports.length === 0) return null;
+  const mean = reports.reduce((s, r) => s + r.hoursWorked, 0) / reports.length;
+  const h = Math.floor(mean);
+  const m = Math.round((mean - h) * 60);
+  return { label: `${h} h ${String(m).padStart(2, "0")} m`, low: mean < 7 };
+}
+
+function RosterTab({
+  employees,
+  tasks,
+  reports,
+}: {
+  employees: Employee[];
+  tasks: Task[];
+  reports: DailyReport[];
+}) {
   const router = useRouter();
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{employees.length} employee{employees.length === 1 ? "" : "s"}</p>
-        <AddEmployeeDialog onCreated={() => router.refresh()} />
-      </div>
-      {employees.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center text-sm text-muted-foreground">
-          No employees yet. Add one to get started.
+      <div className="overflow-hidden rounded-[10px] border border-slate-line bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-line px-4.5 py-3.5">
+          <p className="text-[14px] font-bold text-ink">Sub-admin accounts</p>
+          <AddEmployeeDialog onCreated={() => router.refresh()} />
         </div>
-      ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-          <table className="w-full text-sm">
-            <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Employee ID</th>
-                <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Added</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {employees.map((e) => (
-                <tr key={e.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.employeeIdNumber}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{DESIGNATION_LABEL[e.designation]}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.email}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</td>
+
+        {employees.length === 0 ? (
+          <p className="px-4.5 py-10 text-center text-[13px] text-ink-muted">
+            No employees yet. Add one to get started.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead className="bg-surface">
+                <tr>
+                  <th className={TH}>ID</th>
+                  <th className={TH}>NAME</th>
+                  <th className={TH}>DESIGNATION</th>
+                  <th className={TH}>OPEN / DONE</th>
+                  <th className={TH}>DS TIME</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {employees.map((e) => {
+                  const mine = tasks.filter((t) => t.assigneeEmployeeId === e.id);
+                  const open = mine.filter((t) => t.status !== "completed").length;
+                  const done = mine.filter((t) => t.status === "completed").length;
+                  const ds = avgHours(reports.filter((r) => r.employeeId === e.id));
+                  return (
+                    <tr key={e.id} className="transition-colors hover:bg-surface">
+                      <td className={`${TD} font-mono text-[11.5px] font-semibold text-primary`}>
+                        {e.employeeIdNumber}
+                      </td>
+                      <td className={`${TD} text-ink`}>
+                        {e.name}
+                        <span className="block font-mono text-[11px] text-[#8a94a6]">{e.email}</span>
+                      </td>
+                      <td className={`${TD} text-ink-muted`}>{DESIGNATION_LABEL[e.designation]}</td>
+                      <td className={`${TD} font-mono text-ink-soft`}>
+                        {open} / {done}
+                      </td>
+                      <td className={`${TD} font-mono ${ds?.low ? "text-warn" : "text-ok"}`}>
+                        {ds?.label ?? "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <AssignTaskInline employees={employees} />
     </div>
   );
 }
 
 function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }) {
-  const router = useRouter();
   const [employeeFilter, setEmployeeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -77,64 +117,72 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }
     return employees.find((e) => e.id === id)?.name ?? "Unknown";
   }
 
-  const filtered = useMemo(() => {
-    return tasks.filter((t) => {
-      if (employeeFilter !== "all" && t.assigneeEmployeeId !== employeeFilter) return false;
-      if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      return true;
-    });
+  const sorted = useMemo(() => {
+    return tasks
+      .filter((t) => {
+        if (employeeFilter !== "all" && t.assigneeEmployeeId !== employeeFilter) return false;
+        if (statusFilter !== "all" && t.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [tasks, employeeFilter, statusFilter]);
-
-  const sorted = [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Select value={employeeFilter} onValueChange={(v) => setEmployeeFilter(v ?? "all")}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Employee" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employees</SelectItem>
-              {employees.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <AssignTaskDialog employees={employees} onCreated={() => router.refresh()} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={employeeFilter} onValueChange={(v) => setEmployeeFilter(v ?? "all")}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Employee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All employees</SelectItem>
+            {employees.map((e) => (
+              <SelectItem key={e.id} value={e.id}>
+                {e.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in-progress">In progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
       {sorted.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-[10px] border border-dashed border-slate-line bg-white p-10 text-center text-[13px] text-ink-muted">
           No tasks in this view yet.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-          <table className="w-full text-sm">
-            <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
+          <table className="w-full text-[12.5px]">
+            <thead className="bg-surface">
               <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Due Date</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className={TH}>TASK</th>
+                <th className={TH}>ASSIGNEE</th>
+                <th className={TH}>DUE</th>
+                <th className={TH}>STATUS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {sorted.map((t) => (
-                <tr key={t.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{t.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{employeeName(t.assigneeEmployeeId)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={TASK_STATUS_BADGE[t.status].variant} className="transition-colors duration-200">{TASK_STATUS_BADGE[t.status].label}</Badge>
+                <tr key={t.id} className="transition-colors hover:bg-surface">
+                  <td className={`${TD} font-semibold text-ink`}>{t.title}</td>
+                  <td className={`${TD} text-ink-muted`}>{employeeName(t.assigneeEmployeeId)}</td>
+                  <td className={`${TD} font-mono text-ink-soft`}>{t.dueDate}</td>
+                  <td className={TD}>
+                    <span
+                      className={`rounded-[5px] px-2.5 py-1 font-mono text-[10.5px] font-semibold ${TASK_STATUS_PILL[t.status].cls}`}
+                    >
+                      {TASK_STATUS_PILL[t.status].label}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -146,47 +194,54 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }
   );
 }
 
-function ReportsTab({ reports, requests, employees }: { reports: DailyReport[]; requests: LeaveRequest[]; employees: Employee[] }) {
+function ReportsTab({
+  reports,
+  requests,
+  employees,
+}: {
+  reports: DailyReport[];
+  requests: LeaveRequest[];
+  employees: Employee[];
+}) {
   function employeeName(id: string): string {
     return employees.find((e) => e.id === id)?.name ?? "Unknown";
   }
 
-  const sorted = [...reports].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+  const sorted = [...reports].sort(
+    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <LeaveDaysChart requests={requests} employees={employees} />
-      <div className="space-y-3">
-        <h2 className="font-heading text-base font-medium text-foreground">Recent Daily Reports</h2>
-        {sorted.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center text-sm text-muted-foreground">
-            No daily reports submitted yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-            <table className="w-full text-sm">
-              <thead className="mono-label bg-surface text-left text-[10px] tracking-[0.07em] text-[#8a94a6]">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Employee</th>
-                  <th className="px-4 py-3 font-medium">Hours</th>
-                  <th className="px-4 py-3 font-medium">Summary</th>
+      {sorted.length === 0 ? (
+        <div className="rounded-[10px] border border-dashed border-slate-line bg-white p-10 text-center text-[13px] text-ink-muted">
+          No daily reports submitted yet.
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-[10px] border border-slate-line bg-white">
+          <table className="w-full text-[12.5px]">
+            <thead className="bg-surface">
+              <tr>
+                <th className={TH}>DATE</th>
+                <th className={TH}>EMPLOYEE</th>
+                <th className={TH}>HOURS</th>
+                <th className={TH}>SUMMARY</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r) => (
+                <tr key={r.id} className="transition-colors hover:bg-surface">
+                  <td className={`${TD} font-mono text-ink-soft`}>{r.date}</td>
+                  <td className={`${TD} font-semibold text-ink`}>{employeeName(r.employeeId)}</td>
+                  <td className={`${TD} font-mono text-ink-soft`}>{r.hoursWorked}h</td>
+                  <td className={`${TD} max-w-md truncate text-ink-muted`}>{r.summary}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sorted.map((r) => (
-                  <tr key={r.id} className="bg-card transition-colors duration-200 hover:bg-muted/50">
-                    <td className="px-4 py-3 text-muted-foreground">{new Date(r.date).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 font-medium text-foreground">{employeeName(r.employeeId)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.hoursWorked}h</td>
-                    <td className="px-4 py-3 max-w-md truncate text-muted-foreground">{r.summary}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -207,33 +262,42 @@ export function EmployeesClient({
   const [tab, setTab] = useState(initialTab);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Employees</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage the employee roster, tasks, leave, and daily reports.</p>
+        <h1 className="mb-1 text-[23px] font-bold tracking-[-0.02em] text-ink">Employees &amp; leave</h1>
+        <p className="text-[13px] text-ink-muted">
+          Create sub-admin accounts, assign the working structure, and approve leave against the roster.
+        </p>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v ?? "roster")}>
-        <TabsList>
-          <TabsTrigger value="roster">Roster</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="leave">Leave Requests</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-        </TabsList>
-        <TabsContent value="roster" className="mt-4">
-          <RosterTab employees={employees} />
-        </TabsContent>
-        <TabsContent value="tasks" className="mt-4">
-          <TasksTab tasks={tasks} employees={employees} />
-        </TabsContent>
-        <TabsContent value="leave" className="mt-4 space-y-6">
+      {/* Design bundle screen 2c: roster + assignment on the left, leave calendar
+          and request queue always visible on the right. Tasks and reports stay
+          as tabs on the left column — they are deeper views, not the daily one. */}
+      <div className="grid gap-4.5 xl:grid-cols-[1fr_320px]">
+        <div className="min-w-0">
+          <Tabs value={tab} onValueChange={(v) => setTab(v ?? "roster")}>
+            <TabsList>
+              <TabsTrigger value="roster">Roster</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="reports">Reports</TabsTrigger>
+            </TabsList>
+            <TabsContent value="roster" className="mt-4">
+              <RosterTab employees={employees} tasks={tasks} reports={dailyReports} />
+            </TabsContent>
+            <TabsContent value="tasks" className="mt-4">
+              <TasksTab tasks={tasks} employees={employees} />
+            </TabsContent>
+            <TabsContent value="reports" className="mt-4">
+              <ReportsTab reports={dailyReports} requests={leaveRequests} employees={employees} />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div className="flex flex-col gap-4">
           <LeaveCalendar requests={leaveRequests} employees={employees} />
           <LeavePendingList requests={leaveRequests} employees={employees} />
-        </TabsContent>
-        <TabsContent value="reports" className="mt-4">
-          <ReportsTab reports={dailyReports} requests={leaveRequests} employees={employees} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

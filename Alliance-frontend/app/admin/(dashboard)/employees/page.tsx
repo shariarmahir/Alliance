@@ -4,7 +4,10 @@ import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/a
 import { readEmployees, readTasks, readLeaveRequests, readDailyReports } from "@/app/lib/admin-employees";
 import { EmployeesClient } from "./employees-client";
 
-const VALID_TABS = new Set(["roster", "tasks", "leave", "reports"]);
+// "leave" is no longer a tab — the leave calendar and approval queue are a
+// permanent right-hand column on this screen (design bundle 2c) — so an
+// inbound ?tab=leave deep link resolves to the roster rather than a dead tab.
+const VALID_TABS = new Set(["roster", "tasks", "reports"]);
 
 // Super-admin-only. Supports deep-linking to a specific tab via ?tab=, used
 // by the Task Desk and Daily Report pages when a super admin visits them
