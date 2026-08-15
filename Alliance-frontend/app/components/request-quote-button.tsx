@@ -17,7 +17,7 @@ export function RequestQuoteButton({ product }: { product: Product }) {
 
   return (
     <button type="button" onClick={requestQuote} className="btn-glass-accent">
-      Create Quotation
+      Ask Price
     </button>
   );
 }
