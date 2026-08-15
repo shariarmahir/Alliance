@@ -3,7 +3,6 @@ import Image from "next/image";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { RatingStars } from "@/app/components/rating-stars";
-import { formatPrice } from "@/app/lib/utils";
 import type { TopSeller } from "@/app/lib/top-sellers";
 
 export function TopSellerCard({ product }: { product: TopSeller }) {
@@ -36,14 +35,9 @@ export function TopSellerCard({ product }: { product: TopSeller }) {
           <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-medium hover:text-primary">{product.name}</h3>
         </Link>
         <RatingStars rating={product.rating} count={product.reviews} />
-        <div className="mt-1">
-          <span className="text-lg font-bold text-slate-900">{formatPrice(product.price)}</span>
-          {product.oldPrice > product.price && (
-            <span className="ml-2 text-xs text-slate-400 line-through">{formatPrice(product.oldPrice)}</span>
-          )}
-        </div>
+        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">Ask Price</p>
         <Link href={browseHref} className="btn-glass-accent mt-1 w-full">
-          Create Quotation
+          Ask Price
         </Link>
       </div>
     </Card>
