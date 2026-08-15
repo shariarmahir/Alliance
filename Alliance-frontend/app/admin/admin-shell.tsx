@@ -28,11 +28,14 @@ export function AdminShell({
         <SubAdminTopnav groups={groups} session={session} />
         <main className="flex-1 p-4 pb-24 sm:p-6.5 lg:pb-6.5">{children}</main>
         <AdminBottomBar groups={groups} role={session.role} onOpenMore={() => setMobileOpen(true)} />
+        {/* Sub-admin's desktop nav is the top bar, so the rail is only ever a
+            drawer here — it must stay fixed at every width. */}
         <AdminSidebar
           groups={groups}
           session={session}
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
+          drawerOnly
         />
       </div>
     );

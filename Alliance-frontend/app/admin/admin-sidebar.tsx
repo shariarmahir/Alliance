@@ -165,11 +165,17 @@ export function AdminSidebar({
   session,
   mobileOpen,
   onCloseMobile,
+  // Super admin: this rail IS the desktop layout, so at lg it becomes a static
+  // in-flow column. Sub admin: their desktop nav is the horizontal top bar, so
+  // the rail stays a drawer at every width — without this it would un-fix at lg
+  // and drop into the page flow at the bottom.
+  drawerOnly = false,
 }: {
   groups: ResolvedNavGroup[];
   session: AdminSession;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  drawerOnly?: boolean;
 }) {
   const superAdmin = session.role === "super";
 
@@ -177,7 +183,10 @@ export function AdminSidebar({
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-ink/60 lg:hidden"
+          className={cn(
+            "fixed inset-0 z-40 bg-ink/60",
+            !drawerOnly && "lg:hidden"
+          )}
           onClick={onCloseMobile}
           aria-hidden="true"
         />
@@ -185,7 +194,8 @@ export function AdminSidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[300px] max-w-[86vw] shrink-0 -translate-x-full flex-col bg-[#0d1626] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[248px] lg:max-w-none lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[300px] max-w-[86vw] shrink-0 -translate-x-full flex-col bg-[#0d1626] transition-transform duration-200",
+          !drawerOnly && "lg:static lg:z-auto lg:h-full lg:w-[248px] lg:max-w-none lg:translate-x-0",
           mobileOpen && "translate-x-0"
         )}
       >
@@ -197,15 +207,23 @@ export function AdminSidebar({
             type="button"
             onClick={onCloseMobile}
             aria-label="Close menu"
-            className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+            className={cn(
+              "ml-auto flex size-8 shrink-0 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white",
+              !drawerOnly && "lg:hidden"
+            )}
           >
             <X className="size-4" />
           </button>
         </div>
 
-        {/* Drawer-only identity card (design 2e). The desktop rail doesn't need
-            it — the topbar already carries the user pill. */}
-        <div className="mx-3 mt-4 flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.06] p-3.5 lg:hidden">
+        {/* Identity card belongs to the drawer presentation (design 2e). The
+            desktop rail doesn't need it — the topbar already carries the pill. */}
+        <div
+          className={cn(
+            "mx-3 mt-4 flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.06] p-3.5",
+            !drawerOnly && "lg:hidden"
+          )}
+        >
           <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[#3ea5e8]/20 text-[13px] font-bold text-[#3ea5e8]">
             {initials(session.name)}
           </span>
@@ -219,9 +237,16 @@ export function AdminSidebar({
           </span>
         </div>
 
-        {/* 48px-tall rows on phones per the design; the desktop rail keeps its
-            tighter rhythm. */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4 max-lg:[&_a]:min-h-12 max-lg:[&_a]:text-sm max-lg:[&_button]:min-h-12 max-lg:[&_button]:text-sm">
+        {/* 48px touch targets in drawer presentation per the design; the
+            desktop rail keeps its tighter rhythm. */}
+        <nav
+          className={cn(
+            "flex-1 space-y-0.5 overflow-y-auto px-3 py-4",
+            drawerOnly
+              ? "[&_a]:min-h-12 [&_a]:text-sm [&_button]:min-h-12 [&_button]:text-sm"
+              : "max-lg:[&_a]:min-h-12 max-lg:[&_a]:text-sm max-lg:[&_button]:min-h-12 max-lg:[&_button]:text-sm"
+          )}
+        >
           {groups.map((group) => (
             <NavGroup key={group.label} group={group} onNavigate={onCloseMobile} />
           ))}
@@ -243,7 +268,7 @@ export function AdminSidebar({
           </div>
         )}
 
-        <form action={logoutAction} className="mx-3 mb-4 lg:hidden">
+        <form action={logoutAction} className={cn("mx-3 mb-4", !drawerOnly && "lg:hidden")}>
           <button
             type="submit"
             className="flex w-full items-center justify-center rounded-[9px] border border-white/[0.18] bg-white/10 py-3.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-white/20"
