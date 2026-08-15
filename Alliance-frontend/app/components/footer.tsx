@@ -7,9 +7,12 @@ export function Footer() {
       <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">
         <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
           <div>
-            <div className="mb-4 text-[21px] font-bold text-white">
+            <div className="mb-1 text-[21px] font-bold leading-none text-white">
               AutoLink<span className="text-accent">.</span>
             </div>
+            <p className="mono-label mb-4 text-[9.5px] tracking-[0.14em] text-white/45">
+              Integrated Technologies
+            </p>
             <p className="mb-4 text-[12.5px] leading-[1.75] text-white/60">
               Industrial electronics and automation spares, supplied worldwide from Bangladesh since 2009.
             </p>

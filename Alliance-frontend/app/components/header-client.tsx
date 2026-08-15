@@ -66,8 +66,16 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
               priority
               className="size-9 shrink-0 object-contain"
             />
-            <span className="text-xl font-bold tracking-[-0.02em] text-ink md:text-2xl">
-              AutoLink<span className="text-accent">.</span>
+            {/* Wordmark stays dominant; the registered name sits under it as a
+                lockup line, hidden on narrow screens where the search bar and
+                actions need the width. */}
+            <span className="leading-none">
+              <span className="block text-xl font-bold tracking-[-0.02em] text-ink md:text-2xl">
+                AutoLink<span className="text-accent">.</span>
+              </span>
+              <span className="mono-label mt-0.5 hidden text-[8.5px] tracking-[0.14em] text-ink-muted lg:block">
+                Integrated Technologies
+              </span>
             </span>
           </Link>
 

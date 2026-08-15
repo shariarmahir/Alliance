@@ -23,7 +23,7 @@ export default async function AdminLoginPage() {
           <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
             <Image
               src="/logo-mark.png"
-              alt="AutoLink"
+              alt="AutoLink Integrated Technologies"
               width={56}
               height={56}
               className="mb-4 hidden size-12 object-contain lg:block"
@@ -31,6 +31,9 @@ export default async function AdminLoginPage() {
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
               AutoLink<span className="text-accent">.</span> Admin
             </h1>
+            <p className="mono-label mt-1 text-[9.5px] tracking-[0.14em] text-slate-400">
+              AutoLink Integrated Technologies
+            </p>
             <p className="mt-1.5 text-sm text-slate-500">Sign in to manage operations</p>
           </div>
           <LoginForm />

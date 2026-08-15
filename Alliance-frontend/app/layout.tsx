@@ -18,6 +18,41 @@ export const metadata: Metadata = {
   title: { default: "AutoLink Integrated Technologies — Industrial Electronics & Automation Parts", template: "%s | AutoLink" },
   description:
     "AutoLink Integrated Technologies supplies PLCs, drives, servos, HMIs, and industrial automation components worldwide, shipped from Bangladesh.",
+  applicationName: "AutoLink Integrated Technologies",
+  openGraph: {
+    siteName: "AutoLink Integrated Technologies",
+    title: "AutoLink Integrated Technologies — Industrial Electronics & Automation Parts",
+    description:
+      "PLCs, drives, servos, HMIs and automation spares, quoted within 4 working hours and shipped worldwide from Bangladesh.",
+    type: "website",
+  },
+};
+
+// Tells search engines the registered entity behind the "AutoLink" wordmark,
+// so the legal name, contact details and address can surface in rich results.
+const ORGANIZATION_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "AutoLink Integrated Technologies",
+  alternateName: "AutoLink",
+  description:
+    "Supplier of industrial electronics and automation spares — PLCs, drives, servos, HMIs and power system electronics.",
+  logo: "/logo-mark.png",
+  email: "info@autolink.com",
+  telephone: "+8801713-116019",
+  foundingDate: "2009",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Uttara",
+    addressLocality: "Dhaka",
+    addressCountry: "BD",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "sales",
+    email: "info@autolink.com",
+    telephone: "+8801713-116019",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -28,6 +63,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_SCHEMA) }}
+        />
         <Providers>
           {children}
           <Toaster />
