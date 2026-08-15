@@ -46,8 +46,10 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
           {slides[active].subheadline}
         </p>
         <div className="flex flex-wrap items-center gap-3">
+          {/* Entry point into the catalogue — /quote is the request list and
+              would dead-end on its empty state for a first-time visitor. */}
           <Link
-            href="/quote"
+            href="/products"
             className="btn-sheen inline-flex items-center gap-2.5 rounded-[9px] border border-white/35 bg-accent/90 px-6 py-3.5 text-[15px] font-bold text-ink shadow-[0_12px_30px_rgba(255,185,0,.28)] backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-accent"
           >
             Ask a price

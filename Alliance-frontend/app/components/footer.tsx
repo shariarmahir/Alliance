@@ -48,7 +48,7 @@ export function Footer() {
             <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">SERVICES</p>
             <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
               <li>
-                <Link href="/quote" className="hover:text-accent">
+                <Link href="/products" className="hover:text-accent">
                   Ask Price
                 </Link>
               </li>

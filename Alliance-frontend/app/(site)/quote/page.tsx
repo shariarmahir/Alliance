@@ -71,13 +71,32 @@ export default function QuotePage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
-        <ShoppingBag className="size-16 text-slate-300" />
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Your price request list is empty</h1>
-        <p className="mt-2 text-slate-500">Add products to ask for a price.</p>
-        <Link href="/products" className="btn-glass-accent mt-6">
-          Browse Products
+      <div className="mx-auto flex max-w-2xl flex-col items-center px-7 py-24 text-center">
+        <ShoppingBag className="size-16 text-[#c8d0da]" />
+        <h1 className="mt-4 text-2xl font-bold tracking-[-0.02em] text-ink">
+          Your price request list is empty
+        </h1>
+        <p className="mt-2 max-w-md text-[13.5px] leading-[1.7] text-ink-muted">
+          Find a part in the catalogue and choose <strong className="text-ink">Ask Price</strong> — add as
+          many lines as you need, then send them as one request.
+        </p>
+        <Link
+          href="/products"
+          className="btn-sheen mt-6 inline-flex items-center justify-center rounded-[9px] border border-white/40 bg-accent/90 px-6 py-3.5 text-[15px] font-bold text-ink shadow-[0_12px_26px_rgba(255,185,0,.3)] transition-all hover:-translate-y-0.5 hover:bg-accent"
+        >
+          Browse the catalogue
         </Link>
+        <p className="mt-5 text-xs text-[#8a94a6]">
+          Know the part number already? WhatsApp{" "}
+          <a
+            href="https://wa.me/8801713116019"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono font-semibold text-primary hover:underline"
+          >
+            +8801713-116019
+          </a>
+        </p>
       </div>
     );
   }
