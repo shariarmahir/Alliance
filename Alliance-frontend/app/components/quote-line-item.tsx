@@ -9,10 +9,14 @@ export function QuoteLineItem({
   item,
   onQtyChange,
   onRemove,
+  readOnly = false,
 }: {
   item: QuoteItem;
   onQtyChange: (qty: number) => void;
   onRemove: () => void;
+  // Set once the request is with the engineers — the submitted lines are a
+  // record of what was asked for and must not look editable.
+  readOnly?: boolean;
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-hairline p-4.5 last:border-b-0 sm:grid-cols-[1fr_150px_40px]">
@@ -35,16 +39,26 @@ export function QuoteLineItem({
         </span>
       </div>
 
-      <QuantityStepper initial={item.quantity} onChange={onQtyChange} />
+      {readOnly ? (
+        <span className="font-mono text-[13px] font-semibold text-ink-soft">
+          Qty {item.quantity}
+        </span>
+      ) : (
+        <QuantityStepper initial={item.quantity} onChange={onQtyChange} />
+      )}
 
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Remove ${item.name}`}
-        className="text-center text-[17px] text-[#c8d0da] transition-colors hover:text-[#e04545]"
-      >
-        ×
-      </button>
+      {readOnly ? (
+        <span />
+      ) : (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${item.name}`}
+          className="text-center text-[17px] text-[#c8d0da] transition-colors hover:text-[#e04545]"
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

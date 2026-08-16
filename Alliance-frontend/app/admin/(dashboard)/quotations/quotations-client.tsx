@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,8 @@ import {
   ROW,
   type PillTone,
 } from "../admin-ui";
+import { ConfirmQuotationDialog } from "./confirm-dialog";
+import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
 // The storefront promises a quote within 4 working hours; the Overview's
@@ -155,8 +157,28 @@ function QuotationDetailDialog({ quotation }: { quotation: Quotation }) {
   );
 }
 
-function QuotationRow({ quotation, onChanged }: { quotation: Quotation; onChanged: () => void }) {
+function QuotationRow({
+  quotation,
+  sequence,
+  onChanged,
+}: {
+  quotation: Quotation;
+  sequence: number;
+  onChanged: () => void;
+}) {
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function download() {
+    setDownloading(true);
+    try {
+      await downloadQuotationPdf(quotation);
+    } catch {
+      toast.error("Could not generate the PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function setStatus(status: QuotationStatus) {
     setBusy(true);
@@ -195,7 +217,14 @@ function QuotationRow({ quotation, onChanged }: { quotation: Quotation; onChange
         <span className="block text-[11px] text-[#8a94a6]">{quotation.details.country}</span>
       </td>
       <td className={`${TD} font-mono text-ink-soft`}>{quotation.items.length}</td>
-      <td className={`${TD} font-mono font-semibold text-ink`}>{formatPrice(quotation.total)}</td>
+      <td className={`${TD} font-mono font-semibold text-ink`}>
+        {formatPrice(quotation.confirmation?.grandTotal ?? quotation.total)}
+        {quotation.confirmation && (
+          <span className="block font-mono text-[10px] font-normal text-[#8a94a6]">
+            {quotation.confirmation.refNumber}
+          </span>
+        )}
+      </td>
       <td
         className={`${TD} font-mono text-[11.5px] ${
           pending && age.breached ? "font-semibold text-[#c22]" : "text-ink-muted"
@@ -213,15 +242,32 @@ function QuotationRow({ quotation, onChanged }: { quotation: Quotation; onChange
       <td className={TD}>
         <div className="flex flex-wrap items-center gap-2">
           <QuotationDetailDialog quotation={quotation} />
+          {quotation.status !== "cancelled" && (
+            <ConfirmQuotationDialog
+              quotation={quotation}
+              sequence={sequence}
+              onConfirmed={onChanged}
+            />
+          )}
+          {quotation.confirmation && (
+            <button
+              type="button"
+              onClick={download}
+              disabled={downloading}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            >
+              <Download className="size-3.5" /> {downloading ? "..." : "PDF"}
+            </button>
+          )}
           {pending && (
-            <>
-              <RowButton tone="ok" disabled={busy} onClick={() => setStatus("confirmed")}>
-                Confirm
-              </RowButton>
-              <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
-                Cancel
-              </RowButton>
-            </>
+            <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
+              Cancel
+            </RowButton>
+          )}
+          {quotation.status === "confirmed" && (
+            <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
+              Revoke
+            </RowButton>
           )}
         </div>
       </td>
@@ -234,6 +280,9 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
   const [filter, setFilter] = useState<"all" | QuotationStatus>("all");
 
   const count = (s: QuotationStatus) => initialQuotations.filter((q) => q.status === s).length;
+  // Next ref sequence, so a freshly opened confirm form pre-fills a number
+  // that doesn't clash with the ones already issued.
+  const nextSequence = initialQuotations.filter((q) => q.confirmation).length + 1;
   const breached = initialQuotations.filter(
     (q) => q.status === "pending" && ageLabel(q.details.submittedAt).breached
   ).length;
@@ -301,6 +350,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
                   <QuotationRow
                     key={quotation.id}
                     quotation={quotation}
+                    sequence={nextSequence}
                     onChanged={() => router.refresh()}
                   />
                 ))}

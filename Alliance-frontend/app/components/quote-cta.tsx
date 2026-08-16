@@ -62,7 +62,7 @@ export function QuoteCta({ product }: { product: Product }) {
           onClick={() => submit(true)}
           className="btn-sheen flex-1 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-3.5 text-[15px] font-bold text-ink shadow-[0_12px_26px_rgba(255,185,0,.3)] transition-all hover:-translate-y-0.5 hover:bg-accent"
         >
-          Ask Price for this part
+          Proceed
         </button>
         <button
           type="button"

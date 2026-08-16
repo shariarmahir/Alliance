@@ -188,6 +188,45 @@ export type Order = {
   status: OrderStatus; // defaults to "pending" on creation
 };
 
+// One priced line on an issued order confirmation. Deliberately a separate
+// shape from QuoteItem: the customer's request and the admin's priced offer
+// are different documents, so confirming must not overwrite what was asked.
+export type ConfirmedLine = {
+  productId: string; // auto-generated server-side, e.g. "AIT-PRD-8F3C21"
+  slug: string;
+  partNumber: string;
+  name: string;
+  image: string;
+  specifications: string; // free text shown in the PDF's Specifications column
+  quantity: number;
+  unit: string; // "Pcs" / "Set" / etc — admin picks per line
+  unitPrice: number; // BDT, admin-editable (catalog price is only the default)
+  total: number; // quantity * unitPrice
+};
+
+// The terms block reproduced at the bottom of the order-confirmation PDF.
+export type QuotationTerms = {
+  payment: string;
+  delivery: string;
+  offerValidity: string;
+  vatAit: string;
+  stock: string;
+  installationCharge: string;
+  warranty: string;
+};
+
+// Set only once a super admin issues the order confirmation for a quotation.
+export type OrderConfirmation = {
+  refNumber: string; // e.g. "AIT/MFL/Q-0418/2025" — generated, admin-editable
+  subject: string;
+  issuedDate: string; // yyyy-mm-dd, admin-editable
+  trackingId: string; // one per order, generated server-side
+  lines: ConfirmedLine[];
+  grandTotal: number;
+  terms: QuotationTerms;
+  issuedAt: string; // ISO
+};
+
 // A submitted quotation, persisted server-side (data/quotations.json) as of
 // Phase 3 — previously sessionStorage-only.
 export type Quotation = {
@@ -196,6 +235,7 @@ export type Quotation = {
   total: number;
   details: QuotationDetails;
   status: QuotationStatus; // defaults to "pending"
+  confirmation?: OrderConfirmation; // present only while status === "confirmed"
 };
 
 export type ContactRequest = {

@@ -1,7 +1,15 @@
 import "server-only";
 import fs from "fs/promises";
 import path from "path";
-import type { Order, Quotation, ContactRequest, OrderStatus, QuotationStatus, MockEmail } from "./types";
+import type {
+  Order,
+  Quotation,
+  ContactRequest,
+  OrderStatus,
+  QuotationStatus,
+  MockEmail,
+  OrderConfirmation,
+} from "./types";
 
 // Server-only read/write layer for Phase 3 (orders, quotations, contact
 // requests, mock emails) — mirrors app/lib/admin-catalog.ts's pattern.
@@ -78,8 +86,38 @@ export async function updateQuotationStatus(id: string, status: QuotationStatus)
   const quotation = quotations.find((q) => q.id === id);
   if (!quotation) throw new Error(`Quotation not found: ${id}`);
   quotation.status = status;
+  // Moving off "confirmed" retracts the issued document — leaving it behind
+  // would let a cancelled quotation still serve a downloadable confirmation.
+  if (status !== "confirmed") delete quotation.confirmation;
   await writeQuotations(quotations);
   return quotation;
+}
+
+export async function readQuotation(id: string): Promise<Quotation | undefined> {
+  const quotations = await readQuotations();
+  return quotations.find((q) => q.id === id);
+}
+
+// Issues the order confirmation: stores the admin's priced lines and flips the
+// quotation to confirmed in one write, so the two can never disagree.
+export async function confirmQuotation(
+  id: string,
+  confirmation: OrderConfirmation
+): Promise<Quotation> {
+  const quotations = await readQuotations();
+  const quotation = quotations.find((q) => q.id === id);
+  if (!quotation) throw new Error(`Quotation not found: ${id}`);
+  quotation.status = "confirmed";
+  quotation.confirmation = confirmation;
+  await writeQuotations(quotations);
+  return quotation;
+}
+
+// Sequence for the human-facing Ref number — count of confirmations already
+// issued, so refs increment across the business rather than per customer.
+export async function nextConfirmationSequence(): Promise<number> {
+  const quotations = await readQuotations();
+  return quotations.filter((q) => q.confirmation).length + 1;
 }
 
 // ---------------------------------------------------------------------------

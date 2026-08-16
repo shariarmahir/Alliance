@@ -7,7 +7,13 @@ import { Truck, Zap, Plane, ArrowRight, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useQuote } from "@/app/lib/quote-context";
 import { formatPrice } from "@/app/lib/utils";
-import type { DeliveryOption, DeliveryOptionId, DeliveryAddress, Order } from "@/app/lib/types";
+import type {
+  DeliveryOption,
+  DeliveryOptionId,
+  DeliveryAddress,
+  Order,
+  Quotation,
+} from "@/app/lib/types";
 import { Card } from "@/app/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 
@@ -18,14 +24,10 @@ const OPTIONS: (DeliveryOption & { icon: typeof Truck })[] = [
 ];
 
 const ORDER_STORAGE_KEY = "autolink_order";
+const TRACKED_QUOTATION_KEY = "autolink_quotation_id";
 
 function generateOrderNumber(): string {
   return `ALC-${Date.now().toString(36).toUpperCase()}`;
-}
-
-function generateTrackingId(): string {
-  const random = Math.floor(100000 + Math.random() * 899999);
-  return `TRK${random}BD`;
 }
 
 function defaultPreferredDate(): string {
@@ -56,18 +58,76 @@ function defaultAddress(): DeliveryAddress {
 
 export default function ConfirmOrderPage() {
   const router = useRouter();
-  const { items, total, clear } = useQuote();
+  const { clear } = useQuote();
   const [shipOption, setShipOption] = useState<DeliveryOptionId>("express");
   const [date, setDate] = useState(defaultPreferredDate);
   const [address, setAddress] = useState<DeliveryAddress>(defaultAddress);
   const [submitting, setSubmitting] = useState(false);
+  const [quotation, setQuotation] = useState<Quotation | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // This step is gated on an approved quotation: the prices, lines and
+  // tracking number all come from the confirmation a super admin issued, not
+  // from the live cart, so the customer can't reach it by URL alone.
   useEffect(() => {
-    if (items.length === 0 && !submitting) router.replace("/products");
-  }, [items.length, submitting, router]);
+    let cancelled = false;
+    (async () => {
+      let id: string | null = null;
+      try {
+        id = localStorage.getItem(TRACKED_QUOTATION_KEY);
+      } catch {
+        // storage unavailable
+      }
+      if (!id) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/quotations/${id}`);
+        const data = res.ok ? await res.json() : null;
+        if (!cancelled) setQuotation(data?.quotation ?? null);
+      } catch {
+        // offline — falls through to the "no approved quotation" state
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (items.length === 0) return null;
+  const confirmation =
+    quotation?.status === "confirmed" ? quotation.confirmation ?? null : null;
 
+  if (loading) return null;
+
+  if (!confirmation) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-bold text-ink">No approved quotation yet</h1>
+        <p className="mx-auto mt-3 max-w-md text-[13.5px] leading-[1.7] text-ink-muted">
+          Ordering opens once our engineers have reviewed your request and issued an order
+          confirmation. You&apos;ll see a <strong className="text-ink">Proceed order</strong> button on
+          your request page as soon as it&apos;s approved.
+        </p>
+        <Link href="/quote" className="btn-glass mt-6 inline-flex items-center gap-2">
+          Back to my request
+        </Link>
+      </div>
+    );
+  }
+
+  const items = confirmation.lines.map((l) => ({
+    slug: l.slug,
+    partNumber: l.partNumber,
+    name: l.name,
+    brand: "",
+    image: l.image,
+    price: l.unitPrice,
+    quantity: l.quantity,
+  }));
+  const total = confirmation.grandTotal;
   const opt = OPTIONS.find((o) => o.id === shipOption)!;
   const grandTotal = total + opt.cost;
 
@@ -76,7 +136,9 @@ export default function ConfirmOrderPage() {
     setSubmitting(true);
     const order: Order = {
       orderNumber: generateOrderNumber(),
-      trackingId: generateTrackingId(),
+      // The tracking number issued on the confirmation PDF — the customer
+      // already has it in writing, so it must match.
+      trackingId: confirmation!.trackingId,
       items,
       subtotal: total,
       shippingCost: opt.cost,
@@ -113,6 +175,13 @@ export default function ConfirmOrderPage() {
     }
 
     clear();
+    // The request has become an order — release the tracked quotation so the
+    // quote page returns to a fresh state for the next request.
+    try {
+      localStorage.removeItem(TRACKED_QUOTATION_KEY);
+    } catch {
+      // nothing to clear
+    }
     toast.success("Order confirmed successfully!");
     router.push(`/order/success?orderNumber=${order.orderNumber}`);
   }
@@ -240,8 +309,12 @@ export default function ConfirmOrderPage() {
                 <span className="text-primary">{formatPrice(grandTotal)}</span>
               </div>
             </div>
-            <button type="submit" className="btn-glass-accent mt-6 flex w-full items-center justify-center gap-2">
-              Confirm Order <ArrowRight className="size-5" />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-glass-accent mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {submitting ? "Placing order..." : "Confirm Order"} <ArrowRight className="size-5" />
             </button>
             <Link href="/products" className="mt-3 block text-center text-sm text-slate-500 hover:text-primary">
               Continue Shopping
