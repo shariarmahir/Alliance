@@ -81,13 +81,15 @@ export default async function ProductsPage({
           </div>
         </div>
 
-        {/* Five per row from xl up, stepping down to one on phones — same card
+        {/* Five per row from xl up, stepping down to two on phones — same card
             language as the landing page's "Most requested parts". 5-up lands on
             xl (1280px) rather than 2xl: the container caps at 1360px, so by xl
             it is already near full width and five 248px cards fit comfortably;
             waiting for 2xl (1536px) would show four 314px cards on a 1440px
-            screen that has the room for five. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            screen that has the room for five. Base is 2 columns (not 1) so
+            phones aren't stuck with a single full-width card; the gap tightens
+            below sm since two ~160px cards need the space back. */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
           {paged.map((p) => (
             <ProductGridCard key={p.slug} product={p} />
           ))}

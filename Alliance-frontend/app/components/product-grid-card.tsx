@@ -21,38 +21,40 @@ export function ProductGridCard({ product }: { product: Product }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-[10px] border border-slate-line bg-white transition-all duration-300 hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_12px_28px_rgba(16,25,45,.1)]">
       <Link href={href} className="block">
-        <div className="relative flex h-[158px] items-center justify-center border-b border-hairline bg-surface">
+        <div className="relative flex h-28 items-center justify-center border-b border-hairline bg-surface sm:h-[158px]">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-            className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+            sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 50vw"
+            className="object-contain p-2 transition-transform duration-500 group-hover:scale-105 sm:p-3"
           />
           <span
-            className={`absolute right-2.5 top-2.5 rounded px-2.5 py-1 font-mono text-[10px] font-semibold ${badge.cls}`}
+            className={`absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 font-mono text-[8.5px] font-semibold sm:right-2.5 sm:top-2.5 sm:px-2.5 sm:py-1 sm:text-[10px] ${badge.cls}`}
           >
             {badge.label(product.stockQty)}
           </span>
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        <p className="mb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-primary">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-4">
+        <p className="mb-1 truncate font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-primary sm:mb-1.5 sm:text-[10.5px]">
           {product.brand.replace(/-/g, " ")}
         </p>
         <Link href={href}>
-          <p className="mb-1 truncate font-mono text-[15px] font-semibold text-ink transition-colors group-hover:text-primary">
+          <p className="mb-1 truncate font-mono text-[12.5px] font-semibold text-ink transition-colors group-hover:text-primary sm:text-[15px]">
             {product.partNumber}
           </p>
         </Link>
-        <p className="mb-2.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[#64748b]">
+        <p className="mb-2 line-clamp-2 text-[11px] leading-[1.45] text-[#64748b] sm:mb-2.5 sm:text-[12.5px] sm:leading-[1.5]">
           {product.name}
         </p>
 
         {/* Catalog products have no ratings; the first two spec chips carry the
-            same visual weight the star row does on the landing page. */}
-        <div className="mb-3.5 flex flex-wrap gap-1.5">
+            same visual weight the star row does on the landing page. Hidden
+            below sm — a two-up card is too narrow for even one truncated chip
+            to read as information rather than noise. */}
+        <div className="mb-3.5 hidden flex-wrap gap-1.5 sm:flex">
           {product.shortSpecs.slice(0, 2).map((s) => (
             <span
               key={s}
@@ -63,17 +65,20 @@ export function ProductGridCard({ product }: { product: Product }) {
           ))}
         </div>
 
+        {/* Below sm the "+" detail link drops — Ask Price alone needs the full
+            width to stay tappable at a two-up card's size, and the part number
+            above is already a link to the same page. */}
         <div className="mt-auto flex gap-2">
           {/* className replaces the button's default classes rather than
               merging, so the full list is passed here. */}
           <RequestQuoteButton
             product={product}
-            className="btn-glass flex-1 rounded-md py-2.5 text-[13px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)]"
+            className="btn-glass flex-1 rounded-md py-2 text-[11.5px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)] sm:py-2.5 sm:text-[13px]"
           />
           <Link
             href={href}
             aria-label={`View details for ${product.partNumber}`}
-            className="inline-flex w-[42px] shrink-0 items-center justify-center rounded-md border border-[#dde3ea] text-[15px] font-semibold text-[#64748b] transition-colors hover:border-primary hover:text-primary"
+            className="hidden w-[42px] shrink-0 items-center justify-center rounded-md border border-[#dde3ea] text-[15px] font-semibold text-[#64748b] transition-colors hover:border-primary hover:text-primary sm:inline-flex"
           >
             +
           </Link>
