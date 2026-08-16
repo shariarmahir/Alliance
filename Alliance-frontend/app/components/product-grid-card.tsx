@@ -1,12 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/app/lib/types";
-import { RequestQuoteButton } from "@/app/components/request-quote-button";
 
 // Catalog card in the landing page's "Most requested parts" language: image
 // panel with a corner stock badge, brand kicker, mono part number, description,
-// then the Ask Price row. Differs from TopSellerCard because catalog products
-// carry no rating/review data — the spec chips fill that slot instead.
+// then a single "View details" link to the product page. Differs from
+// TopSellerCard because catalog products carry no rating/review data — the
+// spec chips fill that slot instead. Unlike the top-sellers card, this one
+// doesn't jump straight to "Ask Price" — the listing is a browse surface, so
+// it sends shoppers to the detail page first, where the quote flow lives.
 
 const STOCK_BADGE: Record<Product["stock"], { cls: string; label: (q: number) => string }> = {
   "in-stock": { cls: "bg-ok-bg text-ok", label: (q) => `IN STOCK ${q}` },
@@ -65,24 +67,12 @@ export function ProductGridCard({ product }: { product: Product }) {
           ))}
         </div>
 
-        {/* Below sm the "+" detail link drops — Ask Price alone needs the full
-            width to stay tappable at a two-up card's size, and the part number
-            above is already a link to the same page. */}
-        <div className="mt-auto flex gap-2">
-          {/* className replaces the button's default classes rather than
-              merging, so the full list is passed here. */}
-          <RequestQuoteButton
-            product={product}
-            className="btn-glass flex-1 rounded-md py-2 text-[11.5px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)] sm:py-2.5 sm:text-[13px]"
-          />
-          <Link
-            href={href}
-            aria-label={`View details for ${product.partNumber}`}
-            className="hidden w-[42px] shrink-0 items-center justify-center rounded-md border border-[#dde3ea] text-[15px] font-semibold text-[#64748b] transition-colors hover:border-primary hover:text-primary sm:inline-flex"
-          >
-            +
-          </Link>
-        </div>
+        <Link
+          href={href}
+          className="btn-glass mt-auto w-full rounded-md py-2 text-center text-[11.5px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)] sm:py-2.5 sm:text-[13px]"
+        >
+          View details
+        </Link>
       </div>
     </div>
   );
