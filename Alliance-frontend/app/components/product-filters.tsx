@@ -83,18 +83,121 @@ export function ProductFilters({ categories, brands }: { categories: Category[];
         </div>
       )}
 
-      <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">
-        <FilterBody
+      {/* The 5-up grid needs the full content width, so on large screens the
+          filters sit above it as a single row instead of a 288px rail. */}
+      <div className="hidden lg:block">
+        <FilterRow
           categories={categories}
           brands={brands}
           activeCategory={activeCategory}
           activeBrand={activeBrand}
           inStockOnly={inStockOnly}
           q={q}
+          activeCount={activeCount}
           updateParams={updateParams}
         />
-      </aside>
+      </div>
     </>
+  );
+}
+
+function FilterRow({
+  categories,
+  brands,
+  activeCategory,
+  activeBrand,
+  inStockOnly,
+  q,
+  activeCount,
+  updateParams,
+}: {
+  categories: Category[];
+  brands: Brand[];
+  activeCategory: string;
+  activeBrand: string;
+  inStockOnly: boolean;
+  q: string;
+  activeCount: number;
+  updateParams: (updates: Record<string, string | null>) => void;
+}) {
+  const field =
+    "rounded-[7px] border border-[#dde3ea] px-2.5 py-2 text-[12.5px] text-ink outline-none transition-colors focus:border-primary";
+
+  return (
+    <div className="mb-3.5 flex flex-wrap items-end gap-3 rounded-[10px] border border-slate-line bg-white px-4 py-3.5">
+      <label className="block">
+        <span className="mono-label mb-1.5 block text-[10px] tracking-[0.06em] text-ink-muted">
+          PART NUMBER OR KEYWORD
+        </span>
+        <input
+          type="text"
+          defaultValue={q}
+          placeholder="1762-"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") updateParams({ q: (e.target as HTMLInputElement).value || null });
+          }}
+          onBlur={(e) => updateParams({ q: e.target.value || null })}
+          className={`${field} w-56 font-mono`}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mono-label mb-1.5 block text-[10px] tracking-[0.06em] text-ink-muted">
+          CATEGORY
+        </span>
+        <select
+          value={activeCategory}
+          onChange={(e) => updateParams({ category: e.target.value || null })}
+          className={`${field} w-48`}
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.name} ({c.productCount})
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="mono-label mb-1.5 block text-[10px] tracking-[0.06em] text-ink-muted">
+          BRAND
+        </span>
+        <select
+          value={activeBrand}
+          onChange={(e) => updateParams({ brand: e.target.value || null })}
+          className={`${field} w-44`}
+        >
+          <option value="">All brands</option>
+          {brands.map((b) => (
+            <option key={b.slug} value={b.slug}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="flex items-center gap-2 pb-2">
+        <Switch
+          id="filter-instock-row"
+          checked={inStockOnly}
+          onCheckedChange={(checked) => updateParams({ inStock: checked ? "true" : null })}
+        />
+        <Label htmlFor="filter-instock-row" className="text-[12.5px] font-medium text-ink-soft">
+          In stock only
+        </Label>
+      </div>
+
+      {activeCount > 0 && (
+        <button
+          type="button"
+          onClick={() => updateParams({ category: null, brand: null, inStock: null })}
+          className="ml-auto pb-2 text-[12.5px] font-semibold text-primary hover:underline"
+        >
+          Clear filters ({activeCount})
+        </button>
+      )}
+    </div>
   );
 }
 
