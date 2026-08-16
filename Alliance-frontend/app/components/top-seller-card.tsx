@@ -71,21 +71,12 @@ export function TopSellerCard({ product, rank }: { product: TopSeller; rank?: nu
           </span>
         </div>
 
-        <div className="flex gap-2">
-          <Link
-            href={browseHref}
-            className="btn-glass flex-1 rounded-md py-2.5 text-[13px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)]"
-          >
-            Ask Price
-          </Link>
-          <Link
-            href={browseHref}
-            aria-label={`View details for ${product.partNumber}`}
-            className="inline-flex w-[42px] shrink-0 items-center justify-center rounded-md border border-[#dde3ea] text-[15px] font-semibold text-[#64748b] transition-colors hover:border-primary hover:text-primary"
-          >
-            +
-          </Link>
-        </div>
+        <Link
+          href={browseHref}
+          className="btn-glass w-full rounded-md py-2.5 text-center text-[13px] font-bold shadow-[0_8px_18px_rgba(0,125,204,.24)]"
+        >
+          View details
+        </Link>
       </div>
     </div>
   );
