@@ -39,7 +39,10 @@ type LineDraft = {
   specifications: string;
   quantity: number;
   unit: string;
-  unitPrice: number;
+  // Empty until the admin types a figure. Held as a string, not a number, so
+  // an unpriced line stays visibly blank instead of showing a placeholder 0
+  // that could be issued by accident.
+  unitPrice: string;
 };
 
 const TERM_FIELDS: { key: keyof QuotationTerms; label: string }[] = [
@@ -94,15 +97,22 @@ export function ConfirmQuotationDialog({
         specifications: prior?.specifications ?? item.partNumber,
         quantity: prior?.quantity ?? item.quantity,
         unit: prior?.unit ?? "Pcs",
-        // Catalogue price is only the starting point — the admin quotes the
-        // real deal price here.
-        unitPrice: prior?.unitPrice ?? item.price,
+        // Deliberately NOT seeded from the catalogue: pricing is negotiated
+        // per quotation, so the admin enters every figure. Re-issuing an
+        // existing confirmation keeps what was previously quoted.
+        unitPrice: prior ? String(prior.unitPrice) : "",
       };
     })
   );
 
+  const priced = lines.map((l) => ({ ...l, value: Number(l.unitPrice) }));
+  const allPriced = priced.every((l) => l.unitPrice.trim() !== "" && Number.isFinite(l.value));
   const grandTotal = useMemo(
-    () => lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0),
+    () =>
+      lines.reduce((sum, l) => {
+        const v = Number(l.unitPrice);
+        return sum + (Number.isFinite(v) ? l.quantity * v : 0);
+      }, 0),
     [lines]
   );
 
@@ -115,7 +125,11 @@ export function ConfirmQuotationDialog({
       toast.error("Ref number and subject are required.");
       return;
     }
-    if (lines.some((l) => l.quantity < 1 || l.unitPrice < 0)) {
+    if (!allPriced) {
+      toast.error("Enter a price for every line before issuing.");
+      return;
+    }
+    if (priced.some((l) => l.quantity < 1 || l.value < 0)) {
       toast.error("Every line needs a quantity of at least 1 and a non-negative price.");
       return;
     }
@@ -130,12 +144,12 @@ export function ConfirmQuotationDialog({
           subject,
           issuedDate,
           terms,
-          lines: lines.map((l) => ({
+          lines: priced.map((l) => ({
             slug: l.slug,
             specifications: l.specifications,
             quantity: l.quantity,
             unit: l.unit,
-            unitPrice: l.unitPrice,
+            unitPrice: l.value,
           })),
         }),
       });
@@ -224,7 +238,7 @@ export function ConfirmQuotationDialog({
           <div>
             <FieldLabel>LINES &amp; PRICING</FieldLabel>
             <div className="scrollbar-slim overflow-x-auto rounded-[9px] border border-slate-line">
-              <table className="w-full min-w-[720px] text-[12.5px]">
+              <table className="w-full min-w-180 text-[12.5px]">
                 <thead className="bg-surface">
                   <tr>
                     <th className="mono-label px-3 py-2 text-left text-[10px] text-[#8a94a6]">ITEM</th>
@@ -243,7 +257,7 @@ export function ConfirmQuotationDialog({
                   {lines.map((line) => (
                     <tr key={line.slug} className="border-t border-[#f2f4f7]">
                       <td className="px-3 py-2.5">
-                        <span className="block max-w-[150px] truncate font-semibold text-ink">
+                        <span className="block max-w-37.5 truncate font-semibold text-ink">
                           {line.name}
                         </span>
                         <span className="block font-mono text-[10.5px] text-[#8a94a6]">
@@ -256,7 +270,7 @@ export function ConfirmQuotationDialog({
                           onChange={(e) =>
                             updateLine(line.slug, { specifications: e.target.value })
                           }
-                          className="h-8 min-w-[150px] text-[12px]"
+                          className="h-8 min-w-37.5 text-[12px]"
                         />
                       </td>
                       <td className="px-3 py-2.5">
@@ -292,15 +306,18 @@ export function ConfirmQuotationDialog({
                           type="number"
                           min={0}
                           step="0.01"
+                          placeholder="Enter price"
                           value={line.unitPrice}
-                          onChange={(e) =>
-                            updateLine(line.slug, { unitPrice: Number(e.target.value) || 0 })
-                          }
+                          onChange={(e) => updateLine(line.slug, { unitPrice: e.target.value })}
                           className="h-8 w-28 font-mono text-[12px]"
                         />
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono font-semibold text-ink">
-                        {formatPrice(line.quantity * line.unitPrice)}
+                        {line.unitPrice.trim() === "" || !Number.isFinite(Number(line.unitPrice)) ? (
+                          <span className="text-[#c8d0da]">—</span>
+                        ) : (
+                          formatPrice(line.quantity * Number(line.unitPrice))
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -311,7 +328,7 @@ export function ConfirmQuotationDialog({
                       Grand total
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono text-[13.5px] font-bold text-ink">
-                      {formatPrice(grandTotal)}
+                      {allPriced ? formatPrice(grandTotal) : <span className="text-[#c8d0da]">—</span>}
                     </td>
                   </tr>
                 </tfoot>
@@ -339,12 +356,14 @@ export function ConfirmQuotationDialog({
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
             <p className="text-[11.5px] text-[#8a94a6]">
-              Issuing sends this to the customer and unlocks their order step.
+              {allPriced
+                ? "Issuing sends this to the customer and unlocks their order step."
+                : "Enter a price for every line to issue this confirmation."}
             </p>
             <button
               type="button"
               onClick={submit}
-              disabled={submitting}
+              disabled={submitting || !allPriced}
               className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
             >
               <Download className="size-4" />

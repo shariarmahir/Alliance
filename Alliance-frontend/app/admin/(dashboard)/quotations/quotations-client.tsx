@@ -107,19 +107,27 @@ function QuotationDetailDialog({ quotation }: { quotation: Quotation }) {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-[12.5px] font-semibold text-ink">{item.name}</p>
-                    <p className="truncate font-mono text-[11px] text-[#8a94a6]">
-                      {item.partNumber} · {item.quantity} × {formatPrice(item.price)}
-                    </p>
+                    <p className="truncate font-mono text-[11px] text-[#8a94a6]">{item.partNumber}</p>
                   </div>
                   <p className="shrink-0 font-mono text-[12.5px] font-semibold text-ink">
-                    {formatPrice(item.price * item.quantity)}
+                    Qty {item.quantity}
                   </p>
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-right text-[13px] font-semibold text-ink">
-              Estimated total:{" "}
-              <span className="font-mono">{formatPrice(quotation.total)}</span>
+            {/* No price here on purpose: this is the customer's request, and
+                pricing is set by the admin when issuing the confirmation. */}
+            <p className="mt-2 text-right text-[12.5px] text-ink-muted">
+              {quotation.confirmation ? (
+                <>
+                  Quoted total:{" "}
+                  <span className="font-mono font-semibold text-ink">
+                    {formatPrice(quotation.confirmation.grandTotal)}
+                  </span>
+                </>
+              ) : (
+                "Not priced yet — set prices when issuing the order confirmation."
+              )}
             </p>
           </div>
 
@@ -218,11 +226,16 @@ function QuotationRow({
       </td>
       <td className={`${TD} font-mono text-ink-soft`}>{quotation.items.length}</td>
       <td className={`${TD} font-mono font-semibold text-ink`}>
-        {formatPrice(quotation.confirmation?.grandTotal ?? quotation.total)}
-        {quotation.confirmation && (
-          <span className="block font-mono text-[10px] font-normal text-[#8a94a6]">
-            {quotation.confirmation.refNumber}
-          </span>
+        {quotation.confirmation ? (
+          <>
+            {formatPrice(quotation.confirmation.grandTotal)}
+            <span className="block font-mono text-[10px] font-normal text-[#8a94a6]">
+              {quotation.confirmation.refNumber}
+            </span>
+          </>
+        ) : (
+          // Unpriced until issued — the catalogue figure is not a quote.
+          <span className="font-normal text-[#c8d0da]">—</span>
         )}
       </td>
       <td
@@ -339,7 +352,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
                   <th className={TH}>CONTACT</th>
                   <th className={TH}>COMPANY</th>
                   <th className={TH}>ITEMS</th>
-                  <th className={TH}>EST. TOTAL</th>
+                  <th className={TH}>QUOTED TOTAL</th>
                   <th className={TH}>AGE</th>
                   <th className={TH}>STATUS</th>
                   <th className={TH}>ACTIONS</th>

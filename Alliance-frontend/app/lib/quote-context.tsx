@@ -77,7 +77,10 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             name: product.name,
             brand: product.brand,
             image: product.image,
-            price: product.price,
+            // Requests carry no price: this is a quotation flow, and the
+            // catalogue figure is not an offer. A super admin sets the real
+            // price per line when issuing the order confirmation.
+            price: 0,
             quantity,
           },
         ];
