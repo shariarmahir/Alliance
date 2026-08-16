@@ -138,7 +138,7 @@ export function Footer() {
             <span className="credit-shine font-semibold">Mahir Shariar Mahin</span>.
           </p>
           <p className="flex gap-5">
-            <span>English · USD</span>
+            <span>BD · BDT</span>
             <span>Terms</span>
             <span>Privacy</span>
           </p>

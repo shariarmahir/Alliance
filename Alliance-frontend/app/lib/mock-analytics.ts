@@ -1,39 +1,44 @@
 // MOCK DATA — replace with real analytics API before production
+// Revenue-dollar figures below are stored already converted to BDT (rate
+// USD_TO_BDT_RATE in lib/utils.ts), matching the real price data in
+// data/products.json/orders.json/quotations.json — formatPrice() only knows
+// how to render BDT, not convert into it.
 import type { RevenuePoint, OrderRatioSlice, CountryBreakdown, TrafficSource } from "./types";
+import { USD_TO_BDT_RATE } from "./utils";
 
 export const kpiStats = {
-  totalRevenue: { value: 486_920, deltaPct: 12.4 },
+  totalRevenue: { value: 486_920 * USD_TO_BDT_RATE, deltaPct: 12.4 },
   ordersThisMonth: { value: 214, deltaPct: 8.1 },
   pendingQuotations: { value: 37, deltaPct: -4.6 },
   activeClients: { value: 152, deltaPct: 15.9 },
 };
 
 export const revenueWeekly: RevenuePoint[] = [
-  { label: "Mon", value: 8200 },
-  { label: "Tue", value: 10450 },
-  { label: "Wed", value: 9100 },
-  { label: "Thu", value: 12800 },
-  { label: "Fri", value: 15600 },
-  { label: "Sat", value: 7300 },
-  { label: "Sun", value: 5400 },
+  { label: "Mon", value: 8200 * USD_TO_BDT_RATE },
+  { label: "Tue", value: 10450 * USD_TO_BDT_RATE },
+  { label: "Wed", value: 9100 * USD_TO_BDT_RATE },
+  { label: "Thu", value: 12800 * USD_TO_BDT_RATE },
+  { label: "Fri", value: 15600 * USD_TO_BDT_RATE },
+  { label: "Sat", value: 7300 * USD_TO_BDT_RATE },
+  { label: "Sun", value: 5400 * USD_TO_BDT_RATE },
 ];
 
 export const revenueMonthly: RevenuePoint[] = [
-  { label: "Jan", value: 32000 },
-  { label: "Feb", value: 28500 },
-  { label: "Mar", value: 41200 },
-  { label: "Apr", value: 38900 },
-  { label: "May", value: 45600 },
-  { label: "Jun", value: 52300 },
-  { label: "Jul", value: 49800 },
-  { label: "Aug", value: 58100 },
+  { label: "Jan", value: 32000 * USD_TO_BDT_RATE },
+  { label: "Feb", value: 28500 * USD_TO_BDT_RATE },
+  { label: "Mar", value: 41200 * USD_TO_BDT_RATE },
+  { label: "Apr", value: 38900 * USD_TO_BDT_RATE },
+  { label: "May", value: 45600 * USD_TO_BDT_RATE },
+  { label: "Jun", value: 52300 * USD_TO_BDT_RATE },
+  { label: "Jul", value: 49800 * USD_TO_BDT_RATE },
+  { label: "Aug", value: 58100 * USD_TO_BDT_RATE },
 ];
 
 export const revenueYearly: RevenuePoint[] = [
-  { label: "2022", value: 312_000 },
-  { label: "2023", value: 398_500 },
-  { label: "2024", value: 441_200 },
-  { label: "2025", value: 486_920 },
+  { label: "2022", value: 312_000 * USD_TO_BDT_RATE },
+  { label: "2023", value: 398_500 * USD_TO_BDT_RATE },
+  { label: "2024", value: 441_200 * USD_TO_BDT_RATE },
+  { label: "2025", value: 486_920 * USD_TO_BDT_RATE },
 ];
 
 export const orderRatio: OrderRatioSlice[] = [

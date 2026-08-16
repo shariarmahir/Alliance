@@ -10,9 +10,11 @@ import { Input } from "@/app/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import type { BulkImportError, Category } from "@/app/lib/types";
 
-const PLACEHOLDER = `1. SIMATIC S7-1500 CPU | 6ES7515-2AM02-0AB0 | 1250 | Compact PLC, 24V DC, PROFINET | in-stock
-2. SINAMICS G120C Drive | 6SL3210-1KE21-3UF1 | 890 | 3-phase, 1.3kW, IP20 | in-stock
-3. SIRIUS Contactor 9A | 3RT2015-1BB41 | 45 | 24V DC coil, AC-3 rated | low-stock`;
+// Prices are BDT — the example figures reflect that scale so a new admin
+// pasting a real line doesn't anchor on 100x-too-small numbers.
+const PLACEHOLDER = `1. SIMATIC S7-1500 CPU | 6ES7515-2AM02-0AB0 | 152500 | Compact PLC, 24V DC, PROFINET | in-stock
+2. SINAMICS G120C Drive | 6SL3210-1KE21-3UF1 | 108580 | 3-phase, 1.3kW, IP20 | in-stock
+3. SIRIUS Contactor 9A | 3RT2015-1BB41 | 5490 | 24V DC coil, AC-3 rated | low-stock`;
 
 export function BulkImportTab({ categories, onImported }: { categories: Category[]; onImported: () => void }) {
   const [categorySlug, setCategorySlug] = useState("");

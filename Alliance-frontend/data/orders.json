@@ -9,13 +9,13 @@
         "name": "ControlLogix 5561 Processor Module",
         "brand": "allen-bradley",
         "image": "/images/products/plcs-machine-control.svg",
-        "price": 3450,
+        "price": 420900,
         "quantity": 1
       }
     ],
-    "subtotal": 3450,
-    "shippingCost": 140,
-    "grandTotal": 3590,
+    "subtotal": 420900,
+    "shippingCost": 17080,
+    "grandTotal": 437980,
     "deliveryOption": "express",
     "deliveryOptionName": "Express Courier",
     "deliveryEta": "3 – 5 business days",
@@ -40,7 +40,7 @@
         "name": "ControlLogix 5561 Processor Module",
         "brand": "allen-bradley",
         "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 3450,
+        "price": 420900,
         "quantity": 1
       },
       {
@@ -49,7 +49,7 @@
         "name": "PowerFlex 525 AC Drive 5HP",
         "brand": "allen-bradley",
         "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 1150,
+        "price": 140300,
         "quantity": 1
       },
       {
@@ -58,13 +58,13 @@
         "name": "MELSEC iQ-F FX5U Compact PLC",
         "brand": "mitsubishi",
         "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 610,
+        "price": 74420,
         "quantity": 1
       }
     ],
-    "subtotal": 5210,
-    "shippingCost": 140,
-    "grandTotal": 5350,
+    "subtotal": 635620,
+    "shippingCost": 17080,
+    "grandTotal": 652700,
     "deliveryOption": "express",
     "deliveryOptionName": "Express Courier",
     "deliveryEta": "3 – 5 business days",

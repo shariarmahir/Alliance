@@ -35,7 +35,7 @@
       "Operating Temp": "0-60°C",
       "Comm Ports": "USB, RS-232"
     },
-    "price": 3450,
+    "price": 420900,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 1,
@@ -74,7 +74,7 @@
       "Mounting": "DIN Rail",
       "Operating Temp": "0-55°C"
     },
-    "price": 1890,
+    "price": 230580,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 1,
@@ -114,7 +114,7 @@
       "Comm Ports": "PROFINET",
       "Mounting": "DIN Rail"
     },
-    "price": 425,
+    "price": 51850,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 1,
@@ -153,7 +153,7 @@
       "Mounting": "DIN Rail / Screw",
       "Operating Temp": "0-55°C"
     },
-    "price": 610,
+    "price": 74420,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -190,7 +190,7 @@
       "Comm Ports": "EtherCAT, USB",
       "Mounting": "DIN Rail"
     },
-    "price": 980,
+    "price": 119560,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -227,7 +227,7 @@
       "Mounting": "DIN Rail",
       "Operating Temp": "-10 to 55°C"
     },
-    "price": 340,
+    "price": 41480,
     "stock": "out-of-stock",
     "warrantyYears": 2,
     "stockQty": 0
@@ -265,7 +265,7 @@
       "Comm": "EtherNet/IP, USB",
       "Enclosure": "IP20 / NEMA 1"
     },
-    "price": 1150,
+    "price": 140300,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 2,
@@ -304,7 +304,7 @@
       "Comm": "EtherNet/IP",
       "Enclosure": "IP20"
     },
-    "price": 3980,
+    "price": 485560,
     "stock": "low-stock",
     "warrantyYears": 2,
     "yearRank": 2,
@@ -343,7 +343,7 @@
       "Safety": "STO SIL2",
       "Enclosure": "IP20"
     },
-    "price": 1420,
+    "price": 173240,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 2,
@@ -381,7 +381,7 @@
       "Control Method": "Sensorless Vector",
       "Comm": "RS-485, Ethernet (optional)"
     },
-    "price": 720,
+    "price": 87840,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -418,7 +418,7 @@
       "Comm": "Modbus RTU",
       "Enclosure": "IP20"
     },
-    "price": 295,
+    "price": 35990,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -455,7 +455,7 @@
       "Safety": "Power Removal SIL2",
       "Comm": "Modbus, CANopen"
     },
-    "price": 540,
+    "price": 65880,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -493,7 +493,7 @@
       "Enclosure Rating": "IP66 Front",
       "Mounting": "Panel Cutout"
     },
-    "price": 890,
+    "price": 108580,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 3,
@@ -531,7 +531,7 @@
       "Comm": "2x EtherNet/IP, USB",
       "Mounting": "Panel Cutout"
     },
-    "price": 2340,
+    "price": 285480,
     "stock": "low-stock",
     "warrantyYears": 2,
     "yearRank": 3,
@@ -569,7 +569,7 @@
       "Comm": "PROFINET",
       "Mounting": "Panel Cutout"
     },
-    "price": 610,
+    "price": 74420,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 3,
@@ -607,7 +607,7 @@
       "Comm": "RS-422/485",
       "Mounting": "Panel Cutout"
     },
-    "price": 480,
+    "price": 58560,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -644,7 +644,7 @@
       "Comm": "Ethernet, USB",
       "Mounting": "Panel Cutout"
     },
-    "price": 520,
+    "price": 63440,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -681,7 +681,7 @@
       "Comm": "Serial, USB",
       "Mounting": "Panel Cutout"
     },
-    "price": 310,
+    "price": 37820,
     "stock": "out-of-stock",
     "warrantyYears": 2,
     "stockQty": 0
@@ -719,7 +719,7 @@
       "Aux Contact": "1 NO",
       "Mounting": "DIN Rail"
     },
-    "price": 68,
+    "price": 8296,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 4,
@@ -757,7 +757,7 @@
       "Overload Type": "Bimetallic",
       "Mounting": "Panel"
     },
-    "price": 145,
+    "price": 17690,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 4,
@@ -795,7 +795,7 @@
       "Coil Voltage": "24V DC",
       "Mounting": "DIN Rail"
     },
-    "price": 52,
+    "price": 6344,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 4,
@@ -833,7 +833,7 @@
       "Coil Voltage": "200-240V AC",
       "Mounting": "DIN Rail"
     },
-    "price": 74,
+    "price": 9028,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -870,7 +870,7 @@
       "Coil Voltage": "24V DC",
       "Mounting": "DIN Rail"
     },
-    "price": 61,
+    "price": 7442,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -907,7 +907,7 @@
       "Coil Voltage": "24V DC",
       "Aux Contact": "1 NO"
     },
-    "price": 58,
+    "price": 7076,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -944,7 +944,7 @@
       "Mounting": "DIN Rail",
       "Protection": "Short-Circuit"
     },
-    "price": 210,
+    "price": 25620,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 5,
@@ -982,7 +982,7 @@
       "Enclosure": "IP66",
       "Comm": "HART"
     },
-    "price": 890,
+    "price": 108580,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1019,7 +1019,7 @@
       "Max Pressure": "0.7 MPa",
       "Mounting": "Base Mounted"
     },
-    "price": 95,
+    "price": 11590,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 5,
@@ -1057,7 +1057,7 @@
       "Switch Output": "PNP",
       "Mounting": "Bracket"
     },
-    "price": 165,
+    "price": 20130,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 5,
@@ -1095,7 +1095,7 @@
       "Coil Enclosure": "NEMA 4",
       "Max Pressure": "150 psi"
     },
-    "price": 118,
+    "price": 14396,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1132,7 +1132,7 @@
       "Actuation": "Electric/Hydraulic",
       "Mounting": "Modular Stack"
     },
-    "price": 1240,
+    "price": 151280,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -1169,7 +1169,7 @@
       "Outputs": "3 Safety, 1 Aux",
       "Mounting": "DIN Rail"
     },
-    "price": 285,
+    "price": 34770,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 6,
@@ -1207,7 +1207,7 @@
       "Rated Voltage": "230V AC",
       "Mounting": "Guard Door"
     },
-    "price": 195,
+    "price": 23790,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 6,
@@ -1245,7 +1245,7 @@
       "Range": "0.3-7 m",
       "Mounting": "Bracket Kit"
     },
-    "price": 1050,
+    "price": 128100,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1282,7 +1282,7 @@
       "Width": "22.5 mm",
       "Mounting": "DIN Rail"
     },
-    "price": 130,
+    "price": 15860,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 6,
@@ -1320,7 +1320,7 @@
       "Rated Voltage": "24V DC",
       "Mounting": "Guard Door"
     },
-    "price": 245,
+    "price": 29890,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -1357,7 +1357,7 @@
       "Compatible Series": "VLT Drives",
       "Mounting": "Drive Slot"
     },
-    "price": 310,
+    "price": 37820,
     "stock": "out-of-stock",
     "warrantyYears": 2,
     "stockQty": 0
@@ -1395,7 +1395,7 @@
       "Input Voltage": "85-264V AC",
       "Mounting": "DIN Rail"
     },
-    "price": 155,
+    "price": 18910,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 7,
@@ -1434,7 +1434,7 @@
       "Input Voltage": "120-230V AC",
       "Mounting": "DIN Rail"
     },
-    "price": 140,
+    "price": 17080,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 7,
@@ -1472,7 +1472,7 @@
       "Function": "Regenerative",
       "Mounting": "Panel"
     },
-    "price": 2150,
+    "price": 262300,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1510,7 +1510,7 @@
       "Input Voltage": "100-240V AC",
       "Mounting": "DIN Rail"
     },
-    "price": 85,
+    "price": 10370,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 7,
@@ -1549,7 +1549,7 @@
       "Input Voltage": "100-240V AC",
       "Mounting": "DIN Rail"
     },
-    "price": 72,
+    "price": 8784,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -1586,7 +1586,7 @@
       "Installation": "Plug-In Module",
       "Mounting": "Drive Slot"
     },
-    "price": 265,
+    "price": 32330,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1623,7 +1623,7 @@
       "Output": "PNP NO/NC",
       "Enclosure": "IP67"
     },
-    "price": 45,
+    "price": 5490,
     "stock": "in-stock",
     "warrantyYears": 2,
     "weekRank": 8,
@@ -1661,7 +1661,7 @@
       "Output": "PNP",
       "Enclosure": "IP67"
     },
-    "price": 58,
+    "price": 7076,
     "stock": "in-stock",
     "warrantyYears": 2,
     "monthRank": 8,
@@ -1699,7 +1699,7 @@
       "Output": "NPN/PNP Selectable",
       "Mounting": "DIN Rail"
     },
-    "price": 96,
+    "price": 11712,
     "stock": "low-stock",
     "warrantyYears": 2,
     "stockQty": 5
@@ -1736,7 +1736,7 @@
       "Housing": "M18 Threaded",
       "Enclosure": "IP67"
     },
-    "price": 51,
+    "price": 6222,
     "stock": "in-stock",
     "warrantyYears": 2,
     "yearRank": 8,
@@ -1774,7 +1774,7 @@
       "Output": "3-Wire PNP",
       "Enclosure": "IP67"
     },
-    "price": 47,
+    "price": 5734,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50
@@ -1811,7 +1811,7 @@
       "Wetted Parts": "Stainless Steel",
       "Enclosure": "IP65"
     },
-    "price": 175,
+    "price": 21350,
     "stock": "in-stock",
     "warrantyYears": 2,
     "stockQty": 50

@@ -8,11 +8,11 @@
         "name": "ControlLogix 5561 Processor Module",
         "brand": "allen-bradley",
         "image": "/images/products/plcs-machine-control.svg",
-        "price": 3450,
+        "price": 420900,
         "quantity": 1
       }
     ],
-    "total": 3450,
+    "total": 420900,
     "details": {
       "fullName": "Mahir Shariar Mahin Mahir",
       "email": "itallinyou.justdoit@gmail.com",
@@ -38,7 +38,7 @@
         "name": "ControlLogix 5561 Processor Module",
         "brand": "allen-bradley",
         "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 3450,
+        "price": 420900,
         "quantity": 1
       },
       {
@@ -47,7 +47,7 @@
         "name": "PowerFlex 525 AC Drive 5HP",
         "brand": "allen-bradley",
         "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 1150,
+        "price": 140300,
         "quantity": 1
       },
       {
@@ -56,11 +56,11 @@
         "name": "MELSEC iQ-F FX5U Compact PLC",
         "brand": "mitsubishi",
         "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
-        "price": 610,
+        "price": 74420,
         "quantity": 1
       }
     ],
-    "total": 5210,
+    "total": 635620,
     "details": {
       "fullName": "Mahir Shariar Mahin Mahir",
       "email": "itallinyou.justdoit@gmail.com",
