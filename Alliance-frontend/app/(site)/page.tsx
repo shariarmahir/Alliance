@@ -196,7 +196,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
+        {/* Two per row from the base breakpoint up, not one — the same fix as
+            the category grid: grid-cols-1 stuck phones with a single
+            full-width card at a time. */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:grid-cols-4">
           {topSellers.slice(0, 4).map((p, i) => (
             <TopSellerCard key={p.id} product={p} rank={i === 0 ? 1 : undefined} />
           ))}
