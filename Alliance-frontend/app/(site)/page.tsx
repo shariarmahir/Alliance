@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Radio, RotateCcw, Clock } from "lucide-react";
+import { ShieldCheck, Radio, RotateCcw, Clock, Wrench, MessageCircleQuestion, PackageCheck, Recycle } from "lucide-react";
 import { HeroCarousel } from "@/app/components/hero-carousel";
 import { CategoryGrid } from "@/app/components/category-grid";
 import { BrandStrip } from "@/app/components/brand-strip";
@@ -32,32 +32,37 @@ const trustStats = [
   { label: "Trading Since", value: "2009" },
 ];
 
-// The bundle marks each service with a flat geometric glyph rather than an
-// icon set — shape + colour are the only differentiators.
+// Each card keeps the colour its flat glyph used to carry (blue / accent
+// orange / ink / blue), now as a tinted circle badge behind a real icon
+// picked for what the service actually is.
 const services = [
   {
-    glyph: "bg-primary [clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]",
+    icon: Wrench,
+    tone: "bg-primary/10 text-primary",
     title: "Repair & exchange",
     text: "Board-level repair for drives, HMIs and power supplies with a tested-and-returned guarantee.",
     cta: "Learn more",
     href: "/contact",
   },
   {
-    glyph: "bg-accent rounded-full",
+    icon: MessageCircleQuestion,
+    tone: "bg-accent/15 text-accent-dark",
     title: "Ask an engineer",
     text: "Send a photo of the nameplate on WhatsApp and get the right part number back, not a catalogue link.",
     cta: "Start a chat",
     href: "https://wa.me/8801713116019",
   },
   {
-    glyph: "bg-ink",
+    icon: PackageCheck,
+    tone: "bg-ink/10 text-ink",
     title: "Critical spares programme",
     text: "We hold your line-critical stock in Dhaka and release it against a standing agreement.",
     cta: "Learn more",
     href: "/contact",
   },
   {
-    glyph: "bg-primary rounded-md",
+    icon: Recycle,
+    tone: "bg-primary/10 text-primary",
     title: "Sell us your surplus",
     text: "Turn shelved automation stock into working capital. Send a list, get an offer.",
     cta: "Send a list",
@@ -250,9 +255,13 @@ export default function Home() {
           {services.map((s) => (
             <div
               key={s.title}
-              className="rounded-[10px] border border-slate-line bg-white p-3.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)] sm:p-5.5"
+              className="group rounded-[10px] border border-slate-line bg-white p-3.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)] sm:p-5.5"
             >
-              <span className={`mb-3 block size-5 ${s.glyph} sm:mb-4 sm:size-6.5`} />
+              <span
+                className={`mb-3 flex size-9 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 sm:mb-4 sm:size-11 ${s.tone}`}
+              >
+                <s.icon className="size-4.5 sm:size-5.5" strokeWidth={2.25} />
+              </span>
               <strong className="mb-1 block text-[13px] font-semibold text-ink sm:mb-1.5 sm:text-base">
                 {s.title}
               </strong>
