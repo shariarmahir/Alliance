@@ -6,11 +6,14 @@ export function Footer() {
     <footer className="bg-[#0d1626] text-white/[0.68]">
       <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">
         <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
-          {/* Brand and newsletter stay full-width at every size below lg —
-              the address block and the email input both need the room. The
-              three link columns were each going full-width too, which on a
-              phone wider than a narrow handset left a large empty gap beside
-              every short list. They now pair up two-per-row instead. */}
+          {/* Brand stays full-width at every size below lg — the address
+              block needs the room. The other four sections (three link
+              columns + newsletter) were each going full-width too, which on
+              a phone wider than a narrow handset left a large empty gap
+              beside every short one — three items paired 2+1 left Company
+              alone with an empty slot beside it. All four now share one
+              2-column sub-grid, so newsletter fills that slot instead of
+              sitting alone full-width below. */}
           <div>
             <div className="mb-1 text-[21px] font-bold leading-none text-white">
               AutoLink<span className="text-accent">.</span>
@@ -104,26 +107,28 @@ export function Footer() {
                 </li>
               </ul>
             </div>
-          </div>
 
-          <div>
-            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">STOCK &amp; PRICE ALERTS</p>
-            <form className="mb-3 flex gap-2">
-              <input
-                type="email"
-                placeholder="Work email"
-                className="min-w-0 flex-1 rounded-[7px] border border-white/20 bg-white/[0.07] px-3 py-2.5 text-[12.5px] text-white outline-none placeholder:text-white/50 focus:border-accent"
-              />
-              <button
-                type="button"
-                className="shrink-0 rounded-[7px] bg-accent px-3.5 py-2.5 text-[12.5px] font-bold text-ink hover:bg-accent-dark"
-              >
-                Join
-              </button>
-            </form>
-            <p className="text-[11.5px] leading-[1.6] text-white/45">
-              New arrivals and obsolete finds, once a month. No resellers.
-            </p>
+            <div>
+              <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">
+                STOCK &amp; PRICE ALERTS
+              </p>
+              <form className="mb-3 flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Work email"
+                  className="min-w-0 flex-1 rounded-[7px] border border-white/20 bg-white/[0.07] px-3 py-2.5 text-[12.5px] text-white outline-none placeholder:text-white/50 focus:border-accent"
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-[7px] bg-accent px-3.5 py-2.5 text-[12.5px] font-bold text-ink hover:bg-accent-dark"
+                >
+                  Join
+                </button>
+              </form>
+              <p className="text-[11.5px] leading-[1.6] text-white/45">
+                New arrivals and obsolete finds, once a month. No resellers.
+              </p>
+            </div>
           </div>
         </div>
 
