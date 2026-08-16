@@ -14,19 +14,29 @@ export function CategoryGrid() {
           Browse all {categories.length} categories
         </Link>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Four per row from the base breakpoint up, so phones aren't stuck
+          with one full-width row per category. Below sm the card switches
+          from the horizontal icon+label layout to a stacked one — a quarter-
+          width mobile card is too narrow for "icon beside two text lines" to
+          stay legible, so the icon centers on top and the label sits below,
+          restoring the original horizontal layout from sm up. */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:grid-cols-8">
         {categories.map((c) => (
           <Link
             key={c.slug}
             href={`/products?category=${c.slug}`}
-            className="flex items-center gap-4 rounded-[10px] border border-slate-line bg-white p-4.5 transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_8px_22px_rgba(0,125,204,.12)]"
+            className="flex flex-col items-center gap-2 rounded-[10px] border border-slate-line bg-white p-2.5 text-center transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_8px_22px_rgba(0,125,204,.12)] sm:flex-row sm:items-center sm:gap-4 sm:p-4.5 sm:text-left"
           >
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-surface-blue">
-              <Image src={c.icon} alt="" width={34} height={34} />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-blue sm:size-14">
+              <Image src={c.icon} alt="" width={22} height={22} className="sm:h-8.5 sm:w-8.5" />
             </span>
             <span className="min-w-0">
-              <strong className="block text-[14.5px] font-semibold text-ink">{c.name}</strong>
-              <span className="font-mono text-xs text-[#8a94a6]">{c.productCount} parts</span>
+              <strong className="block truncate text-[10.5px] font-semibold text-ink sm:text-[14.5px]">
+                {c.name}
+              </strong>
+              <span className="hidden font-mono text-xs text-[#8a94a6] sm:block">
+                {c.productCount} parts
+              </span>
             </span>
           </Link>
         ))}
