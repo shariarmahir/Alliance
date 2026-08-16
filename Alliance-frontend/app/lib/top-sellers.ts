@@ -30,32 +30,37 @@ const PIMG = [
 const slug = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-// Part number / description / brand triples, matching the parts named in the
-// design bundle so cards read the way the spec renders them.
+// Part number / description / brand triples. These must exist in
+// data/products.json (checked against Product.partNumber, not just similar) —
+// the "View details" link on each card sends shoppers to /products?q=<part>,
+// and a part with no catalog match lands on an empty search result. Six of
+// the original eight were mock numbers from the design bundle with no
+// catalog counterpart; swapped for the closest real analogue in the same
+// brand/category. 1606-XLE120E and 6ES7214-1AG40-0XB0 were already real.
 const PARTS: { partNumber: string; name: string; brand: string }[] = [
   {
-    partNumber: "1762-L40AWA",
-    name: "MicroLogix 1200 controller, 24 discrete inputs, 16 relay outputs, 120/240 V AC",
+    partNumber: "1769-L33ER",
+    name: "CompactLogix 5370 controller, embedded EtherNet/IP, expandable I/O",
     brand: "Allen-Bradley",
   },
   {
-    partNumber: "FR-E740-095SC",
-    name: "FR-E700 inverter, 3.7 kW, 400 V three-phase, built-in EMC filter",
+    partNumber: "FR-E820-3.7K-1",
+    name: "FREQROL-E800 compact inverter, 3.7 kW, built-in EMC filter",
     brand: "Mitsubishi",
   },
   {
-    partNumber: "6AV2124-0GC01",
-    name: 'SIMATIC HMI TP700 Comfort panel, 7" widescreen TFT, PROFINET',
+    partNumber: "6AV2123-2GB03-0AX0",
+    name: "SIMATIC KTP700 Basic panel, 7\" widescreen TFT, PROFINET",
     brand: "Siemens",
   },
   {
-    partNumber: "R88D-KN04H-ECT",
-    name: "Accurax G5 servo drive, 400 W, EtherCAT, single-phase 230 V",
+    partNumber: "3G3MX2-AB004-E",
+    name: "SYSDRIVE MX2 series inverter, compact vector control drive",
     brand: "Omron",
   },
   {
-    partNumber: "1756-L83E",
-    name: "ControlLogix 5580 processor, 40 MB memory, dual Gigabit EtherNet/IP",
+    partNumber: "1756-L61",
+    name: "ControlLogix 5561 processor module, 2 MB user memory, ControlBus backplane",
     brand: "Allen-Bradley",
   },
   {
@@ -64,8 +69,8 @@ const PARTS: { partNumber: string; name: string; brand: string }[] = [
     brand: "Siemens",
   },
   {
-    partNumber: "CJ2M-CPU31",
-    name: "CJ2M CPU unit with built-in EtherNet/IP, 20 k steps program capacity",
+    partNumber: "CJ2M-CPU34",
+    name: "SYSMAC CJ2M series CPU unit with built-in EtherNet/IP",
     brand: "Omron",
   },
   {
