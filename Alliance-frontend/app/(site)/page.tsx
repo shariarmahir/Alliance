@@ -242,16 +242,27 @@ export default function Home() {
         <h2 className="mb-5.5 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
           Services &amp; support
         </h2>
-        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
+        {/* Two per row from the base breakpoint up, not one — same fix as the
+            category grid and top-sellers section. This card is text-led
+            rather than image-led, so at two-up it only needs tighter padding
+            and type, not a different layout. */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:grid-cols-4">
           {services.map((s) => (
             <div
               key={s.title}
-              className="rounded-[10px] border border-slate-line bg-white p-5.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)]"
+              className="rounded-[10px] border border-slate-line bg-white p-3.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)] sm:p-5.5"
             >
-              <span className={`mb-4 block size-[26px] ${s.glyph}`} />
-              <strong className="mb-1.5 block text-base font-semibold text-ink">{s.title}</strong>
-              <p className="mb-3.5 text-[12.5px] leading-[1.6] text-[#64748b]">{s.text}</p>
-              <Link href={s.href} className="text-[12.5px] font-semibold text-primary hover:underline">
+              <span className={`mb-3 block size-5 ${s.glyph} sm:mb-4 sm:size-6.5`} />
+              <strong className="mb-1 block text-[13px] font-semibold text-ink sm:mb-1.5 sm:text-base">
+                {s.title}
+              </strong>
+              <p className="mb-2.5 text-[11px] leading-[1.5] text-[#64748b] sm:mb-3.5 sm:text-[12.5px] sm:leading-[1.6]">
+                {s.text}
+              </p>
+              <Link
+                href={s.href}
+                className="text-[11px] font-semibold text-primary hover:underline sm:text-[12.5px]"
+              >
                 {s.cta} →
               </Link>
             </div>
