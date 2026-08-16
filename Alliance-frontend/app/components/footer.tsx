@@ -5,7 +5,12 @@ export function Footer() {
   return (
     <footer className="bg-[#0d1626] text-white/[0.68]">
       <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">
-        <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
+        <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
+          {/* Brand and newsletter stay full-width at every size below lg —
+              the address block and the email input both need the room. The
+              three link columns were each going full-width too, which on a
+              phone wider than a narrow handset left a large empty gap beside
+              every short list. They now pair up two-per-row instead. */}
           <div>
             <div className="mb-1 text-[21px] font-bold leading-none text-white">
               AutoLink<span className="text-accent">.</span>
@@ -29,74 +34,76 @@ export function Footer() {
             </p>
           </div>
 
-          <div>
-            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">CATALOGUE</p>
-            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
-              {categories.slice(0, 5).map((c) => (
-                <li key={c.slug}>
-                  <Link href={`/products?category=${c.slug}`} className="hover:text-accent">
-                    {c.name}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-9 lg:contents">
+            <div>
+              <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">CATALOGUE</p>
+              <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+                {categories.slice(0, 5).map((c) => (
+                  <li key={c.slug}>
+                    <Link href={`/products?category=${c.slug}`} className="hover:text-accent">
+                      {c.name}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link href="/products" className="hover:text-accent">
+                    All products
                   </Link>
                 </li>
-              ))}
-              <li>
-                <Link href="/products" className="hover:text-accent">
-                  All products
-                </Link>
-              </li>
-            </ul>
-          </div>
+              </ul>
+            </div>
 
-          <div>
-            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">SERVICES</p>
-            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
-              <li>
-                <Link href="/products" className="hover:text-accent">
-                  Ask Price
-                </Link>
-              </li>
-              <li>
-                <Link href="/#services" className="hover:text-accent">
-                  Repair &amp; exchange
-                </Link>
-              </li>
-              <li>
-                <Link href="/#services" className="hover:text-accent">
-                  Critical spares
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-accent">
-                  Sell us your parts
-                </Link>
-              </li>
-            </ul>
-          </div>
+            <div>
+              <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">SERVICES</p>
+              <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+                <li>
+                  <Link href="/products" className="hover:text-accent">
+                    Ask Price
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#services" className="hover:text-accent">
+                    Repair &amp; exchange
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#services" className="hover:text-accent">
+                    Critical spares
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-accent">
+                    Sell us your parts
+                  </Link>
+                </li>
+              </ul>
+            </div>
 
-          <div>
-            <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">COMPANY</p>
-            <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
-              <li>
-                <Link href="/contact" className="hover:text-accent">
-                  About AutoLink
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-accent">
-                  Quality &amp; ISO
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-accent">
-                  Export &amp; shipping
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-accent">
-                  Terms of trade
-                </Link>
-              </li>
-            </ul>
+            <div>
+              <p className="mono-label mb-3.5 text-[11px] tracking-[0.1em] text-accent">COMPANY</p>
+              <ul className="space-y-2 text-[12.5px] text-white/[0.68]">
+                <li>
+                  <Link href="/contact" className="hover:text-accent">
+                    About AutoLink
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-accent">
+                    Quality &amp; ISO
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-accent">
+                    Export &amp; shipping
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-accent">
+                    Terms of trade
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div>
