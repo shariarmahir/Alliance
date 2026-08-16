@@ -176,16 +176,24 @@ export default function Home() {
             </h2>
             <p className="text-[13.5px] text-[#64748b]">Ranked by price requests received</p>
           </div>
-          <div className="flex rounded-[9px] border border-slate-line bg-[#f2f4f7] p-1">
-            <span className="rounded-md bg-white px-5 py-2 text-[13px] font-semibold text-ink shadow-[0_1px_3px_rgba(16,25,45,.12)]">
-              This week
-            </span>
-            <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
-              This month
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/products"
+              className="btn-glass-accent rounded-md px-5 py-2 text-[13px] font-bold shadow-[0_8px_18px_rgba(255,185,0,.24)]"
+            >
+              Want more?
             </Link>
-            <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
-              This year
-            </Link>
+            <div className="flex rounded-[9px] border border-slate-line bg-[#f2f4f7] p-1">
+              <span className="rounded-md bg-white px-5 py-2 text-[13px] font-semibold text-ink shadow-[0_1px_3px_rgba(16,25,45,.12)]">
+                This week
+              </span>
+              <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
+                This month
+              </Link>
+              <Link href="/products" className="px-5 py-2 text-[13px] font-medium text-[#64748b] hover:text-primary">
+                This year
+              </Link>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
