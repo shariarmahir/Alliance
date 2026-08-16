@@ -45,7 +45,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             Same-day dispatch on stocked parts · Ships to 100+ countries
           </div>
           <div className="flex items-center gap-3.5">
-            <span>EN · USD</span>
+            <span>BD · BDT</span>
             <span className="text-[#c3ccd8]">|</span>
             <Link href="/products" className="hover:text-primary">
               Track an order
