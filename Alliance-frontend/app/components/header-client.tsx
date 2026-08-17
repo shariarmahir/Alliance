@@ -49,7 +49,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             <span className="text-[#c3ccd8]">|</span>
             <Link
               href="/track"
-              className="btn-glass rounded-full px-3.5 py-1 text-[11px] font-semibold"
+              className="btn-sheen inline-flex items-center justify-center rounded-full bg-primary px-3 py-[3px] text-[11px] font-semibold text-white shadow-sm shadow-primary/30 transition-all hover:-translate-y-px hover:bg-primary-dark hover:shadow-md hover:shadow-primary/40"
             >
               Track an order
             </Link>
