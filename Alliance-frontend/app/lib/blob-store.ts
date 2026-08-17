@@ -10,13 +10,9 @@ import { put, head } from "@vercel/blob";
 
 export const BLOB_PREFIX = "data/";
 
-function blobUrl(pathname: string): string {
-  return `https://${process.env.BLOB_STORE_ID}.public.blob.vercel-storage.com/${pathname}`;
-}
-
 export async function readBlobJson<T>(pathname: string): Promise<T> {
-  const url = blobUrl(BLOB_PREFIX + pathname);
-  const res = await fetch(url, { cache: "no-store" });
+  const blob = await head(BLOB_PREFIX + pathname);
+  const res = await fetch(blob.url, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Blob read failed for ${pathname}: ${res.status} ${res.statusText}`);
   }
