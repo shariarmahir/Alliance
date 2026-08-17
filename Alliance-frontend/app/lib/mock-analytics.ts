@@ -57,6 +57,31 @@ export const orderCountWeekly: RevenuePoint[] = [
   { label: "Sun", value: 8 },
 ];
 
+// Backs the "Open price requests" stat card's sparkline. Trends down across
+// the week to match kpiStats.pendingQuotations.deltaPct (-4.6%) — engineers
+// clearing the backlog, not it growing.
+export const pendingQuotationsWeekly: RevenuePoint[] = [
+  { label: "Mon", value: 44 },
+  { label: "Tue", value: 41 },
+  { label: "Wed", value: 43 },
+  { label: "Thu", value: 39 },
+  { label: "Fri", value: 35 },
+  { label: "Sat", value: 38 },
+  { label: "Sun", value: 37 },
+];
+
+// Backs the "Active clients" stat card's sparkline. Trends up across the
+// week to match kpiStats.activeClients.deltaPct (+15.9%).
+export const activeClientsWeekly: RevenuePoint[] = [
+  { label: "Mon", value: 131 },
+  { label: "Tue", value: 136 },
+  { label: "Wed", value: 134 },
+  { label: "Thu", value: 141 },
+  { label: "Fri", value: 146 },
+  { label: "Sat", value: 148 },
+  { label: "Sun", value: 152 },
+];
+
 export const orderCountMonthly: RevenuePoint[] = [
   { label: "Jan", value: 142 },
   { label: "Feb", value: 128 },

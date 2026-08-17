@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { kpiStats } from "@/app/lib/mock-analytics";
+import {
+  kpiStats,
+  revenueWeekly,
+  orderCountWeekly,
+  pendingQuotationsWeekly,
+  activeClientsWeekly,
+} from "@/app/lib/mock-analytics";
 import { formatPrice } from "@/app/lib/utils";
 import { StatCard } from "./stat-card";
 import { RevenueChart } from "./charts/revenue-chart";
@@ -52,12 +58,14 @@ export default async function AdminOverviewPage() {
           value={formatPrice(kpiStats.totalRevenue.value)}
           note={`↑ ${kpiStats.totalRevenue.deltaPct}% vs last month`}
           tone="primary"
+          trend={revenueWeekly.map((p) => p.value)}
         />
         <StatCard
           label="Orders"
           value={kpiStats.ordersThisMonth.value.toString()}
           note={`↑ ${kpiStats.ordersThisMonth.deltaPct}% this month`}
           tone="accent"
+          trend={orderCountWeekly.map((p) => p.value)}
         />
         <StatCard
           label="Open price requests"
@@ -65,12 +73,14 @@ export default async function AdminOverviewPage() {
           note="Quote within 4 working hours"
           negative
           tone="terracotta"
+          trend={pendingQuotationsWeekly.map((p) => p.value)}
         />
         <StatCard
           label="Active clients"
           value={kpiStats.activeClients.value.toString()}
           note={`↑ ${kpiStats.activeClients.deltaPct}% this month`}
           tone="emerald"
+          trend={activeClientsWeekly.map((p) => p.value)}
         />
       </div>
 
