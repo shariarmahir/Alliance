@@ -27,8 +27,8 @@ export function Footer() {
             <p className="font-mono text-[12.5px] leading-[1.9] text-white/[0.78]">
               Uttara, Dhaka, Bangladesh
               <br />
-              <a href="mailto:info@autolink.com" className="hover:text-accent">
-                info@autolink.com
+              <a href="mailto:info@auto-bd.com" className="hover:text-accent">
+                info@auto-bd.com
               </a>
               <br />
               <a href="tel:+8801713116019" className="hover:text-accent">

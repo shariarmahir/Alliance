@@ -37,8 +37,8 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             <a href="tel:+8801713116019" className="credit-shine font-mono font-bold">
               +8801713-116019
             </a>
-            <a href="mailto:info@autolink.com" className="hidden hover:text-primary sm:block">
-              info@autolink.com
+            <a href="mailto:info@auto-bd.com" className="hidden hover:text-primary sm:block">
+              info@auto-bd.com
             </a>
           </div>
           <div className="hidden font-semibold text-primary lg:block">
@@ -203,8 +203,8 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
               <a href="tel:+8801713116019" className="flex items-center gap-2 text-slate-700">
                 <Phone className="size-4" /> +8801713-116019
               </a>
-              <a href="mailto:info@autolink.com" className="flex items-center gap-2 text-slate-700">
-                <Mail className="size-4" /> info@autolink.com
+              <a href="mailto:info@auto-bd.com" className="flex items-center gap-2 text-slate-700">
+                <Mail className="size-4" /> info@auto-bd.com
               </a>
             </div>
           </div>

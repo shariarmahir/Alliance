@@ -409,7 +409,7 @@ function drawFooter(doc: jsPDF) {
       280,
       { align: "center" }
     );
-    doc.text("Phone: +8801711585291, Email: info@autolink.com", PAGE_W / 2, 284.5, {
+    doc.text("Phone: +8801711585291, Email: info@auto-bd.com", PAGE_W / 2, 284.5, {
       align: "center",
     });
   }

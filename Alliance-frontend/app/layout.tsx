@@ -38,7 +38,7 @@ const ORGANIZATION_SCHEMA = {
   description:
     "Supplier of industrial electronics and automation spares — PLCs, drives, servos, HMIs and power system electronics.",
   logo: "/logo-mark.png",
-  email: "info@autolink.com",
+  email: "info@auto-bd.com",
   telephone: "+8801713-116019",
   foundingDate: "2009",
   address: {
@@ -50,7 +50,7 @@ const ORGANIZATION_SCHEMA = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "sales",
-    email: "info@autolink.com",
+    email: "info@auto-bd.com",
     telephone: "+8801713-116019",
   },
 };
@@ -75,3 +75,5 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     </html>
   );
 }
+
+
