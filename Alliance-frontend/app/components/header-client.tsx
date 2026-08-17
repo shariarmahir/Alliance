@@ -34,7 +34,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
       <div className="border-b border-slate-line bg-surface-blue text-[#4c5a72]">
         <div className="mx-auto flex h-[34px] max-w-[1360px] items-center justify-between px-7 text-[11.5px]">
           <div className="flex items-center gap-5">
-            <a href="tel:+8801713116019" className="font-mono hover:text-primary">
+            <a href="tel:+8801713116019" className="credit-shine font-mono font-bold">
               +8801713-116019
             </a>
             <a href="mailto:info@autolink.com" className="hidden hover:text-primary sm:block">
@@ -47,7 +47,10 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
           <div className="flex items-center gap-3.5">
             <span>BD · BDT</span>
             <span className="text-[#c3ccd8]">|</span>
-            <Link href="/products" className="hover:text-primary">
+            <Link
+              href="/track"
+              className="btn-glass rounded-full px-3.5 py-1 text-[11px] font-semibold"
+            >
               Track an order
             </Link>
           </div>
