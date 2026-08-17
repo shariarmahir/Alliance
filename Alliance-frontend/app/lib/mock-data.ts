@@ -1,52 +1,14 @@
 // TEMPORARY MOCK DATA — replace with FastAPI backend
 //
-// Phase 2 migration: `products` and `categories` now read from real JSON files
-// under data/ (written to by the admin catalog write layer, app/lib/admin-catalog.ts)
-// instead of hardcoded arrays. Every export below keeps its original name and
-// signature so existing consumers need zero changes.
-//
-// Important: `products` and `categories` are NOT plain arrays read once at
-// module load — Node (and Turbopack's dev module cache) keeps this module's
-// top-level state alive across requests within the same server process, so a
-// one-time readJson() here would go stale the moment an admin route writes
-// new data. Instead each export is a Proxy that re-reads its JSON file fresh
-// on every property/method access (e.g. `products.filter(...)` triggers a
-// fresh disk read at the `.filter` access), while still behaving exactly like
-// a plain array to every consumer.
+// products/categories read from Blob-backed data/*.json (written to by the
+// admin catalog write layer, app/lib/admin-catalog.ts). Every export that
+// touches them is async — Blob reads are HTTP fetches, unlike the local-disk
+// fs.readFileSync this module used before the Vercel Blob migration, which
+// let it fake synchronous "always fresh" arrays via a Proxy. Callers (all
+// Server Components or Route Handlers) await these directly.
 import "server-only";
-import fs from "fs";
-import path from "path";
+import { readBlobJson } from "./blob-store";
 import type { Brand, Category, FaqItem, Product, Review } from "./types";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-
-function readJson<T>(file: string): T {
-  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), "utf-8"));
-}
-
-// Wraps a JSON-backed array so every access re-reads the file from disk,
-// making writes from the admin routes visible immediately without relying on
-// module re-evaluation (which Turbopack's dev server does not guarantee).
-function freshArray<T>(file: string): T[] {
-  return new Proxy([] as T[], {
-    get(_target, prop, receiver) {
-      const current = readJson<T[]>(file);
-      return Reflect.get(current, prop, receiver);
-    },
-    has(_target, prop) {
-      const current = readJson<T[]>(file);
-      return Reflect.has(current, prop);
-    },
-    ownKeys() {
-      const current = readJson<T[]>(file);
-      return Reflect.ownKeys(current);
-    },
-    getOwnPropertyDescriptor(_target, prop) {
-      const current = readJson<T[]>(file);
-      return Reflect.getOwnPropertyDescriptor(current, prop);
-    },
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Brands (not admin-manageable this phase — stays hardcoded)
@@ -66,8 +28,13 @@ export const brands: Brand[] = [
 // hardcoded arrays; mutated by the admin catalog write layer from this point on)
 // ---------------------------------------------------------------------------
 
-export const products: Product[] = freshArray<Product>("products.json");
-export const categories: Category[] = freshArray<Category>("categories.json");
+export async function getAllProducts(): Promise<Product[]> {
+  return readBlobJson<Product[]>("products.json");
+}
+
+export async function getAllCategories(): Promise<Category[]> {
+  return readBlobJson<Category[]>("categories.json");
+}
 
 // ---------------------------------------------------------------------------
 // Reviews
@@ -159,15 +126,18 @@ export const faqs: FaqItem[] = [
 // Helper functions
 // ---------------------------------------------------------------------------
 
-export function getProductBySlug(slug: string): Product | undefined {
+export async function getProductBySlug(slug: string): Promise<Product | undefined> {
+  const products = await getAllProducts();
   return products.find((p) => p.slug === slug);
 }
 
-export function getProductsByCategory(slug: string): Product[] {
+export async function getProductsByCategory(slug: string): Promise<Product[]> {
+  const products = await getAllProducts();
   return products.filter((p) => p.categorySlug === slug);
 }
 
-export function getTopSelling(period: "week" | "month" | "year"): Product[] {
+export async function getTopSelling(period: "week" | "month" | "year"): Promise<Product[]> {
+  const products = await getAllProducts();
   const rankKey = period === "week" ? "weekRank" : period === "month" ? "monthRank" : "yearRank";
   return products
     .filter((p) => p[rankKey] !== undefined)
@@ -175,9 +145,10 @@ export function getTopSelling(period: "week" | "month" | "year"): Product[] {
     .slice(0, 6);
 }
 
-export function getRelatedProducts(slug: string): Product[] {
-  const product = getProductBySlug(slug);
+export async function getRelatedProducts(slug: string): Promise<Product[]> {
+  const product = await getProductBySlug(slug);
   if (!product) return [];
+  const products = await getAllProducts();
   return products
     .filter((p) => p.slug !== slug && p.categorySlug === product.categorySlug)
     .slice(0, 4);
