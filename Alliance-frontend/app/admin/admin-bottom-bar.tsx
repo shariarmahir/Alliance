@@ -2,8 +2,41 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Package,
+  Boxes,
+  Image as ImageIcon,
+  ClipboardList,
+  FileText,
+  Mail,
+  MessageSquare,
+  Users,
+  CheckSquare,
+  CalendarDays,
+  NotebookPen,
+  Menu,
+} from "lucide-react";
 import { cn } from "@/app/lib/utils";
-import type { AdminNavCounts, ResolvedNavGroup } from "./nav-config";
+import type { AdminNavCounts, AdminNavIcon, ResolvedNavGroup } from "./nav-config";
+
+// Same AdminNavIcon keys nav-config.ts already assigns per route — this is
+// the one place they're actually rendered as icons rather than just a
+// bookkeeping string.
+const ICON: Record<AdminNavIcon, typeof LayoutDashboard> = {
+  overview: LayoutDashboard,
+  products: Package,
+  stock: Boxes,
+  "hero-images": ImageIcon,
+  orders: ClipboardList,
+  quotations: FileText,
+  "contact-requests": MessageSquare,
+  emails: Mail,
+  employees: Users,
+  tasks: CheckSquare,
+  leave: CalendarDays,
+  "daily-report": NotebookPen,
+};
 
 // Design bundle 2e: on phones the 44px icon rail is replaced by a five-slot
 // bottom bar plus the full-height drawer. Slots are the four routes this role
@@ -21,23 +54,23 @@ function badgeFor(href: string, counts: AdminNavCounts): string | undefined {
   return n > 0 ? String(n) : undefined;
 }
 
-type Slot = { href: string; label: string };
+type Slot = { href: string; label: string; icon: AdminNavIcon };
 
 // The four slots each role gets, in order. A sub-admin's /admin is their task
 // desk (super-only in nav-config, so it isn't in their groups) — it's named and
 // placed explicitly here rather than fished out of the nav.
 const PREFERRED: Record<"super" | "sub", Slot[]> = {
   super: [
-    { href: "/admin", label: "Overview" },
-    { href: "/admin/orders", label: "Orders" },
-    { href: "/admin/quotations", label: "Quotes" },
-    { href: "/admin/stock", label: "Stock" },
+    { href: "/admin", label: "Overview", icon: "overview" },
+    { href: "/admin/orders", label: "Orders", icon: "orders" },
+    { href: "/admin/quotations", label: "Quotes", icon: "quotations" },
+    { href: "/admin/stock", label: "Stock", icon: "stock" },
   ],
   sub: [
-    { href: "/admin", label: "Task desk" },
-    { href: "/admin/products", label: "Products" },
-    { href: "/admin/stock", label: "Stock" },
-    { href: "/admin/leave", label: "Leave" },
+    { href: "/admin", label: "Task desk", icon: "tasks" },
+    { href: "/admin/products", label: "Products", icon: "products" },
+    { href: "/admin/stock", label: "Stock", icon: "stock" },
+    { href: "/admin/leave", label: "Leave", icon: "leave" },
   ],
 };
 
@@ -49,14 +82,21 @@ function slotsForRole(groups: ResolvedNavGroup[], role: "super" | "sub"): Slot[]
   return PREFERRED[role].filter((s) => s.href === "/admin" || reachable.has(s.href));
 }
 
-function SlotGlyph({ active, badge }: { active: boolean; badge?: string }) {
+function SlotGlyph({
+  icon,
+  active,
+  badge,
+}: {
+  icon: AdminNavIcon;
+  active: boolean;
+  badge?: string;
+}) {
+  const Icon = ICON[icon];
   return (
     <span className="relative">
-      <span
-        className={cn(
-          "block size-5 rounded-[5px]",
-          active ? "bg-primary" : "border-[1.5px] border-[#c8d0da]"
-        )}
+      <Icon
+        className={cn("size-5", active ? "text-primary" : "text-[#8a94a6]")}
+        strokeWidth={active ? 2.25 : 2}
       />
       {badge && (
         <span className="absolute -right-1.5 -top-1 flex h-3.75 min-w-3.75 items-center justify-center rounded-lg bg-accent px-1 font-mono text-[9px] font-bold text-ink">
@@ -100,7 +140,7 @@ export function AdminBottomBar({
               active ? "font-semibold text-primary" : "font-medium text-[#8a94a6]"
             )}
           >
-            <SlotGlyph active={active} badge={badgeFor(slot.href, counts)} />
+            <SlotGlyph icon={slot.icon} active={active} badge={badgeFor(slot.href, counts)} />
             <span className="max-w-full truncate px-0.5">{slot.label}</span>
           </Link>
         );
@@ -112,11 +152,7 @@ export function AdminBottomBar({
         aria-label="Open all sections"
         className="flex flex-col items-center gap-1.5 py-1.5 text-[10px] font-medium text-[#8a94a6]"
       >
-        <span className="flex size-5 flex-col justify-center gap-0.75">
-          <span className="h-0.5 w-4.5 bg-[#8a94a6]" />
-          <span className="h-0.5 w-4.5 bg-[#8a94a6]" />
-          <span className="h-0.5 w-4.5 bg-[#8a94a6]" />
-        </span>
+        <Menu className="size-5" strokeWidth={2} />
         More
       </button>
     </nav>

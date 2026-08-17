@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { AdminSession } from "@/app/lib/types";
 import { logoutAction } from "./login/actions";
 import {
@@ -34,19 +34,10 @@ function todayLabel() {
     .toUpperCase();
 }
 
-export function AdminTopbar({ session, onOpenMobile }: { session: AdminSession; onOpenMobile: () => void }) {
+export function AdminTopbar({ session }: { session: AdminSession }) {
   return (
     <header className="sticky top-0 z-30 flex h-[66px] items-center justify-between gap-4 border-b border-slate-line bg-white px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3.5">
-        <button
-          type="button"
-          onClick={onOpenMobile}
-          aria-label="Open menu"
-          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-surface lg:hidden"
-        >
-          <Menu className="size-5" />
-        </button>
-
         <div className="hidden w-[300px] items-center gap-2.5 rounded-md border border-[#dde3ea] px-3.5 py-2.5 text-[13px] text-[#8a94a6] md:flex">
           <span aria-hidden="true">⌕</span>
           Search orders, parts, clients
