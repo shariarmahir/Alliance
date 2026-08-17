@@ -1,6 +1,5 @@
 import "server-only";
-import fs from "fs/promises";
-import path from "path";
+import { readBlobJson, writeBlobJson } from "./blob-store";
 import type {
   Order,
   Quotation,
@@ -14,26 +13,17 @@ import type {
 // Server-only read/write layer for Phase 3 (orders, quotations, contact
 // requests, mock emails) — mirrors app/lib/admin-catalog.ts's pattern.
 //
-// Unlike mock-data.ts's Proxy-wrapped arrays (needed because that module's
-// exports are imported and iterated directly all over the storefront), every
-// export here is an async function. Callers (Server Component pages, Route
-// Handlers) call these fresh on every request/invocation, so there is no
-// module-level cache to go stale — the same problem mock-data.ts solved with
-// Proxies, solved here simply by never caching in the first place.
-//
-// KNOWN LIMITATION: real filesystem writes under data/ — works in local dev
-// and traditional Node hosting, not on read-only-filesystem serverless hosts.
-// Same accepted tradeoff as Phase 2.
-
-const DATA_DIR = path.join(process.cwd(), "data");
+// Every export here is an async function, calling fresh on every
+// request/invocation via Vercel Blob (see app/lib/blob-store.ts) — no
+// module-level cache to go stale, same reasoning mock-data.ts's Proxies
+// solved differently for its own module.
 
 async function readJsonFile<T>(filename: string): Promise<T> {
-  const raw = await fs.readFile(path.join(DATA_DIR, filename), "utf-8");
-  return JSON.parse(raw);
+  return readBlobJson<T>(filename);
 }
 
 async function writeJsonFile<T>(filename: string, data: T): Promise<void> {
-  await fs.writeFile(path.join(DATA_DIR, filename), JSON.stringify(data, null, 2) + "\n");
+  await writeBlobJson(filename, data);
 }
 
 // ---------------------------------------------------------------------------
