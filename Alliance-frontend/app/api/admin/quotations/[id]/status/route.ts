@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { updateQuotationStatus } from "@/app/lib/admin-operations";
-import { requireSuperAdminSession, isSessionResponse } from "../../../_auth";
+import { requireAreaSession, isSessionResponse } from "../../../_auth";
 
 const StatusSchema = z.object({ status: z.enum(["pending", "confirmed", "cancelled"]) });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireSuperAdminSession();
+  const session = await requireAreaSession("quotations");
   if (isSessionResponse(session)) return session;
 
   const { id } = await params;

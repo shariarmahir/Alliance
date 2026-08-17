@@ -3,7 +3,7 @@ import { z } from "zod";
 import { confirmQuotation, readQuotation } from "@/app/lib/admin-operations";
 import { generateProductId, generateTrackingId } from "@/app/lib/order-confirmation";
 import type { ConfirmedLine, OrderConfirmation } from "@/app/lib/types";
-import { requireSuperAdminSession, isSessionResponse } from "../../../_auth";
+import { requireAreaSession, isSessionResponse } from "../../../_auth";
 
 // POST /api/admin/quotations/[id]/confirm — issues the order confirmation.
 // The admin supplies the editable fields (ref, subject, date, per-line price
@@ -37,7 +37,7 @@ const ConfirmSchema = z.object({
 });
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireSuperAdminSession();
+  const session = await requireAreaSession("quotations");
   if (isSessionResponse(session)) return session;
 
   const { id } = await params;

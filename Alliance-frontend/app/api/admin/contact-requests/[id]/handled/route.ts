@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { markContactRequestHandled } from "@/app/lib/admin-operations";
-import { requireSuperAdminSession, isSessionResponse } from "../../../_auth";
+import { requireAreaSession, isSessionResponse } from "../../../_auth";
 
 const HandledSchema = z.object({ handled: z.boolean() });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireSuperAdminSession();
+  const session = await requireAreaSession("contact-requests");
   if (isSessionResponse(session)) return session;
 
   const { id } = await params;

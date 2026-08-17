@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import type { AdminSession } from "@/app/lib/types";
+import type { AccessArea, AdminSession } from "@/app/lib/types";
 
 // Shared session check for admin Route Handlers. All five admin write routes
 // (products, products/bulk, products/[slug]/stock, categories, hero-images)
@@ -32,4 +32,17 @@ export async function requireSuperAdminSession(): Promise<AdminSession | NextRes
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return session;
+}
+
+// Like requireSuperAdminSession, but a sub-admin who has been individually
+// granted this AccessArea (see Employee.accessOptions / proxy.ts) also
+// passes. Used by the operations routes that a super admin can now delegate
+// per employee: quotations, orders, contact requests. There is no emails
+// route to guard — that surface is read-only mock data.
+export async function requireAreaSession(area: AccessArea): Promise<AdminSession | NextResponse> {
+  const session = await requireAdminSession();
+  if (isSessionResponse(session)) return session;
+  if (session.role === "super") return session;
+  if ((session.accessOptions ?? []).includes(area)) return session;
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }

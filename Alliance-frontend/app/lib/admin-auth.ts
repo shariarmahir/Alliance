@@ -25,7 +25,13 @@ export async function verifyAdminCredentials(email: string, password: string): P
   const employees = await readEmployees();
   const employee = employees.find((e) => e.email.toLowerCase() === normalizedEmail && e.password === password);
   if (!employee) return null;
-  return { role: "sub", name: employee.name, email: employee.email, employeeId: employee.id };
+  return {
+    role: "sub",
+    name: employee.name,
+    email: employee.email,
+    employeeId: employee.id,
+    accessOptions: employee.accessOptions,
+  };
 }
 
 // /admin is role-branching as of Phase 4: super admin sees the analytics

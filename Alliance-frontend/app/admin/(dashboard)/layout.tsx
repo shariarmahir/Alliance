@@ -16,14 +16,17 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   // match what the screens themselves show. They were previously hardcoded to
   // the design mockup's figures (1,284 products / 9 orders / 37 quotations),
   // which contradicted the real data on every screen.
-  // Sub-admins can't reach orders, quotations or contact requests, so those
-  // files aren't read for them at all.
-  const superAdmin = session.role === "super";
+  // A sub-admin only reaches orders/quotations/contact-requests once granted
+  // that AccessArea — read each file only when the viewer can actually see it,
+  // same reasoning as the old superAdmin-only gate, just per-area now.
+  const accessOptions = session.accessOptions ?? [];
+  const canSee = (area: (typeof accessOptions)[number]) =>
+    session.role === "super" || accessOptions.includes(area);
   const [products, orders, quotations, contactRequests] = await Promise.all([
     readProducts(),
-    superAdmin ? readOrders() : [],
-    superAdmin ? readQuotations() : [],
-    superAdmin ? readContactRequests() : [],
+    canSee("orders") ? readOrders() : [],
+    canSee("quotations") ? readQuotations() : [],
+    canSee("contact-requests") ? readContactRequests() : [],
   ]);
 
   const counts: AdminNavCounts = {
@@ -35,7 +38,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   };
 
   return (
-    <AdminShell groups={navGroupsForRole(session.role)} session={session} counts={counts}>
+    <AdminShell groups={navGroupsForRole(session.role, accessOptions)} session={session} counts={counts}>
       {children}
     </AdminShell>
   );

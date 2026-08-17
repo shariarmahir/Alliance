@@ -9,13 +9,26 @@ import { AssignTaskInline } from "./assign-task-inline";
 import { LeaveCalendar } from "../leave/leave-calendar";
 import { LeavePendingList } from "../leave/leave-pending-list";
 import { LeaveDaysChart } from "../charts/leave-days-chart";
-import type { Employee, Task, TaskStatus, LeaveRequest, DailyReport } from "@/app/lib/types";
+import type { AccessArea, Employee, Task, TaskStatus, LeaveRequest, DailyReport } from "@/app/lib/types";
 
 const DESIGNATION_LABEL: Record<Employee["designation"], string> = {
   "sales-associate": "Sales associate",
   "warehouse-staff": "Warehouse staff",
   "support-agent": "Support agent",
   "catalog-manager": "Catalog manager",
+  other: "Other",
+};
+
+function designationLabel(e: Employee): string {
+  if (e.designation === "other") return e.customDesignation || "Other";
+  return DESIGNATION_LABEL[e.designation];
+}
+
+const ACCESS_LABEL: Record<AccessArea, string> = {
+  quotations: "Quotations",
+  orders: "Orders",
+  emails: "Emails",
+  "contact-requests": "Contact",
 };
 
 const TASK_STATUS_PILL: Record<TaskStatus, { label: string; cls: string }> = {
@@ -69,6 +82,7 @@ function RosterTab({
                   <th className={TH}>ID</th>
                   <th className={TH}>NAME</th>
                   <th className={TH}>DESIGNATION</th>
+                  <th className={TH}>ACCESS</th>
                   <th className={TH}>OPEN / DONE</th>
                   <th className={TH}>DS TIME</th>
                 </tr>
@@ -88,7 +102,23 @@ function RosterTab({
                         {e.name}
                         <span className="block font-mono text-[11px] text-[#8a94a6]">{e.email}</span>
                       </td>
-                      <td className={`${TD} text-ink-muted`}>{DESIGNATION_LABEL[e.designation]}</td>
+                      <td className={`${TD} text-ink-muted`}>{designationLabel(e)}</td>
+                      <td className={TD}>
+                        {e.accessOptions && e.accessOptions.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {e.accessOptions.map((a) => (
+                              <span
+                                key={a}
+                                className="rounded-[4px] bg-tint px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#00618f]"
+                              >
+                                {ACCESS_LABEL[a]}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[#c8d0da]">—</span>
+                        )}
+                      </td>
                       <td className={`${TD} font-mono text-ink-soft`}>
                         {open} / {done}
                       </td>

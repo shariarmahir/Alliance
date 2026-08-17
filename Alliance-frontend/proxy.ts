@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/app/lib/admin-auth";
+import type { AccessArea } from "@/app/lib/types";
 
 // Prefix-matched: pathname === prefix OR pathname starts with `${prefix}/`.
 // Safe to add new entries here freely — each is scoped to its own subtree.
@@ -22,6 +23,17 @@ const SUB_ADMIN_ALLOWED_PREFIXES = [
 // exact RBAC bypass bug Phase 1 fixed. Only the bare path is allowed here.
 const SUB_ADMIN_ALLOWED_EXACT = ["/admin"];
 
+// Prefixes gated behind a per-employee AccessArea grant rather than being
+// open to every sub-admin by default. Checked only after the fixed
+// allowlists above fail to match, so an employee with no grants still gets
+// the normal sub-admin defaults (products, stock, tasks, leave, ...).
+const SUB_ADMIN_GRANTABLE_PREFIXES: { prefix: string; area: AccessArea }[] = [
+  { prefix: "/admin/quotations", area: "quotations" },
+  { prefix: "/admin/orders", area: "orders" },
+  { prefix: "/admin/emails", area: "emails" },
+  { prefix: "/admin/contact-requests", area: "contact-requests" },
+];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = parseAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
@@ -34,7 +46,12 @@ export function proxy(request: NextRequest) {
   if (session.role === "sub") {
     const allowed =
       SUB_ADMIN_ALLOWED_EXACT.includes(pathname) ||
-      SUB_ADMIN_ALLOWED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+      SUB_ADMIN_ALLOWED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
+      SUB_ADMIN_GRANTABLE_PREFIXES.some(
+        ({ prefix, area }) =>
+          (pathname === prefix || pathname.startsWith(`${prefix}/`)) &&
+          (session.accessOptions ?? []).includes(area)
+      );
     if (!allowed) {
       return NextResponse.redirect(new URL(landingPathForRole("sub"), request.url));
     }

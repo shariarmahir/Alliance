@@ -109,14 +109,29 @@ export type DeliveryAddress = {
 
 export type AdminRole = "super" | "sub";
 
+// Areas a sub-admin cannot reach by default (see SUB_ADMIN_ALLOWED_PREFIXES
+// in proxy.ts) but can be individually granted per employee. Products,
+// stock, tasks, leave etc. are NOT here — those are already open to every
+// sub-admin and aren't gated by this list.
+export type AccessArea = "quotations" | "orders" | "emails" | "contact-requests";
+
 export type AdminSession = {
   role: AdminRole;
   name: string;
   email: string;
   employeeId?: string; // present for real employee accounts; absent for the 2 original hardcoded mock accounts
+  // Granted AccessAreas for this session. Always empty for "super" (which
+  // has unconditional access — checked separately, not via this list) and
+  // for the 2 hardcoded mock accounts.
+  accessOptions?: AccessArea[];
 };
 
-export type Designation = "sales-associate" | "warehouse-staff" | "support-agent" | "catalog-manager";
+export type Designation =
+  | "sales-associate"
+  | "warehouse-staff"
+  | "support-agent"
+  | "catalog-manager"
+  | "other";
 
 export type Employee = {
   id: string; // crypto.randomUUID(), also used as AdminSession.employeeId
@@ -125,6 +140,8 @@ export type Employee = {
   email: string;
   password: string; // plain text — see mock-security note in Phase 4 design spec
   designation: Designation;
+  customDesignation?: string; // free-text label, set only when designation === "other"
+  accessOptions: AccessArea[]; // areas granted beyond the sub-admin default
   createdAt: string; // ISO
 };
 

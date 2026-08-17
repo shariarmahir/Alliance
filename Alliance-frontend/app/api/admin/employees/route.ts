@@ -8,15 +8,29 @@ import type { Employee } from "@/app/lib/types";
 // list — a new employee must not collide with either of those emails.
 const HARDCODED_ADMIN_EMAILS = ["nurulislam@gmail.com", "subadmin@gmail.com"];
 
-const DesignationSchema = z.enum(["sales-associate", "warehouse-staff", "support-agent", "catalog-manager"]);
+const DesignationSchema = z.enum([
+  "sales-associate",
+  "warehouse-staff",
+  "support-agent",
+  "catalog-manager",
+  "other",
+]);
+const AccessAreaSchema = z.enum(["quotations", "orders", "emails", "contact-requests"]);
 
-const CreateEmployeeSchema = z.object({
-  name: z.string().trim().min(1, "Name is required."),
-  email: z.string().trim().email("Enter a valid email."),
-  password: z.string().min(4, "Password must be at least 4 characters."),
-  employeeIdNumber: z.string().trim().min(1, "Employee ID is required."),
-  designation: DesignationSchema,
-});
+const CreateEmployeeSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required."),
+    email: z.string().trim().email("Enter a valid email."),
+    password: z.string().min(4, "Password must be at least 4 characters."),
+    employeeIdNumber: z.string().trim().min(1, "Employee ID is required."),
+    designation: DesignationSchema,
+    customDesignation: z.string().trim().max(60).optional(),
+    accessOptions: z.array(AccessAreaSchema).default([]),
+  })
+  .refine((v) => v.designation !== "other" || Boolean(v.customDesignation), {
+    message: "Enter a designation.",
+    path: ["customDesignation"],
+  });
 
 // POST /api/admin/employees — super-admin-only, creates a new real employee account.
 export async function POST(request: NextRequest) {
@@ -29,7 +43,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, password, employeeIdNumber, designation } = parsed.data;
+  const { name, email, password, employeeIdNumber, designation, customDesignation, accessOptions } =
+    parsed.data;
   const normalizedEmail = email.toLowerCase();
 
   if (HARDCODED_ADMIN_EMAILS.includes(normalizedEmail)) {
@@ -51,6 +66,8 @@ export async function POST(request: NextRequest) {
     email,
     password,
     designation,
+    ...(designation === "other" && customDesignation ? { customDesignation } : {}),
+    accessOptions,
     createdAt: new Date().toISOString(),
   };
 

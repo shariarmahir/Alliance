@@ -16,13 +16,25 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import type { Designation } from "@/app/lib/types";
+import { Switch } from "@/app/components/ui/switch";
+import type { AccessArea, Designation } from "@/app/lib/types";
 
 const DESIGNATIONS: { value: Designation; label: string }[] = [
   { value: "sales-associate", label: "Sales Associate" },
   { value: "warehouse-staff", label: "Warehouse Staff" },
   { value: "support-agent", label: "Support Agent" },
   { value: "catalog-manager", label: "Catalog Manager" },
+  { value: "other", label: "Other" },
+];
+
+// Areas a sub-admin can't reach by default (see SUB_ADMIN_ALLOWED_PREFIXES
+// in proxy.ts) — products/stock/tasks/leave etc. are already open to every
+// sub-admin and aren't listed here since there's nothing to grant.
+const ACCESS_OPTIONS: { value: AccessArea; label: string; hint: string }[] = [
+  { value: "quotations", label: "Quotations", hint: "Review, price and issue order confirmations" },
+  { value: "orders", label: "Orders", hint: "View and update order status" },
+  { value: "contact-requests", label: "Contact requests", hint: "Handle incoming contact form submissions" },
+  { value: "emails", label: "Emails", hint: "View the mock inbox preview" },
 ];
 
 export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
@@ -35,6 +47,12 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
   const [password, setPassword] = useState("");
   const [employeeIdNumber, setEmployeeIdNumber] = useState("");
   const [designation, setDesignation] = useState<Designation | "">("");
+  const [customDesignation, setCustomDesignation] = useState("");
+  const [accessOptions, setAccessOptions] = useState<AccessArea[]>([]);
+
+  function toggleAccess(area: AccessArea, granted: boolean) {
+    setAccessOptions((prev) => (granted ? [...prev, area] : prev.filter((a) => a !== area)));
+  }
 
   function resetForm() {
     setName("");
@@ -42,6 +60,8 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
     setPassword("");
     setEmployeeIdNumber("");
     setDesignation("");
+    setCustomDesignation("");
+    setAccessOptions([]);
     setError(null);
   }
 
@@ -53,7 +73,15 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
       const res = await fetch("/api/admin/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, employeeIdNumber, designation }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          employeeIdNumber,
+          designation,
+          customDesignation: designation === "other" ? customDesignation : undefined,
+          accessOptions,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -127,6 +155,42 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
               </Select>
             </div>
           </div>
+
+          {designation === "other" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="customDesignation">Custom designation</Label>
+              <Input
+                id="customDesignation"
+                placeholder="e.g. Procurement Coordinator"
+                value={customDesignation}
+                onChange={(e) => setCustomDesignation(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Access options</Label>
+            <p className="text-xs text-muted-foreground">
+              Products, stock, tasks and leave are always available to sub-admins. Grant any of these
+              separately.
+            </p>
+            <div className="space-y-2.5 rounded-md border p-3">
+              {ACCESS_OPTIONS.map((opt) => (
+                <div key={opt.value} className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium leading-none">{opt.label}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{opt.hint}</p>
+                  </div>
+                  <Switch
+                    checked={accessOptions.includes(opt.value)}
+                    onCheckedChange={(checked) => toggleAccess(opt.value, checked)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={submitting || !designation}>
