@@ -1,28 +1,19 @@
 import "server-only";
-import fs from "fs/promises";
-import path from "path";
+import { readBlobJson, writeBlobJson } from "./blob-store";
 import type { Employee, Task, LeaveRequest, DailyReport, TaskStatus, LeaveStatus } from "./types";
 
 // Server-only read/write layer for Phase 4 (employees, tasks, leave requests,
 // daily reports) — mirrors app/lib/admin-operations.ts's pattern.
 //
-// Always reads fresh from disk per call (no module-level caching), same as
-// Phase 3's admin-operations.ts, to avoid the stale-cache bug mock-data.ts
-// had to work around with Proxies.
-//
-// KNOWN LIMITATION: real filesystem writes under data/ — works in local dev
-// and traditional Node hosting, not on read-only-filesystem serverless hosts.
-// Same accepted tradeoff as Phases 2-3.
-
-const DATA_DIR = path.join(process.cwd(), "data");
+// Always reads fresh via Blob per call (no module-level caching), same as
+// admin-operations.ts.
 
 async function readJsonFile<T>(filename: string): Promise<T> {
-  const raw = await fs.readFile(path.join(DATA_DIR, filename), "utf-8");
-  return JSON.parse(raw);
+  return readBlobJson<T>(filename);
 }
 
 async function writeJsonFile<T>(filename: string, data: T): Promise<void> {
-  await fs.writeFile(path.join(DATA_DIR, filename), JSON.stringify(data, null, 2) + "\n");
+  await writeBlobJson(filename, data);
 }
 
 // ---------------------------------------------------------------------------
