@@ -176,5 +176,35 @@
       },
       "issuedAt": "2026-08-16T23:52:48.494Z"
     }
+  },
+  {
+    "id": "0cf97076-ae5c-4724-8c8d-2eb1a48a0d14",
+    "items": [
+      {
+        "slug": "freqrol-fr-e800",
+        "partNumber": "FR-E820-3.7K-1",
+        "name": "FREQROL-E800 Compact Inverter",
+        "brand": "mitsubishi",
+        "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 0,
+        "quantity": 1
+      }
+    ],
+    "total": 0,
+    "details": {
+      "fullName": "Mahir Shariar Mahin Mahir",
+      "email": "itallinyou.justdoit@gmail.com",
+      "phone": "01521444725",
+      "jobTitle": "",
+      "companyName": "Mahir",
+      "country": "Bangladesh",
+      "taxId": "",
+      "companyWebsite": "",
+      "preferredContact": "email",
+      "leadTime": "standard",
+      "notes": "",
+      "submittedAt": "2026-08-17T01:52:27.048Z"
+    },
+    "status": "pending"
   }
 ]
