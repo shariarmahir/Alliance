@@ -78,5 +78,85 @@
     },
     "placedAt": "2026-08-15T02:18:00.647Z",
     "status": "pending"
+  },
+  {
+    "orderNumber": "ALC-MSWG74RT",
+    "trackingId": "AIT-TRK-W3KCN0PW",
+    "items": [
+      {
+        "slug": "fx5u-32mt",
+        "partNumber": "FX5U-32MT/ES",
+        "name": "MELSEC iQ-F FX5U Compact PLC",
+        "brand": "",
+        "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 610,
+        "quantity": 1
+      },
+      {
+        "slug": "simatic-ktp700-basic",
+        "partNumber": "6AV2123-2GB03-0AX0",
+        "name": "SIMATIC KTP700 Basic Panel",
+        "brand": "",
+        "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 74420,
+        "quantity": 1
+      },
+      {
+        "slug": "1756-l61",
+        "partNumber": "1756-L61",
+        "name": "ControlLogix 5561 Processor Module",
+        "brand": "",
+        "image": "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 420900,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 495930,
+    "shippingCost": 140,
+    "grandTotal": 496070,
+    "deliveryOption": "express",
+    "deliveryOptionName": "Express Courier",
+    "deliveryEta": "3 – 5 business days",
+    "preferredDate": "2026-08-21",
+    "address": {
+      "name": "itsallinyou",
+      "line": "Kazipara,135/2 house , road no-9 , dhaka , bangladesh",
+      "city": "Dhaka",
+      "country": "Bangladesh",
+      "phone": "01521444725"
+    },
+    "placedAt": "2026-08-16T23:40:39.785Z",
+    "status": "pending"
+  },
+  {
+    "orderNumber": "ALC-MSWGS0UA",
+    "trackingId": "AIT-TRK-IY27EKER",
+    "items": [
+      {
+        "slug": "1769-l33er",
+        "partNumber": "1769-L33ER",
+        "name": "CompactLogix 5370 Controller",
+        "brand": "",
+        "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 276.97,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 276.97,
+    "shippingCost": 140,
+    "grandTotal": 416.97,
+    "deliveryOption": "express",
+    "deliveryOptionName": "Express Courier",
+    "deliveryEta": "3 – 5 business days",
+    "preferredDate": "2026-08-21",
+    "address": {
+      "name": "Mahir Shariar Mahin Mahir",
+      "line": "Kazipara,135/2 house , road no-9 , dhaka , bangladesh",
+      "city": "Dhaka",
+      "country": "Bangladesh",
+      "phone": "01521444725"
+    },
+    "placedAt": "2026-08-16T23:56:54.467Z",
+    "status": "pending"
   }
 ]

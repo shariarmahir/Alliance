@@ -76,5 +76,105 @@
       "submittedAt": "2026-08-15T02:17:43.466Z"
     },
     "status": "confirmed"
+  },
+  {
+    "id": "3db0b476-4047-4fa6-9148-5b473289215f",
+    "items": [
+      {
+        "slug": "fx5u-32mt",
+        "partNumber": "FX5U-32MT/ES",
+        "name": "MELSEC iQ-F FX5U Compact PLC",
+        "brand": "mitsubishi",
+        "image": "https://images.unsplash.com/photo-1596213812143-ff89bd9ddecd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 610,
+        "quantity": 1
+      },
+      {
+        "slug": "simatic-ktp700-basic",
+        "partNumber": "6AV2123-2GB03-0AX0",
+        "name": "SIMATIC KTP700 Basic Panel",
+        "brand": "siemens",
+        "image": "https://images.unsplash.com/photo-1583267925993-935f26612138?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 74420,
+        "quantity": 1
+      }
+    ],
+    "total": 75030,
+    "details": {
+      "fullName": "Mahir Shariar Mahin Mahir",
+      "email": "itallinyou.justdoit@gmail.com",
+      "phone": "01521444725",
+      "jobTitle": "",
+      "companyName": "Mahir",
+      "country": "Bangladesh",
+      "taxId": "",
+      "companyWebsite": "",
+      "preferredContact": "email",
+      "leadTime": "standard",
+      "notes": "",
+      "submittedAt": "2026-08-16T22:29:32.868Z"
+    },
+    "status": "pending"
+  },
+  {
+    "id": "c59fa236-bd80-4bbb-a40d-476617d89f85",
+    "items": [
+      {
+        "slug": "1769-l33er",
+        "partNumber": "1769-L33ER",
+        "name": "CompactLogix 5370 Controller",
+        "brand": "allen-bradley",
+        "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "price": 0,
+        "quantity": 1
+      }
+    ],
+    "total": 0,
+    "details": {
+      "fullName": "Mahir Shariar Mahin Mahir",
+      "email": "itallinyou.justdoit@gmail.com",
+      "phone": "01521444725",
+      "jobTitle": "",
+      "companyName": "Mahir",
+      "country": "Bangladesh",
+      "taxId": "",
+      "companyWebsite": "",
+      "preferredContact": "email",
+      "leadTime": "standard",
+      "notes": "",
+      "submittedAt": "2026-08-16T23:52:06.451Z"
+    },
+    "status": "confirmed",
+    "confirmation": {
+      "refNumber": "AIT/M/Q-0001/2026",
+      "subject": "Financial Offer for supply of CompactLogix 5370 Controller.",
+      "issuedDate": "2026-08-16",
+      "trackingId": "AIT-TRK-IY27EKER",
+      "lines": [
+        {
+          "productId": "AIT-PRD-5XJUYR",
+          "slug": "1769-l33er",
+          "partNumber": "1769-L33ER",
+          "name": "CompactLogix 5370 Controller",
+          "image": "https://images.unsplash.com/photo-1562408590-e32931084e23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+          "specifications": "1769-L33ER",
+          "quantity": 1,
+          "unit": "Pcs",
+          "unitPrice": 276.97,
+          "total": 276.97
+        }
+      ],
+      "grandTotal": 276.97,
+      "terms": {
+        "payment": "100% Cash/Pay order.",
+        "delivery": "From Ready Stock",
+        "offerValidity": "07 days, From the Offer Date.",
+        "vatAit": "Excluded.",
+        "stock": "Available.",
+        "installationCharge": "Free.",
+        "warranty": "12 Months Warranty (From the date of delivery)"
+      },
+      "issuedAt": "2026-08-16T23:52:48.494Z"
+    }
   }
 ]
