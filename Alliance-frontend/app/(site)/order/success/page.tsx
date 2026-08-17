@@ -1,35 +1,16 @@
 "use client";
 
-import { Suspense, useMemo, useSyncExternalStore } from "react";
+import { Suspense, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, ExternalLink, Download, Printer, Truck, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import { formatPrice } from "@/app/lib/utils";
+import { downloadInvoicePdf, printInvoicePdf } from "@/app/lib/quotation-pdf";
 import type { Order } from "@/app/lib/types";
 import { Card } from "@/app/components/ui/card";
 
 const ORDER_STORAGE_KEY = "autolink_order";
-
-function buildInvoiceHtml(order: Order): string {
-  const rows = order.items
-    .map(
-      (i) =>
-        `<tr><td>${i.name} (${i.partNumber})</td><td>${i.quantity}</td><td>${formatPrice(i.price)}</td><td>${formatPrice(i.price * i.quantity)}</td></tr>`
-    )
-    .join("");
-
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${order.orderNumber}</title>
-    <style>body{font-family:Arial,sans-serif;color:#1e293b;padding:40px;max-width:800px;margin:auto}h1{color:#007DCC}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #e2e8f0;padding:10px;text-align:left;font-size:14px}th{background:#007DCC;color:#fff}.tot{text-align:right;font-weight:bold}.brand{font-size:26px;font-weight:800;color:#007DCC;line-height:1.1}.legal{margin:2px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#64748b}</style></head><body>
-    <div class="brand">AutoLink<span style="color:#FFB900">.</span></div><p class="legal">AutoLink Integrated Technologies</p><p>Uttara, Dhaka, Bangladesh · info@autolink.com · +8801713-116019</p>
-    <h1>Invoice</h1><p><b>Order:</b> ${order.orderNumber}<br><b>Tracking:</b> ${order.trackingId}<br><b>Date:</b> ${new Date(order.placedAt).toLocaleDateString()}</p>
-    <p><b>Ship to:</b> ${order.address.name}, ${order.address.line} ${order.address.city}, ${order.address.country} · ${order.address.phone}</p>
-    <table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>
-    ${rows}
-    </tbody></table>
-    <p class="tot">Subtotal: ${formatPrice(order.subtotal)}<br>Shipping: ${formatPrice(order.shippingCost)}<br>Grand Total: ${formatPrice(order.grandTotal)}</p>
-    <p>Delivery: ${order.deliveryOptionName} (${order.deliveryEta}) · Preferred date: ${order.preferredDate}</p>
-    <p style="margin-top:30px;color:#64748b">Thank you for your order. Developed by Mahir Shariar Mahin.</p></body></html>`;
-}
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
@@ -71,27 +52,30 @@ function OrderSuccessContent() {
     }
   }, [raw, orderNumber]);
 
-  const invoiceHtml = useMemo(() => (order ? buildInvoiceHtml(order) : ""), [order]);
+  const [busy, setBusy] = useState<"download" | "print" | null>(null);
 
-  function downloadInvoice() {
+  async function downloadInvoice() {
     if (!order) return;
-    const blob = new Blob([invoiceHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Invoice-${order.orderNumber}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setBusy("download");
+    try {
+      await downloadInvoicePdf(order);
+    } catch {
+      toast.error("Could not generate the invoice PDF.");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  function printInvoice() {
+  async function printInvoice() {
     if (!order) return;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(invoiceHtml);
-    w.document.close();
-    w.focus();
-    w.print();
+    setBusy("print");
+    try {
+      await printInvoicePdf(order);
+    } catch {
+      toast.error("Could not open the invoice for printing. Check your popup blocker.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   if (!order) {
@@ -159,11 +143,23 @@ function OrderSuccessContent() {
       </div>
 
       <div className="no-print mt-6 flex flex-wrap justify-center gap-4">
-        <button type="button" onClick={downloadInvoice} className="btn-glass-accent flex items-center gap-2">
-          <Download className="size-5" /> Download Invoice
+        <button
+          type="button"
+          onClick={downloadInvoice}
+          disabled={busy !== null}
+          className="btn-glass-accent flex items-center gap-2 disabled:opacity-60"
+        >
+          <Download className="size-5" />
+          {busy === "download" ? "Preparing..." : "Download Invoice"}
         </button>
-        <button type="button" onClick={printInvoice} className="btn-glass flex items-center gap-2">
-          <Printer className="size-5" /> Print Invoice
+        <button
+          type="button"
+          onClick={printInvoice}
+          disabled={busy !== null}
+          className="btn-glass flex items-center gap-2 disabled:opacity-60"
+        >
+          <Printer className="size-5" />
+          {busy === "print" ? "Preparing..." : "Print Invoice"}
         </button>
         <Link
           href="/products"

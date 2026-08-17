@@ -1,14 +1,52 @@
 import { jsPDF } from "jspdf";
-import type { Quotation, OrderConfirmation } from "./types";
-import { amountInWords } from "./order-confirmation";
+import type { Quotation, OrderConfirmation, Order, QuotationTerms } from "./types";
+import { amountInWords, DEFAULT_TERMS } from "./order-confirmation";
 
-// Draws the Price Quotation document to match the company's existing Word
-// template. Runs in the browser (both the admin's download and the customer's),
-// so it is deliberately not server-only.
+// Draws the company's Price Quotation document to match their existing Word
+// template. Runs in the browser (admin download, customer download and the
+// order invoice), so it is deliberately not server-only.
+//
+// Both the order confirmation and the order invoice render through the same
+// drawing code via the neutral PdfDocument shape below — they are the same
+// document to the customer, differing only in title and a couple of rows, so
+// duplicating ~300 lines of layout for the invoice would guarantee the two
+// drift apart.
 //
 // Coordinates are millimetres on A4 (210 x 297). The table geometry below is
 // the load-bearing part: COLS widths must sum to the content width, or the
 // right-hand border of the header will not line up with the body rows.
+
+export type PdfLine = {
+  productId: string;
+  name: string;
+  partNumber: string;
+  image: string;
+  specifications: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+};
+
+// Extra rows printed under the grand total (the invoice's shipping/subtotal
+// breakdown). Empty for a quotation, which quotes a single figure.
+export type PdfSummaryRow = { label: string; value: string };
+
+export type PdfDocument = {
+  title: string; // highlighted heading, e.g. "Price Quotation"
+  refLabel: string; // "Ref" or "Invoice"
+  refNumber: string;
+  date: string; // yyyy-mm-dd
+  recipient: { jobTitle: string; company: string; address: string; contact: string };
+  subject: string;
+  intro: string;
+  lines: PdfLine[];
+  grandTotal: number;
+  summaryRows: PdfSummaryRow[];
+  terms: QuotationTerms;
+  trackingId: string;
+  fileName: string;
+};
 
 const PAGE_W = 210;
 const MARGIN = 18;
@@ -46,7 +84,30 @@ function setColor(doc: jsPDF, c: [number, number, number]) {
   doc.setTextColor(c[0], c[1], c[2]);
 }
 
-function drawHeader(doc: jsPDF, logo: string | null) {
+// jsPDF's built-in Helvetica is WinAnsi-encoded, so characters outside that
+// set are dropped silently — an em dash typed into a terms field would just
+// vanish from the printed document. Admin-authored text (subject, terms,
+// specifications) reaches this file verbatim, so fold the common typographic
+// characters down to ASCII equivalents rather than losing them.
+const CHAR_FALLBACKS: [RegExp, string][] = [
+  // Dashes: hyphen variants, en/em, figure dash, non-breaking hyphen and the
+  // minus sign. These paste in from Word looking identical to a plain hyphen.
+  [/[\u2010-\u2015\u2212]/g, "-"],
+  [/\u00ad/g, ""], // soft hyphen is invisible, so drop it rather than substitute
+  [/[\u2018\u2019\u201b]/g, "'"], // curly single quotes
+  [/[\u201c\u201d]/g, '"'], // curly double quotes
+  [/\u2026/g, "..."], // ellipsis
+  [/[\u00a0\u2007\u202f]/g, " "], // non-breaking / figure / narrow spaces
+  [/[\u2022\u00b7]/g, "-"], // bullets
+  [/\u09f3/g, "BDT "], // Taka sign
+  [/\u20b9/g, "INR "], // Rupee sign
+];
+
+function ascii(text: string): string {
+  return CHAR_FALLBACKS.reduce((s, [re, to]) => s.replace(re, to), text);
+}
+
+function drawHeader(doc: jsPDF, logo: string | null, title: string) {
   if (logo) {
     try {
       // The alias makes jsPDF store the bitmap once and reference it on every
@@ -69,19 +130,20 @@ function drawHeader(doc: jsPDF, logo: string | null) {
   doc.text("AUTOLINK INTEGRATED TECHNOLOGIES", MARGIN, 28);
 
   // Highlighted title block, mirroring the template's yellow-marked heading.
-  doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
-  doc.rect(PAGE_W - MARGIN - 52, 13, 52, 9, "F");
+  // Sized to the text so a longer title ("Order Invoice") isn't clipped.
   doc.setFont("helvetica", "bold").setFontSize(15);
+  const titleW = doc.getTextWidth(title) + 8;
+  doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
+  doc.rect(PAGE_W - MARGIN - titleW, 13, titleW, 9, "F");
   setColor(doc, INK);
-  doc.text("Price Quotation", PAGE_W - MARGIN - 2, 19.8, { align: "right" });
+  doc.text(title, PAGE_W - MARGIN - 4, 19.8, { align: "right" });
 
   doc.setDrawColor(BLUE[0], BLUE[1], BLUE[2]).setLineWidth(0.9);
   doc.line(MARGIN, 31.5, PAGE_W - MARGIN, 31.5);
   doc.setLineWidth(0.2);
 }
 
-function drawParties(doc: jsPDF, q: Quotation, c: OrderConfirmation): number {
-  const d = q.details;
+function drawParties(doc: jsPDF, d: PdfDocument): number {
   let y = 39;
 
   doc.setFont("helvetica", "normal").setFontSize(9.5);
@@ -89,25 +151,27 @@ function drawParties(doc: jsPDF, q: Quotation, c: OrderConfirmation): number {
   doc.text("To", MARGIN, y);
   y += 5;
 
+  // Address can wrap; the Ref/Date block on the right is fixed, so keep the
+  // left column clear of it.
   const left = [
-    d.jobTitle || "Managing Director",
-    d.companyName.toUpperCase(),
-    d.country,
-    `Contact: ${d.phone}, Email: ${d.email}`,
+    d.recipient.jobTitle,
+    d.recipient.company.toUpperCase(),
+    ...doc.splitTextToSize(d.recipient.address, CONTENT_W - 62),
+    d.recipient.contact,
   ];
-  left.forEach((lineText, i) => {
+  left.forEach((lineText: string, i: number) => {
     doc.text(lineText, MARGIN, y + i * 4.6);
   });
 
-  doc.text(`Ref: ${c.refNumber}`, PAGE_W - MARGIN, 44, { align: "right" });
-  doc.text(`Date: ${formatDate(c.issuedDate)}`, PAGE_W - MARGIN, 48.6, { align: "right" });
+  doc.text(`${d.refLabel}: ${d.refNumber}`, PAGE_W - MARGIN, 44, { align: "right" });
+  doc.text(`Date: ${formatDate(d.date)}`, PAGE_W - MARGIN, 48.6, { align: "right" });
 
   y += left.length * 4.6 + 6;
 
   doc.setFont("helvetica", "bold");
   doc.text("Subject:", MARGIN, y);
   const subjectX = MARGIN + doc.getTextWidth("Subject: ");
-  const subjectLines = doc.splitTextToSize(c.subject, CONTENT_W - (subjectX - MARGIN));
+  const subjectLines = doc.splitTextToSize(d.subject, CONTENT_W - (subjectX - MARGIN));
   doc.text(subjectLines, subjectX, y);
   // Underlined, as in the template.
   subjectLines.forEach((s: string, i: number) => {
@@ -120,10 +184,7 @@ function drawParties(doc: jsPDF, q: Quotation, c: OrderConfirmation): number {
   doc.text("Dear Sir,", MARGIN, y);
   y += 6;
 
-  const intro = doc.splitTextToSize(
-    "With reference to your valued inquiry, we are pleased to submit our competitive quotation for your kind consideration, as detailed below.",
-    CONTENT_W
-  );
+  const intro = doc.splitTextToSize(d.intro, CONTENT_W);
   doc.text(intro, MARGIN, y);
   return y + intro.length * 4.6 + 4;
 }
@@ -178,13 +239,7 @@ function drawTableHead(doc: jsPDF, y: number): number {
   return y + total;
 }
 
-function drawRow(
-  doc: jsPDF,
-  y: number,
-  line: OrderConfirmation["lines"][number],
-  index: number,
-  image: string | null
-): number {
+function drawRow(doc: jsPDF, y: number, line: PdfLine, index: number, image: string | null): number {
   doc.setFont("helvetica", "normal").setFontSize(8.5);
   setColor(doc, INK);
 
@@ -237,7 +292,7 @@ function drawRow(
   return y + h;
 }
 
-function drawTotalRow(doc: jsPDF, y: number, c: OrderConfirmation): number {
+function drawTotalRow(doc: jsPDF, y: number, d: PdfDocument): number {
   const h = 8;
   const labelW = COLS[0] + COLS[1] + COLS[2] + COLS[3];
 
@@ -250,18 +305,33 @@ function drawTotalRow(doc: jsPDF, y: number, c: OrderConfirmation): number {
   doc.rect(MARGIN, y, labelW, h);
   doc.text("Grand total", MARGIN + 2, y + h / 2 + 1.2);
 
-  const qty = c.lines.reduce((s, l) => s + l.quantity, 0);
+  const qty = d.lines.reduce((s, l) => s + l.quantity, 0);
   doc.rect(COL_X[4], y, COLS[4], h);
   doc.text(String(qty), COL_X[4] + COLS[4] / 2, y + h / 2 + 1.2, { align: "center" });
 
   doc.rect(COL_X[5], y, COLS[5] + COLS[6], h);
   doc.rect(COL_X[7], y, COLS[7], h);
-  doc.text(money(c.grandTotal), COL_X[7] + COLS[7] - 2, y + h / 2 + 1.2, { align: "right" });
+  doc.text(money(d.grandTotal), COL_X[7] + COLS[7] - 2, y + h / 2 + 1.2, { align: "right" });
+  y += h;
 
-  return y + h;
+  // Invoice-only breakdown (subtotal / shipping / paid total) in the same
+  // right-aligned columns, so it reads as part of the table.
+  if (d.summaryRows.length) {
+    doc.setFont("helvetica", "normal").setFontSize(8.5);
+    for (const row of d.summaryRows) {
+      const rh = 6;
+      doc.rect(COL_X[5], y, COLS[5] + COLS[6], rh);
+      doc.rect(COL_X[7], y, COLS[7], rh);
+      doc.text(row.label, COL_X[5] + COLS[5] + COLS[6] - 2, y + rh / 2 + 1, { align: "right" });
+      doc.text(row.value, COL_X[7] + COLS[7] - 2, y + rh / 2 + 1, { align: "right" });
+      y += rh;
+    }
+  }
+
+  return y;
 }
 
-function drawTerms(doc: jsPDF, y: number, c: OrderConfirmation): number {
+function drawTerms(doc: jsPDF, y: number, c: PdfDocument): number {
   doc.setFont("helvetica", "normal").setFontSize(8.5);
   setColor(doc, INK);
   doc.text(`Inword: ${amountInWords(c.grandTotal)}`, MARGIN, y + 5);
@@ -295,11 +365,14 @@ function drawTerms(doc: jsPDF, y: number, c: OrderConfirmation): number {
   doc.text(c.terms.warranty, MARGIN + 40, y);
   y += 5.6;
 
-  doc.setFont("helvetica", "bold").setFontSize(8.5);
-  doc.text("Tracking No:", MARGIN, y);
-  doc.setFont("courier", "bold");
-  doc.text(c.trackingId, MARGIN + 40, y);
-  return y + 8;
+  if (c.trackingId) {
+    doc.setFont("helvetica", "bold").setFontSize(8.5);
+    doc.text("Tracking No:", MARGIN, y);
+    doc.setFont("courier", "bold");
+    doc.text(c.trackingId, MARGIN + 40, y);
+    y += 8;
+  }
+  return y;
 }
 
 function drawSignOff(doc: jsPDF, y: number) {
@@ -396,47 +469,160 @@ async function loadImage(src: string): Promise<string | null> {
   }
 }
 
-export async function buildQuotationPdf(quotation: Quotation): Promise<jsPDF> {
-  const c = quotation.confirmation;
-  if (!c) throw new Error("Quotation has no issued order confirmation.");
-
+export async function buildPdf(d: PdfDocument): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const logo = await loadImage("/logo-mark.png");
-  const images = await Promise.all(c.lines.map((l) => (l.image ? loadImage(l.image) : null)));
 
-  drawHeader(doc, logo);
-  let y = drawParties(doc, quotation, c);
+  // Route every string through ascii() at the one place they all funnel
+  // through, rather than at 40-odd call sites where a future addition would
+  // inevitably miss one.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const rawText = doc.text.bind(doc) as any;
+  doc.text = ((t: string | string[], ...rest: any[]) =>
+    rawText(Array.isArray(t) ? t.map(ascii) : ascii(String(t)), ...rest)) as typeof doc.text;
+
+  const rawSplit = doc.splitTextToSize.bind(doc) as any;
+  doc.splitTextToSize = ((t: string, ...rest: any[]) =>
+    rawSplit(ascii(String(t)), ...rest)) as typeof doc.splitTextToSize;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  const logo = await loadImage("/logo-mark.png");
+  const images = await Promise.all(d.lines.map((l) => (l.image ? loadImage(l.image) : null)));
+
+  drawHeader(doc, logo, d.title);
+  let y = drawParties(doc, d);
   y = drawTableHead(doc, y);
 
-  c.lines.forEach((line, i) => {
+  d.lines.forEach((line, i) => {
     // Break before a row that would run into the footer. A row is at least
     // MIN_ROW_H tall, and the grand-total row must stay with the table.
     if (y + MIN_ROW_H + TOTAL_ROW_H > BODY_BOTTOM) {
       doc.addPage();
-      drawHeader(doc, logo);
+      drawHeader(doc, logo, d.title);
       y = drawTableHead(doc, PAGE_TOP);
     }
     y = drawRow(doc, y, line, i, images[i]);
   });
 
-  y = drawTotalRow(doc, y, c);
+  y = drawTotalRow(doc, y, d);
 
   // Terms + sign-off are a single block: splitting them across pages would
   // leave a signature stranded on its own page.
   if (y + TERMS_BLOCK_H > BODY_BOTTOM) {
     doc.addPage();
-    drawHeader(doc, logo);
+    drawHeader(doc, logo, d.title);
     y = PAGE_TOP;
   }
-  y = drawTerms(doc, y, c);
+  y = drawTerms(doc, y, d);
   drawSignOff(doc, y);
   drawFooter(doc);
 
   return doc;
 }
 
+// --- Adapters: real data -> the neutral document shape -------------------
+
+function quotationToPdf(quotation: Quotation, c: OrderConfirmation): PdfDocument {
+  const d = quotation.details;
+  return {
+    title: "Price Quotation",
+    refLabel: "Ref",
+    refNumber: c.refNumber,
+    date: c.issuedDate,
+    recipient: {
+      jobTitle: d.jobTitle || "Managing Director",
+      company: d.companyName,
+      address: d.country,
+      contact: `Contact: ${d.phone}, Email: ${d.email}`,
+    },
+    subject: c.subject,
+    intro:
+      "With reference to your valued inquiry, we are pleased to submit our competitive quotation for your kind consideration, as detailed below.",
+    lines: c.lines,
+    grandTotal: c.grandTotal,
+    summaryRows: [],
+    terms: c.terms,
+    trackingId: c.trackingId,
+    fileName: `Order-Confirmation-${c.refNumber.replace(/[/\\]/g, "-")}.pdf`,
+  };
+}
+
+function orderToPdf(order: Order): PdfDocument {
+  const a = order.address;
+  return {
+    title: "Order Invoice",
+    refLabel: "Invoice",
+    refNumber: order.orderNumber,
+    date: order.placedAt.slice(0, 10),
+    recipient: {
+      // Orders capture only a delivery recipient, not a job title — so the
+      // name goes in the company slot and the honorific line stays generic,
+      // rather than printing the same name twice.
+      jobTitle: "Managing Director",
+      company: a.name,
+      address: [a.line, a.city, a.country].filter(Boolean).join(", "),
+      contact: `Contact: ${a.phone}`,
+    },
+    subject: `Invoice for order ${order.orderNumber}, delivered by ${order.deliveryOptionName}.`,
+    intro:
+      "Thank you for your order. The parts below are confirmed against your accepted quotation and are being prepared for despatch.",
+    // Orders store one price per line and no unit, so the Unit column falls
+    // back to "Pcs" — the invoice reuses the quotation's table verbatim.
+    lines: order.items.map((i) => ({
+      productId: "",
+      name: i.name,
+      partNumber: i.partNumber,
+      image: i.image,
+      specifications: i.partNumber,
+      quantity: i.quantity,
+      unit: "Pcs",
+      unitPrice: i.price,
+      total: i.price * i.quantity,
+    })),
+    grandTotal: order.subtotal,
+    summaryRows: [
+      { label: "Shipping", value: money(order.shippingCost) },
+      { label: "Total payable", value: money(order.grandTotal) },
+    ],
+    terms: {
+      ...DEFAULT_TERMS,
+      delivery: `${order.deliveryOptionName} (${order.deliveryEta})`,
+      offerValidity: `Preferred delivery date: ${order.preferredDate}`,
+    },
+    trackingId: order.trackingId,
+    fileName: `Invoice-${order.orderNumber}.pdf`,
+  };
+}
+
+export async function buildQuotationPdf(quotation: Quotation): Promise<jsPDF> {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  return buildPdf(quotationToPdf(quotation, c));
+}
+
 export async function downloadQuotationPdf(quotation: Quotation): Promise<void> {
-  const doc = await buildQuotationPdf(quotation);
-  const ref = quotation.confirmation?.refNumber.replace(/[/\\]/g, "-") ?? quotation.id;
-  doc.save(`Order-Confirmation-${ref}.pdf`);
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  const spec = quotationToPdf(quotation, c);
+  const doc = await buildPdf(spec);
+  doc.save(spec.fileName);
+}
+
+export async function buildInvoicePdf(order: Order): Promise<jsPDF> {
+  return buildPdf(orderToPdf(order));
+}
+
+export async function downloadInvoicePdf(order: Order): Promise<void> {
+  const spec = orderToPdf(order);
+  const doc = await buildPdf(spec);
+  doc.save(spec.fileName);
+}
+
+// Opens the print dialog on a rendered PDF rather than an HTML surrogate, so
+// what prints is byte-identical to what downloads.
+export async function printInvoicePdf(order: Order): Promise<void> {
+  const doc = await buildPdf(orderToPdf(order));
+  doc.autoPrint();
+  const url = doc.output("bloburl");
+  const w = window.open(url, "_blank");
+  if (!w) throw new Error("Popup blocked");
 }
