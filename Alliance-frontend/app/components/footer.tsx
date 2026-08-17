@@ -25,7 +25,7 @@ export function Footer() {
               Industrial electronics and automation spares, supplied worldwide from Bangladesh since 2009.
             </p>
             <p className="font-mono text-[12.5px] leading-[1.9] text-white/[0.78]">
-              Uttara, Dhaka, Bangladesh
+              House: 104, Road: 15, Sector: 11, Uttara, Dhaka-1230, Bangladesh
               <br />
               <a href="mailto:info@auto-bd.com" className="hover:text-accent">
                 info@auto-bd.com

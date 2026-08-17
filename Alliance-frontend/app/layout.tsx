@@ -43,8 +43,8 @@ const ORGANIZATION_SCHEMA = {
   foundingDate: "2009",
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Uttara",
-    addressLocality: "Dhaka",
+    streetAddress: "House: 104, Road: 15, Sector: 11",
+    addressLocality: "Uttara, Dhaka-1230",
     addressCountry: "BD",
   },
   contactPoint: {
