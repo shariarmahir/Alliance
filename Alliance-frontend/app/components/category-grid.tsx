@@ -19,8 +19,12 @@ export function CategoryGrid() {
           from the horizontal icon+label layout to a stacked one — a quarter-
           width mobile card is too narrow for "icon beside two text lines" to
           stay legible, so the icon centers on top and the label sits below,
-          restoring the original horizontal layout from sm up. */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:grid-cols-8">
+          restoring the original horizontal layout from sm up.
+          Jumping straight from 4 to 8 columns at lg left a tablet-width gap
+          (4 columns, horizontal layout, full names like "PLCs & Machine
+          Control") where the card was too narrow for its own name and
+          truncate clipped it to "P...". md:grid-cols-6 fills that gap. */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-4 md:grid-cols-6 lg:grid-cols-8">
         {categories.map((c) => (
           <Link
             key={c.slug}
@@ -31,7 +35,7 @@ export function CategoryGrid() {
               <Image src={c.icon} alt="" width={22} height={22} className="sm:h-8.5 sm:w-8.5" />
             </span>
             <span className="min-w-0">
-              <strong className="block truncate text-[10.5px] font-semibold text-ink sm:text-[14.5px]">
+              <strong className="block truncate text-[10.5px] font-semibold text-ink sm:line-clamp-2 sm:overflow-visible sm:text-[14.5px] sm:leading-[1.3] sm:whitespace-normal">
                 {c.name}
               </strong>
               <span className="hidden font-mono text-xs text-[#8a94a6] sm:block">
