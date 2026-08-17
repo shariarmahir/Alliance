@@ -1,19 +1,12 @@
 import "server-only";
-import fs from "fs/promises";
 import path from "path";
+import { put } from "@vercel/blob";
+import { readBlobJson, writeBlobJson } from "./blob-store";
 import type { Category, Product, StockStatus } from "./types";
 
-// The only module that writes to data/*.json and public/images/{products,categories,hero}/*.
-//
-// KNOWN LIMITATION: these are real filesystem writes under public/ and data/,
-// which work in local dev and traditional Node hosting but will NOT work on
-// read-only-filesystem serverless hosts (e.g. Vercel). Acceptable for now —
-// the real backend (FastAPI) replaces this layer later.
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const PRODUCTS_IMAGE_DIR = path.join(process.cwd(), "public", "images", "products");
-const CATEGORIES_IMAGE_DIR = path.join(process.cwd(), "public", "images", "categories");
-const HERO_IMAGE_DIR = path.join(process.cwd(), "public", "images", "hero");
+// The only module that writes to Blob-backed data/*.json and Blob-backed
+// binary images (formerly public/images/{products,categories,hero}/*) — see
+// app/lib/blob-store.ts for why fs writes don't work on Vercel.
 
 export type HeroImageEntry = { slot: number; path: string };
 
@@ -22,12 +15,11 @@ export type HeroImageEntry = { slot: number; path: string };
 // ---------------------------------------------------------------------------
 
 export async function readProducts(): Promise<Product[]> {
-  const raw = await fs.readFile(path.join(DATA_DIR, "products.json"), "utf-8");
-  return JSON.parse(raw);
+  return readBlobJson<Product[]>("products.json");
 }
 
 export async function writeProducts(products: Product[]): Promise<void> {
-  await fs.writeFile(path.join(DATA_DIR, "products.json"), JSON.stringify(products, null, 2) + "\n");
+  await writeBlobJson("products.json", products);
   await syncCategoryProductCounts(products);
 }
 
@@ -79,10 +71,11 @@ export function defaultStockQtyForStatus(status: StockStatus): number {
 }
 
 export async function saveProductImage(categorySlug: string, filename: string, buffer: Buffer): Promise<string> {
-  const dir = path.join(PRODUCTS_IMAGE_DIR, categorySlug);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, filename), buffer);
-  return `/images/products/${categorySlug}/${filename}`; // public URL path
+  const blob = await put(`images/products/${categorySlug}/${filename}`, buffer, {
+    access: "public",
+    allowOverwrite: true,
+  });
+  return blob.url;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,12 +83,11 @@ export async function saveProductImage(categorySlug: string, filename: string, b
 // ---------------------------------------------------------------------------
 
 export async function readCategories(): Promise<Category[]> {
-  const raw = await fs.readFile(path.join(DATA_DIR, "categories.json"), "utf-8");
-  return JSON.parse(raw);
+  return readBlobJson<Category[]>("categories.json");
 }
 
 export async function writeCategories(categories: Category[]): Promise<void> {
-  await fs.writeFile(path.join(DATA_DIR, "categories.json"), JSON.stringify(categories, null, 2) + "\n");
+  await writeBlobJson("categories.json", categories);
 }
 
 export async function addCategory(category: Category): Promise<void> {
@@ -105,11 +97,13 @@ export async function addCategory(category: Category): Promise<void> {
 }
 
 export async function saveCategoryIcon(slug: string, filename: string, buffer: Buffer): Promise<string> {
-  await fs.mkdir(CATEGORIES_IMAGE_DIR, { recursive: true });
   const ext = path.extname(filename) || ".svg";
   const finalName = `${slug}${ext}`;
-  await fs.writeFile(path.join(CATEGORIES_IMAGE_DIR, finalName), buffer);
-  return `/images/categories/${finalName}`;
+  const blob = await put(`images/categories/${finalName}`, buffer, {
+    access: "public",
+    allowOverwrite: true,
+  });
+  return blob.url;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,24 +111,24 @@ export async function saveCategoryIcon(slug: string, filename: string, buffer: B
 // ---------------------------------------------------------------------------
 
 export async function readHeroImages(): Promise<HeroImageEntry[]> {
-  const raw = await fs.readFile(path.join(DATA_DIR, "hero-images.json"), "utf-8");
-  return JSON.parse(raw);
+  return readBlobJson<HeroImageEntry[]>("hero-images.json");
 }
 
 export async function writeHeroImages(entries: HeroImageEntry[]): Promise<void> {
-  await fs.writeFile(path.join(DATA_DIR, "hero-images.json"), JSON.stringify(entries, null, 2) + "\n");
+  await writeBlobJson("hero-images.json", entries);
 }
 
 export async function saveHeroImage(slot: number, filename: string, buffer: Buffer): Promise<string> {
-  await fs.mkdir(HERO_IMAGE_DIR, { recursive: true });
   const ext = path.extname(filename) || ".jpg";
   const finalName = `image${slot}${ext}`;
-  await fs.writeFile(path.join(HERO_IMAGE_DIR, finalName), buffer);
-  // Cache-bust: the filename is deterministic per slot, so replacing an image
-  // with the same extension produces an identical URL — the browser and
-  // Next's image optimizer would keep serving the old cached bytes without
-  // this query param changing on every upload.
-  const publicPath = `/images/hero/${finalName}?v=${Date.now()}`;
+  // Cache-bust: Blob's allowOverwrite reuses the same pathname per slot, so a
+  // replacement upload needs a distinct query param or the browser/Next's
+  // image optimizer will keep serving the old cached bytes.
+  const blob = await put(`images/hero/${finalName}`, buffer, {
+    access: "public",
+    allowOverwrite: true,
+  });
+  const publicPath = `${blob.url}?v=${Date.now()}`;
 
   const entries = await readHeroImages();
   const existing = entries.find((e) => e.slot === slot);
