@@ -6,8 +6,8 @@ function mockUnitsSold(rank: number): number {
   return Math.max(180 - rank * 22, 24);
 }
 
-export function BestSellersCard() {
-  const products = getTopSelling("month").slice(0, 4);
+export async function BestSellersCard() {
+  const products = (await getTopSelling("month")).slice(0, 4);
 
   return (
     <div className="rounded-[10px] border border-slate-line bg-white p-5">

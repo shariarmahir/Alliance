@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { categories } from "@/app/lib/mock-data";
+import { getAllCategories } from "@/app/lib/mock-data";
 
-export function CategoryGrid() {
+export async function CategoryGrid() {
+  const categories = await getAllCategories();
   return (
     <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
       <div className="mb-6 flex items-baseline justify-between">

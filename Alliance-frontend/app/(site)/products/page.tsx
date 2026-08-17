@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { categories, brands, products } from "@/app/lib/mock-data";
+import { getAllCategories, getAllProducts, brands } from "@/app/lib/mock-data";
 import { ProductGridCard } from "@/app/components/product-grid-card";
 import { ProductFilters } from "@/app/components/product-filters";
 
@@ -13,6 +13,8 @@ export default async function ProductsPage({
   searchParams: Promise<{ category?: string; brand?: string; q?: string; inStock?: string; page?: string }>;
 }) {
   const sp = await searchParams;
+  const categories = await getAllCategories();
+  const products = await getAllProducts();
   let filtered = products;
   if (sp.category) filtered = filtered.filter((p) => p.categorySlug === sp.category);
   if (sp.brand) filtered = filtered.filter((p) => p.brand === sp.brand);
@@ -61,7 +63,7 @@ export default async function ProductsPage({
           factory-sealed and function-tested surplus, with obsolete series kept on the shelf.
         </p>
 
-        <ProductFilters categories={[...categories]} brands={brands} />
+        <ProductFilters categories={categories} brands={brands} />
 
         <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3 rounded-[9px] border border-slate-line bg-surface px-3.5 py-2.5">
           <span className="text-[12.5px] text-ink-muted">

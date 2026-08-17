@@ -1,6 +1,6 @@
 // TEMPORARY MOCK DATA — replace with FastAPI backend
 import { NextRequest, NextResponse } from "next/server";
-import { products } from "@/app/lib/mock-data";
+import { getAllProducts } from "@/app/lib/mock-data";
 
 const PAGE_SIZE = 24;
 
@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const inStock = sp.get("inStock");
   const page = Math.max(1, Number(sp.get("page") ?? "1"));
 
+  const products = await getAllProducts();
   let filtered = products;
   if (category) filtered = filtered.filter((p) => p.categorySlug === category);
   if (brand) filtered = filtered.filter((p) => p.brand === brand);
