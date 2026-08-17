@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/app/lib/mock-data";
 import { ProductGallery } from "@/app/components/product-gallery";
+import { ProductDetailTabs } from "@/app/components/product-detail-tabs";
 import { QuoteCta } from "@/app/components/quote-cta";
 import type { Product } from "@/app/lib/types";
 
@@ -156,62 +157,11 @@ export default async function ProductDetailPage({
 
           <QuoteCta product={product} />
 
-          <div className="mt-5.5 flex gap-6 overflow-x-auto border-b border-slate-line text-[13px] font-semibold text-[#64748b]">
-            <span className="whitespace-nowrap border-b-2 border-accent pb-2.5 text-ink">Overview</span>
-            <a href="#specifications" className="whitespace-nowrap pb-2.5 hover:text-primary">
-              Specifications
-            </a>
-            <Link href="/contact" className="whitespace-nowrap pb-2.5 hover:text-primary">
-              Repair &amp; exchange
-            </Link>
-          </div>
-          <ul className="mt-4 list-disc space-y-1 pl-4.5 text-[13.5px] leading-[1.85] text-ink-soft">
-            {product.description.map((d) => (
-              <li key={d}>{d}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div id="specifications" className="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-3 text-lg font-bold text-ink">Specifications</h2>
-          <table className="w-full overflow-hidden rounded-[10px] border border-slate-line text-[13px]">
-            <tbody>
-              {Object.entries(product.specifications).map(([key, value], i) => (
-                <tr key={key} className={i % 2 === 0 ? "bg-surface" : "bg-white"}>
-                  <td className="w-[44%] border-b border-slate-line px-4 py-3 font-semibold text-ink-soft">
-                    {key}
-                  </td>
-                  <td className="border-b border-slate-line px-4 py-3 text-ink-muted">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="rounded-[10px] border border-slate-line bg-[#0d1626] p-5">
-          <p className="mono-label mb-1.5 text-[11px] tracking-[0.1em] text-accent">TALK TO AN ENGINEER</p>
-          <p className="mb-3.5 text-[13px] leading-[1.7] text-white/[0.72]">
-            Cross-reference an obsolete number, check firmware revision, or arrange a repair instead of a
-            replacement.
-          </p>
-          <div className="flex flex-wrap gap-2.5">
-            <a
-              href="https://wa.me/8801713116019"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-md border border-white/[0.28] bg-white/[0.13] px-4.5 py-2.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/[0.22]"
-            >
-              WhatsApp an engineer
-            </a>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center rounded-md px-4.5 py-2.5 text-[13px] font-semibold text-white/75 transition-colors hover:text-white"
-            >
-              Request a call back
-            </Link>
-          </div>
+          <ProductDetailTabs
+            description={product.description}
+            specifications={product.specifications}
+            repairRoute="Cross-reference an obsolete number, check firmware revision, or arrange a repair instead of a replacement. Exchange available — 5 working days."
+          />
         </div>
       </div>
 
