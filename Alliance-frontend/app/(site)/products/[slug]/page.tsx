@@ -35,12 +35,6 @@ const conditionLabel: Record<Product["stock"], string> = {
   "out-of-stock": "Obsolete series",
 };
 
-const leadTime: Record<Product["stock"], string> = {
-  "in-stock": "Same-day dispatch · 3–5 days air",
-  "low-stock": "Dispatch within 24 hours",
-  "out-of-stock": "Sourced to order · 5–7 working days",
-};
-
 export async function generateMetadata({
   params,
 }: {
@@ -127,9 +121,6 @@ export default async function ProductDetailPage({
             <span className="rounded-md bg-tint px-3 py-1.5 text-xs font-semibold text-[#00618f]">
               {conditionLabel[product.stock]}
             </span>
-            <span className="rounded-md bg-[#f2f4f7] px-3 py-1.5 text-xs font-semibold text-ink-soft">
-              {product.warrantyYears}-year AutoLink warranty
-            </span>
           </div>
 
           <div className="mb-5.5 grid grid-cols-1 gap-px overflow-hidden rounded-[10px] border border-slate-line bg-slate-line sm:grid-cols-2">
@@ -138,8 +129,10 @@ export default async function ProductDetailPage({
               <p className="text-[13.5px] font-semibold text-ink">{conditionLabel[product.stock]}</p>
             </div>
             <div className="bg-white px-4 py-3.5">
-              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">LEAD TIME</p>
-              <p className="text-[13.5px] font-semibold text-ink">{leadTime[product.stock]}</p>
+              <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">WARRANTY</p>
+              <p className="text-[13.5px] font-semibold text-ink">
+                {product.warrantyYears}-year AutoLink warranty
+              </p>
             </div>
             <div className="bg-white px-4 py-3.5">
               <p className="mono-label mb-1 text-[10px] text-[#8a94a6]">ALSO KNOWN AS</p>
