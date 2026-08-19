@@ -17,7 +17,15 @@ function StockBadge({ stock }: { stock: number }) {
   return <span className={`${base} bg-ok-bg text-ok`}>IN STOCK {stock}</span>;
 }
 
-export function TopSellerCard({ product, rank }: { product: TopSeller; rank?: number }) {
+export function TopSellerCard({
+  product,
+  rank,
+  periodLabel = "This week",
+}: {
+  product: TopSeller;
+  rank?: number;
+  periodLabel?: string;
+}) {
   const browseHref = `/products?q=${encodeURIComponent(product.partNumber)}`;
   const filled = Math.round(product.rating);
 
@@ -35,7 +43,7 @@ export function TopSellerCard({ product, rank }: { product: TopSeller; rank?: nu
           {rank != null && (
             <span className="absolute left-1.5 top-1.5 rounded bg-ink px-1.5 py-0.5 font-mono text-[8px] font-bold tracking-[0.06em] text-accent sm:left-2.5 sm:top-2.5 sm:px-2.5 sm:py-1 sm:text-[9.5px]">
               #{rank}
-              <span className="hidden sm:inline"> THIS WEEK</span>
+              <span className="hidden sm:inline"> {periodLabel.toUpperCase()}</span>
             </span>
           )}
           <StockBadge stock={product.stock} />

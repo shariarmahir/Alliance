@@ -2,6 +2,8 @@
 // Landing-page-only "Top Selling" showcase, separate from the main catalog
 // dataset in mock-data.ts. Uses stock photography for visual variety.
 
+export type TopSellerPeriod = "week" | "month" | "year";
+
 export type TopSeller = {
   id: string;
   partNumber: string; // rendered in IBM Plex Mono as the card's primary identity
@@ -14,6 +16,15 @@ export type TopSeller = {
   reviews: number;
   condition: "New" | "Refurbished" | "Repair / Exchange";
   stock: number;
+  // Rank within each period, 1 = most requested. Every item in the pool
+  // appears in all three periods (there's no separate per-period catalog
+  // yet — see Product.weekRank/monthRank/yearRank for the real equivalent
+  // used once a part has actual request-volume history), just reordered, so
+  // switching periods on the homepage is a genuine re-sort rather than a
+  // fixed illustration.
+  weekRank: number;
+  monthRank: number;
+  yearRank: number;
 };
 
 const PIMG = [
@@ -82,6 +93,13 @@ const PARTS: { partNumber: string; name: string; brand: string }[] = [
 
 const CONDITIONS: TopSeller["condition"][] = ["New", "Refurbished", "Repair / Exchange"];
 
+// Deterministic reorderings, not the same ranking three times over — a
+// rotation offset per period so "This month" and "This year" visibly differ
+// from "This week" instead of the toggle appearing to do nothing.
+function rankFor(index: number, offset: number): number {
+  return ((index + offset) % PARTS.length) + 1;
+}
+
 export const topSellers: TopSeller[] = PARTS.map((part, i) => {
   const price = 145 + ((i * 137) % 1850);
   return {
@@ -96,5 +114,19 @@ export const topSellers: TopSeller[] = PARTS.map((part, i) => {
     reviews: 8 + ((i * 7) % 180),
     condition: CONDITIONS[i % CONDITIONS.length],
     stock: i % 7 === 0 ? 0 : 3 + ((i * 11) % 60),
+    weekRank: rankFor(i, 0),
+    monthRank: rankFor(i, 3),
+    yearRank: rankFor(i, 5),
   };
 });
+
+const RANK_KEY: Record<TopSellerPeriod, keyof Pick<TopSeller, "weekRank" | "monthRank" | "yearRank">> = {
+  week: "weekRank",
+  month: "monthRank",
+  year: "yearRank",
+};
+
+export function topSellersFor(period: TopSellerPeriod, count = 4): TopSeller[] {
+  const key = RANK_KEY[period];
+  return [...topSellers].sort((a, b) => a[key] - b[key]).slice(0, count);
+}
