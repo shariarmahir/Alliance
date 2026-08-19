@@ -1,0 +1,360 @@
+import secrets
+from datetime import date, datetime, timezone
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import ContactRequest, Order, OrderConfirmation, Quotation
+
+# Delivery stages shared with the customer tracking page.
+DELIVERY_STAGES = [
+    {"label": "Confirmed", "hint": "Your order is confirmed and being prepared."},
+    {"label": "Packed", "hint": "Items are packed and awaiting collection."},
+    {"label": "In Transit", "hint": "On the way to your delivery address."},
+    {"label": "Delivered", "hint": "Delivered. Thank you for your business."},
+]
+MAX_STAGE = len(DELIVERY_STAGES) - 1
+
+DEFAULT_TERMS = {
+    "payment": "100% Cash/Pay order.",
+    "delivery": "From Ready Stock",
+    "offerValidity": "07 days, From the Offer Date.",
+    "vatAit": "Excluded.",
+    "stock": "Available.",
+    "installationCharge": "Free.",
+    "warranty": "12 Months Warranty (From the date of delivery)",
+}
+
+
+def clamp_stage(stage: int | None) -> int:
+    if stage is None:
+        return 0
+    return max(0, min(MAX_STAGE, int(stage)))
+
+
+def stage_label(stage: int) -> str:
+    return DELIVERY_STAGES[clamp_stage(stage)]["label"]
+
+
+# ---------------------------------------------------------------------------
+# ID generation — server-side only, so a client cannot choose its own IDs
+# ---------------------------------------------------------------------------
+
+
+def _random_code(length: int) -> str:
+    """Base-36 over a CSPRNG. Short enough to read off a printed PDF, wide
+    enough that collisions within one order are not a practical concern."""
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def generate_product_id() -> str:
+    return f"AIT-PRD-{_random_code(6)}"
+
+
+def generate_tracking_id() -> str:
+    return f"AIT-TRK-{_random_code(8)}"
+
+
+def generate_order_number() -> str:
+    return f"AIT-ORD-{_random_code(8)}"
+
+
+def generate_ref_number(company_name: str, sequence: int, when: date) -> str:
+    """Company initials, a global sequence number, and the issue year."""
+    initials = "".join(word[0] for word in (company_name or "").split() if word)[:4].upper()
+    return f"AIT/{initials or 'GEN'}/Q-{sequence:04d}/{when.year}"
+
+
+def default_subject(items: list[dict]) -> str:
+    lead = (items[0].get("name") if items else None) or "industrial automation parts"
+    if len(items) > 1:
+        others = len(items) - 1
+        plural = "s" if len(items) > 2 else ""
+        return f"Financial Offer for supply of {lead} and {others} other item{plural}."
+    return f"Financial Offer for supply of {lead}."
+
+
+_ONES = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen",
+    "Eighteen", "Nineteen",
+]
+_TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+
+def _under_thousand(n: int) -> str:
+    if n < 20:
+        return _ONES[n]
+    if n < 100:
+        return _TENS[n // 10] + (f" {_ONES[n % 10]}" if n % 10 else "")
+    return f"{_ONES[n // 100]} Hundred" + (f" {_under_thousand(n % 100)}" if n % 100 else "")
+
+
+def amount_in_words(amount: float) -> str:
+    """South Asian numbering (lakh/crore), matching how a BDT invoice reads."""
+    n = int(abs(amount))
+    if n == 0:
+        return "Zero Taka only."
+
+    parts: list[str] = []
+    crore, n_rest = divmod(n, 10_000_000)
+    lakh, n_rest = divmod(n_rest, 100_000)
+    thousand, rest = divmod(n_rest, 1000)
+
+    if crore:
+        parts.append(f"{_under_thousand(crore)} Crore")
+    if lakh:
+        parts.append(f"{_under_thousand(lakh)} Lakh")
+    if thousand:
+        parts.append(f"{_under_thousand(thousand)} Thousand")
+    if rest:
+        parts.append(_under_thousand(rest))
+
+    return f"{' '.join(parts)} Taka only."
+
+
+# ---------------------------------------------------------------------------
+# Quotations
+# ---------------------------------------------------------------------------
+
+
+async def add_quotation(db: AsyncSession, items: list[dict], details: dict) -> Quotation:
+    """Totals are computed here, never taken from the client — a submitted
+    total is a customer-supplied number and must not be trusted."""
+    total = sum(float(i.get("price", 0)) * int(i.get("quantity", 0)) for i in items)
+    submitted_at = datetime.now(timezone.utc)
+    details = {**details, "submittedAt": submitted_at.isoformat()}
+
+    quotation = Quotation(
+        items=items,
+        total=round(total, 2),
+        details=details,
+        status="pending",
+        customer_email=(details.get("email") or "").strip().lower(),
+        submitted_at=submitted_at,
+    )
+    db.add(quotation)
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+async def get_quotation(db: AsyncSession, quotation_id: str) -> Quotation | None:
+    return (
+        await db.execute(select(Quotation).where(Quotation.id == quotation_id))
+    ).scalar_one_or_none()
+
+
+async def list_quotations(db: AsyncSession, status: str | None = None) -> list[Quotation]:
+    stmt = select(Quotation).order_by(Quotation.submitted_at.desc())
+    if status:
+        stmt = stmt.where(Quotation.status == status)
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def update_quotation_status(
+    db: AsyncSession, quotation_id: str, status: str
+) -> Quotation | None:
+    quotation = await get_quotation(db, quotation_id)
+    if quotation is None:
+        return None
+    quotation.status = status
+    # Moving off "confirmed" retracts the issued document: leaving it behind
+    # would let a cancelled quotation still serve a downloadable confirmation.
+    if status != "confirmed" and quotation.confirmation is not None:
+        await db.delete(quotation.confirmation)
+        quotation.confirmation = None
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+async def next_confirmation_sequence(db: AsyncSession) -> int:
+    """Global count of issued confirmations + 1, so refs increment across the
+    business rather than per customer."""
+    count = (await db.execute(select(func.count()).select_from(OrderConfirmation))).scalar_one()
+    return int(count) + 1
+
+
+async def confirm_quotation(
+    db: AsyncSession,
+    quotation_id: str,
+    lines: list[dict],
+    terms: dict | None = None,
+    ref_number: str | None = None,
+    subject: str = "",
+    issued_date: str | None = None,
+) -> Quotation | None:
+    """Issues the priced offer and flips the quotation to confirmed in one
+    commit, so the two can never disagree."""
+    quotation = await get_quotation(db, quotation_id)
+    if quotation is None:
+        return None
+
+    priced: list[dict] = []
+    grand_total = 0.0
+    for line in lines:
+        quantity = int(line.get("quantity", 0))
+        unit_price = float(line.get("unitPrice", line.get("unit_price", 0)))
+        total = round(quantity * unit_price, 2)
+        grand_total += total
+        priced.append(
+            {
+                **line,
+                "productId": line.get("productId") or generate_product_id(),
+                "quantity": quantity,
+                "unitPrice": unit_price,
+                "total": total,
+            }
+        )
+
+    company = (quotation.details or {}).get("companyName") or ""
+    today = datetime.now(timezone.utc).date()
+
+    if quotation.confirmation is not None:
+        # Re-issuing keeps the original ref and tracking ID: the customer may
+        # already be holding both on a printed document.
+        confirmation = quotation.confirmation
+        confirmation.lines = priced
+        confirmation.grand_total = round(grand_total, 2)
+        confirmation.terms = terms or confirmation.terms or DEFAULT_TERMS
+        confirmation.subject = subject or confirmation.subject
+        if issued_date:
+            confirmation.issued_date = issued_date
+    else:
+        sequence = await next_confirmation_sequence(db)
+        confirmation = OrderConfirmation(
+            quotation_id=quotation.id,
+            ref_number=ref_number or generate_ref_number(company, sequence, today),
+            subject=subject or default_subject(quotation.items or []),
+            issued_date=issued_date or today.isoformat(),
+            tracking_id=generate_tracking_id(),
+            lines=priced,
+            grand_total=round(grand_total, 2),
+            terms=terms or DEFAULT_TERMS,
+            delivery_stage=0,
+        )
+        db.add(confirmation)
+
+    quotation.status = "confirmed"
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+async def find_by_tracking_id(db: AsyncSession, tracking_id: str) -> Quotation | None:
+    """Only confirmed quotations are reachable — tracking IDs are minted at
+    confirmation time, so an unknown ID is a miss rather than an invented status."""
+    wanted = (tracking_id or "").strip().upper()
+    if not wanted:
+        return None
+    confirmation = (
+        await db.execute(
+            select(OrderConfirmation).where(func.upper(OrderConfirmation.tracking_id) == wanted)
+        )
+    ).scalar_one_or_none()
+    if confirmation is None:
+        return None
+    return await get_quotation(db, confirmation.quotation_id)
+
+
+async def update_delivery_stage(
+    db: AsyncSession, tracking_id: str, stage: int
+) -> Quotation | None:
+    quotation = await find_by_tracking_id(db, tracking_id)
+    if quotation is None or quotation.confirmation is None:
+        return None
+    quotation.confirmation.delivery_stage = clamp_stage(stage)
+    quotation.confirmation.delivery_updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+# ---------------------------------------------------------------------------
+# Orders
+# ---------------------------------------------------------------------------
+
+
+async def add_order(db: AsyncSession, data: dict) -> Order:
+    address = data.get("address") or {}
+    order = Order(
+        order_number=generate_order_number(),
+        tracking_id=generate_tracking_id(),
+        items=data.get("items", []),
+        subtotal=float(data.get("subtotal", 0)),
+        shipping_cost=float(data.get("shipping_cost", 0)),
+        grand_total=float(data.get("grand_total", 0)),
+        delivery_option=data.get("delivery_option", "standard"),
+        delivery_option_name=data.get("delivery_option_name", ""),
+        delivery_eta=data.get("delivery_eta", ""),
+        preferred_date=data.get("preferred_date", ""),
+        address=address,
+        customer_name=(address.get("name") or "").strip(),
+        status="pending",
+    )
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+async def get_order(db: AsyncSession, order_number: str) -> Order | None:
+    return await db.get(Order, order_number)
+
+
+async def list_orders(db: AsyncSession, status: str | None = None) -> list[Order]:
+    stmt = select(Order).order_by(Order.placed_at.desc())
+    if status:
+        stmt = stmt.where(Order.status == status)
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def update_order_status(db: AsyncSession, order_number: str, status: str) -> Order | None:
+    order = await get_order(db, order_number)
+    if order is None:
+        return None
+    order.status = status
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+# ---------------------------------------------------------------------------
+# Contact requests
+# ---------------------------------------------------------------------------
+
+
+async def add_contact_request(db: AsyncSession, data: dict) -> ContactRequest:
+    request = ContactRequest(
+        name=data["name"],
+        email=data["email"],
+        subject=data.get("subject", ""),
+        message=data["message"],
+        handled=False,
+    )
+    db.add(request)
+    await db.commit()
+    await db.refresh(request)
+    return request
+
+
+async def list_contact_requests(db: AsyncSession) -> list[ContactRequest]:
+    return list(
+        (await db.execute(select(ContactRequest).order_by(ContactRequest.submitted_at.desc())))
+        .scalars()
+        .all()
+    )
+
+
+async def mark_contact_request_handled(
+    db: AsyncSession, request_id: str, handled: bool
+) -> ContactRequest | None:
+    request = await db.get(ContactRequest, request_id)
+    if request is None:
+        return None
+    request.handled = handled
+    await db.commit()
+    await db.refresh(request)
+    return request

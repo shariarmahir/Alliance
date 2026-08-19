@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import admin_catalog, auth, catalog
+from app.routers import admin_catalog, admin_operations, auth, catalog, operations
 
 logger = logging.getLogger("app")
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +54,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(auth.router)
 app.include_router(catalog.router)
 app.include_router(admin_catalog.router)
+app.include_router(operations.router)
+app.include_router(admin_operations.router)
 
 
 @app.get("/health", tags=["meta"])
