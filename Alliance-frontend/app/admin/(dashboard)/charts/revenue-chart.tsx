@@ -4,9 +4,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { formatPrice } from "@/app/lib/utils";
 import { revenueMonthly, orderCountMonthly } from "@/app/lib/mock-analytics";
 
-// Design bundle pairs revenue and confirmed orders as twin bars per month,
+// Design bundle pairs revenue and confirmed orders as twin bars per bucket,
 // with a legend rather than a range switcher.
-const DATA = revenueMonthly.map((point, i) => ({
+export type RevenuePoint = { label: string; revenue: number; orders: number };
+
+// Fallback only for callers that predate the real-analytics wiring; the
+// Overview passes actual figures derived from the order records.
+const FALLBACK: RevenuePoint[] = revenueMonthly.map((point, i) => ({
   label: point.label,
   revenue: point.value,
   orders: orderCountMonthly[i]?.value ?? 0,
@@ -33,13 +37,22 @@ function ChartTooltip({
   );
 }
 
-export function RevenueChart() {
+export function RevenueChart({
+  data,
+  caption,
+}: {
+  data?: RevenuePoint[];
+  caption?: string;
+}) {
+  const points = data?.length ? data : FALLBACK;
+  const hasData = points.some((p) => p.revenue > 0 || p.orders > 0);
+
   return (
     <div className="rounded-[10px] border border-slate-line bg-white p-5">
       <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="mb-0.5 text-[15px] font-bold text-ink">Revenue &amp; confirmed orders</p>
-          <p className="text-[11.5px] text-[#8a94a6]">Last 12 months · USD</p>
+          <p className="text-[11.5px] text-[#8a94a6]">{caption ?? "Last 12 months · USD"}</p>
         </div>
         <div className="flex gap-3.5 text-[11.5px] font-medium text-ink-muted">
           <span className="flex items-center gap-1.5">
@@ -53,9 +66,15 @@ export function RevenueChart() {
         </div>
       </div>
 
+      {!hasData && (
+        <p className="mb-3 rounded-md border border-tint-line bg-[#f4faff] px-3.5 py-2.5 text-[12px] text-[#00618f]">
+          No orders recorded in this period yet.
+        </p>
+      )}
+
       <div className="h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={DATA} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={3}>
+          <BarChart data={points} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={3}>
             <CartesianGrid stroke="#eef1f5" vertical={false} />
             <XAxis
               dataKey="label"

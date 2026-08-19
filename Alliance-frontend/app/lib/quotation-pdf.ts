@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Quotation, OrderConfirmation, Order, QuotationTerms } from "./types";
-import { amountInWords, DEFAULT_TERMS } from "./order-confirmation";
+import { amountInWords, DEFAULT_TERMS, defaultSubject } from "./order-confirmation";
 
 // Draws the company's Price Quotation document to match their existing Word
 // template. Runs in the browser (admin download, customer download and the
@@ -546,6 +546,45 @@ function quotationToPdf(quotation: Quotation, c: OrderConfirmation): PdfDocument
   };
 }
 
+// The customer's un-priced "Ask Price" submission, before an admin has
+// quoted it — no ref number or grand total exist yet, so this reuses the
+// same drawing code with the request's own id standing in as the reference
+// and a zeroed price column (admin fills these in at confirmation).
+function requestToPdf(quotation: Quotation): PdfDocument {
+  const d = quotation.details;
+  return {
+    title: "Price Request",
+    refLabel: "Request",
+    refNumber: quotation.id.slice(0, 8).toUpperCase(),
+    date: quotation.details.submittedAt.slice(0, 10),
+    recipient: {
+      jobTitle: d.jobTitle || "Managing Director",
+      company: d.companyName,
+      address: d.country,
+      contact: `Contact: ${d.phone}, Email: ${d.email}`,
+    },
+    subject: defaultSubject(quotation),
+    intro:
+      "A new price request has been submitted through the AutoLink website. The requested lines are detailed below, pending pricing.",
+    lines: quotation.items.map((item) => ({
+      productId: "",
+      name: item.name,
+      partNumber: item.partNumber,
+      image: item.image,
+      specifications: item.partNumber,
+      quantity: item.quantity,
+      unit: "Pcs",
+      unitPrice: 0,
+      total: 0,
+    })),
+    grandTotal: 0,
+    summaryRows: [],
+    terms: DEFAULT_TERMS,
+    trackingId: quotation.id,
+    fileName: `Price-Request-${quotation.id.slice(0, 8)}.pdf`,
+  };
+}
+
 function orderToPdf(order: Order): PdfDocument {
   const a = order.address;
   return {
@@ -605,6 +644,35 @@ export async function downloadQuotationPdf(quotation: Quotation): Promise<void> 
   const spec = quotationToPdf(quotation, c);
   const doc = await buildPdf(spec);
   doc.save(spec.fileName);
+}
+
+// Base64 (no data: URI prefix) + the same file name the download button
+// uses — shape the /api/admin/quotations/[id]/email route expects for the
+// Resend attachment.
+export async function quotationPdfToBase64(
+  quotation: Quotation
+): Promise<{ base64: string; fileName: string }> {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  const spec = quotationToPdf(quotation, c);
+  const doc = await buildPdf(spec);
+  // jsPDF's typed output() has no "base64" variant — "datauristring" returns
+  // a data: URI, so the base64 payload is everything after its comma.
+  const dataUri = doc.output("datauristring");
+  const base64 = dataUri.slice(dataUri.indexOf(",") + 1);
+  return { base64, fileName: spec.fileName };
+}
+
+// Same base64 shape as quotationPdfToBase64, but for the un-priced request
+// PDF sent the moment a customer submits — see requestToPdf above.
+export async function quotationRequestPdfToBase64(
+  quotation: Quotation
+): Promise<{ base64: string; fileName: string }> {
+  const spec = requestToPdf(quotation);
+  const doc = await buildPdf(spec);
+  const dataUri = doc.output("datauristring");
+  const base64 = dataUri.slice(dataUri.indexOf(",") + 1);
+  return { base64, fileName: spec.fileName };
 }
 
 export async function buildInvoicePdf(order: Order): Promise<jsPDF> {

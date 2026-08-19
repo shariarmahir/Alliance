@@ -59,7 +59,7 @@ export function AdminShell({
         onCloseMobile={() => setMobileOpen(false)}
       />
       <div className="scrollbar-slim flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <AdminTopbar session={session} />
+        <AdminTopbar session={session} counts={counts} />
         <main className="flex-1 p-4 pb-24 sm:p-6.5 lg:pb-6.5">{children}</main>
       </div>
       <AdminBottomBar

@@ -39,6 +39,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast",
+          // Sonner's default description colour is near-invisible against the
+          // popover background — the send-confirmation notes were unreadable
+          // without this. Title stays bold ink; description is the muted-but-
+          // legible token used elsewhere in the admin UI.
+          title: "font-semibold text-ink",
+          description: "!text-ink-soft",
         },
       }}
       {...props}

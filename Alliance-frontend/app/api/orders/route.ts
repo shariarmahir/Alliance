@@ -3,10 +3,9 @@ import { z } from "zod";
 import { addOrder } from "@/app/lib/admin-operations";
 import type { Order } from "@/app/lib/types";
 
-// POST /api/orders — mirrors the order object the storefront already builds
-// and writes to localStorage (see app/(site)/order/confirm/page.tsx). This
-// is a fire-and-forget server mirror so admins have a record to confirm/
-// cancel; the customer's local flow does not depend on this succeeding.
+// POST /api/orders — kept for admin-side order records. The customer flow no
+// longer creates orders directly (see app/(site)/track/quote/[id]/page.tsx):
+// an admin's quotation confirmation is the order now.
 
 const QuoteItemSchema = z.object({
   slug: z.string().min(1),

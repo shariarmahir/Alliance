@@ -19,13 +19,12 @@ import {
   EmptyState,
   FilterBar,
   Pill,
-  RowButton,
   TH,
   TD,
   ROW,
   type PillTone,
 } from "../admin-ui";
-import { ConfirmQuotationDialog } from "./confirm-dialog";
+import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
@@ -165,6 +164,78 @@ function QuotationDetailDialog({ quotation }: { quotation: Quotation }) {
   );
 }
 
+// Cancelling drops the issued confirmation (ref number, prices, tracking ID)
+// — see updateQuotationStatus in admin-operations.ts — so it asks first
+// rather than acting on a single stray click.
+function CancelConfirmDialog({
+  quotation,
+  label,
+  disabled,
+  onConfirm,
+}: {
+  quotation: Quotation;
+  label: string;
+  disabled: boolean;
+  onConfirm: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const issued = !!quotation.confirmation;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            disabled={disabled}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e04545]/30 px-2.5 py-1.5 text-[11.5px] font-semibold text-[#c22] transition-colors hover:border-[#e04545] hover:bg-[#fdecec] disabled:opacity-50"
+          >
+            {label}
+          </button>
+        }
+      />
+      <DialogContent className="w-full max-w-md sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-[17px] font-bold text-ink">{label} this request?</DialogTitle>
+          <DialogDescription className="text-[12.5px] leading-[1.65] text-ink-muted">
+            {quotation.details.companyName} — {quotation.details.fullName}
+            {issued && (
+              <>
+                <br />
+                <span className="text-[#7a2f2f]">
+                  This also deletes the issued confirmation{" "}
+                  <strong className="font-mono">{quotation.confirmation!.refNumber}</strong>, including
+                  its pricing and tracking number. You would need to re-issue it.
+                </span>
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex justify-end gap-2 border-t border-hairline pt-4">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-md border border-slate-line bg-white px-4 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-primary hover:text-primary"
+          >
+            Keep it
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onConfirm();
+            }}
+            className="rounded-md border border-[#e04545] bg-[#c22] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#a11]"
+          >
+            Yes, {label.toLowerCase()}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function QuotationRow({
   quotation,
   sequence,
@@ -176,6 +247,7 @@ function QuotationRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function download() {
     setDownloading(true);
@@ -215,6 +287,7 @@ function QuotationRow({
   const pill = STATUS_PILL[quotation.status];
 
   return (
+    <>
     <tr className={ROW}>
       <td className={`${TD} text-ink`}>
         {quotation.details.fullName}
@@ -256,10 +329,10 @@ function QuotationRow({
         <div className="flex flex-wrap items-center gap-2">
           <QuotationDetailDialog quotation={quotation} />
           {quotation.status !== "cancelled" && (
-            <ConfirmQuotationDialog
+            <ConfirmQuotationTrigger
               quotation={quotation}
-              sequence={sequence}
-              onConfirmed={onChanged}
+              open={confirmOpen}
+              onToggle={() => setConfirmOpen((v) => !v)}
             />
           )}
           {quotation.confirmation && (
@@ -273,18 +346,33 @@ function QuotationRow({
             </button>
           )}
           {pending && (
-            <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
-              Cancel
-            </RowButton>
+            <CancelConfirmDialog
+              quotation={quotation}
+              label="Cancel"
+              disabled={busy}
+              onConfirm={() => setStatus("cancelled")}
+            />
           )}
           {quotation.status === "confirmed" && (
-            <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
-              Revoke
-            </RowButton>
+            <CancelConfirmDialog
+              quotation={quotation}
+              label="Remove"
+              disabled={busy}
+              onConfirm={() => setStatus("cancelled")}
+            />
           )}
         </div>
       </td>
     </tr>
+    {confirmOpen && quotation.status !== "cancelled" && (
+      <ConfirmQuotationPanel
+        quotation={quotation}
+        sequence={sequence}
+        onConfirmed={onChanged}
+        onClose={() => setConfirmOpen(false)}
+      />
+    )}
+    </>
   );
 }
 

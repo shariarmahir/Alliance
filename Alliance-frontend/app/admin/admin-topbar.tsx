@@ -2,6 +2,9 @@
 
 import { LogOut } from "lucide-react";
 import type { AdminSession } from "@/app/lib/types";
+import type { AdminNavCounts } from "./nav-config";
+import { AdminNotifications } from "./admin-notifications";
+import { AdminSearch } from "./admin-search";
 import { logoutAction } from "./login/actions";
 import {
   DropdownMenu,
@@ -34,18 +37,24 @@ function todayLabel() {
     .toUpperCase();
 }
 
-export function AdminTopbar({ session }: { session: AdminSession }) {
+export function AdminTopbar({
+  session,
+  counts,
+}: {
+  session: AdminSession;
+  counts: AdminNavCounts;
+}) {
   return (
     <header className="sticky top-0 z-30 flex h-[66px] items-center justify-between gap-4 border-b border-slate-line bg-white px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3.5">
-        <div className="hidden w-[300px] items-center gap-2.5 rounded-md border border-[#dde3ea] px-3.5 py-2.5 text-[13px] text-[#8a94a6] md:flex">
-          <span aria-hidden="true">⌕</span>
-          Search orders, parts, clients
-        </div>
+        <AdminSearch />
         <span className="hidden rounded-md bg-[#f2f4f7] px-3 py-1.5 font-mono text-[11.5px] font-semibold text-ink-muted lg:block">
           GMT+6 · {todayLabel()}
         </span>
       </div>
+
+      <div className="flex shrink-0 items-center gap-2.5">
+        <AdminNotifications counts={counts} />
 
       <DropdownMenu>
         <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-[22px] border border-[#dde3ea] py-1.5 pl-1.5 pr-3 transition-colors hover:border-primary">
@@ -76,6 +85,7 @@ export function AdminTopbar({ session }: { session: AdminSession }) {
           </form>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }
