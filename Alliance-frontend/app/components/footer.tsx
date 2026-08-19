@@ -102,7 +102,7 @@ export async function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-accent">
+                  <Link href="/terms" className="hover:text-accent">
                     Terms of trade
                   </Link>
                 </li>
@@ -140,8 +140,12 @@ export async function Footer() {
           </p>
           <p className="flex gap-5">
             <span>BD · BDT</span>
-            <span>Terms</span>
-            <span>Privacy</span>
+            <Link href="/terms" className="hover:text-accent">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-accent">
+              Privacy
+            </Link>
           </p>
         </div>
       </div>
