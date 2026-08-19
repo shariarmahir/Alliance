@@ -1,32 +1,82 @@
 import "server-only";
+import bcrypt from "bcryptjs";
 import { readEmployees } from "@/app/lib/admin-employees";
 import type { AdminRole, AdminSession } from "@/app/lib/types";
 
-export const ADMIN_SESSION_COOKIE = "autolink_admin_session";
+// Token handling lives in session-token.ts so proxy.ts (Edge runtime) can
+// import it without pulling in bcrypt or Blob-backed storage. Re-exported
+// here so the rest of the app keeps a single import site for auth.
+export {
+  ADMIN_SESSION_COOKIE,
+  createSessionToken,
+  parseAdminSession,
+} from "@/app/lib/session-token";
 
-// MOCK ACCOUNTS — replace with real backend authentication before production.
-// These 2 hardcoded accounts must keep working unchanged for continuity with
-// earlier phases' verification flows — Phase 4 only adds a fallback check
-// against data/employees.json, never replaces this list.
-const ADMIN_ACCOUNTS: { email: string; password: string; role: AdminRole; name: string }[] = [
-  { email: "nurulislam@gmail.com", password: "superpassword", role: "super", name: "Nurul Islam" },
-  { email: "subadmin@gmail.com", password: "subpassword", role: "sub", name: "Sub Admin" },
-];
+// bcrypt hashes are self-identifying: "$2a$"/"$2b$"/"$2y$" prefix plus cost.
+// Anything else in the password field is a legacy plaintext value.
+function isHashed(password: string): boolean {
+  return /^\$2[aby]\$\d{2}\$/.test(password);
+}
 
-// Async because, as of Phase 4, a login that doesn't match a hardcoded
-// account falls through to checking data/employees.json on disk.
-export async function verifyAdminCredentials(email: string, password: string): Promise<AdminSession | null> {
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, 12);
+}
+
+// Compares in constant time via bcrypt. Legacy plaintext rows still in storage
+// are accepted once so existing staff aren't locked out mid-migration; run
+// `npm run migrate:passwords` to hash them and remove this path's reason to
+// exist.
+async function passwordMatches(plain: string, stored: string): Promise<boolean> {
+  if (isHashed(stored)) return bcrypt.compare(plain, stored);
+  return plain === stored;
+}
+
+// SUPER_ADMIN_PASSWORD_HASH_B64 is base64, not a raw bcrypt string, because
+// Next's env loader (@next/env, bundling dotenv-expand) performs $VAR/${VAR}
+// substitution on every value it reads — a raw hash like "$2b$12$K..." has
+// $2b, $12 and $K silently resolved to "" as undefined variable references,
+// truncating the 60-character hash to 52 and rejecting every correct
+// password. Base64 contains no $, so it passes through untouched.
+function decodeBootstrapHash(): string | null {
+  const b64 = process.env.SUPER_ADMIN_PASSWORD_HASH_B64;
+  if (!b64) return null;
+  try {
+    const decoded = Buffer.from(b64, "base64").toString("utf8");
+    return isHashed(decoded) ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function verifyAdminCredentials(
+  email: string,
+  password: string
+): Promise<AdminSession | null> {
   const normalizedEmail = email.trim().toLowerCase();
-  const account = ADMIN_ACCOUNTS.find((a) => a.email.toLowerCase() === normalizedEmail && a.password === password);
-  if (account) {
-    return { role: account.role, name: account.name, email: account.email };
+
+  // The bootstrap super admin lives in the environment, not in source. Without
+  // it configured there is simply no hardcoded account — previously two were
+  // compiled into the bundle with live passwords.
+  const bootstrapEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+  const bootstrapHash = decodeBootstrapHash();
+  if (bootstrapEmail && bootstrapHash && normalizedEmail === bootstrapEmail) {
+    if (await bcrypt.compare(password, bootstrapHash)) {
+      return {
+        role: "super",
+        name: process.env.SUPER_ADMIN_NAME || "Super Admin",
+        email: bootstrapEmail,
+      };
+    }
+    return null;
   }
 
   const employees = await readEmployees();
-  const employee = employees.find((e) => e.email.toLowerCase() === normalizedEmail && e.password === password);
-  if (!employee) return null;
+  const employee = employees.find((e) => e.email.toLowerCase() === normalizedEmail);
+  if (!employee || employee.disabled) return null;
+  if (!(await passwordMatches(password, employee.password))) return null;
+
   return {
-    role: "sub",
+    role: employee.role ?? "sub",
     name: employee.name,
     email: employee.email,
     employeeId: employee.id,
@@ -34,28 +84,10 @@ export async function verifyAdminCredentials(email: string, password: string): P
   };
 }
 
-// /admin is role-branching as of Phase 4: super admin sees the analytics
-// Overview, sub-admin sees their personal dashboard. Both roles land here.
-// Signature keeps the `role` param (unused for now) so call sites don't need
-// to change if a role-specific landing path is ever reintroduced.
+// /admin is role-branching: super admin sees the analytics Overview, sub-admin
+// sees their personal dashboard. Both roles land here.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function landingPathForRole(role: AdminRole): string {
   return "/admin";
 }
 
-export function parseAdminSession(raw: string | undefined): AdminSession | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (
-      (parsed.role === "super" || parsed.role === "sub") &&
-      typeof parsed.name === "string" &&
-      typeof parsed.email === "string"
-    ) {
-      return parsed as AdminSession;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}

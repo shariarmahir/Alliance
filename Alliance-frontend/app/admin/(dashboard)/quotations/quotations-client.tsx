@@ -26,7 +26,60 @@ import {
 } from "../admin-ui";
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
+import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
+
+// Advances what the customer sees on /track/[trackingId]. That page reads
+// this value directly — before it existed, the page simulated a status from
+// the tracking ID's characters, so nothing an admin did here was reflected.
+function DeliveryStageSelect({
+  quotation,
+  onChanged,
+}: {
+  quotation: Quotation;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const stage = clampStage(quotation.confirmation?.deliveryStage);
+
+  async function setStage(next: number) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/quotations/${quotation.id}/delivery`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not update the delivery stage.");
+        return;
+      }
+      toast.success(`Delivery marked "${DELIVERY_STAGES[next].label}".`);
+      onChanged();
+    } catch {
+      toast.error("Could not update the delivery stage.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <select
+      value={stage}
+      disabled={busy}
+      onChange={(e) => setStage(Number(e.target.value))}
+      aria-label="Delivery stage"
+      className="shrink-0 rounded-md border border-[#dde3ea] bg-white px-2 py-1.5 text-[11.5px] font-semibold text-ink-soft outline-none transition-colors hover:border-primary focus:border-primary disabled:opacity-60"
+    >
+      {DELIVERY_STAGES.map((s, i) => (
+        <option key={s.label} value={i}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 // The storefront promises a quote within 4 working hours; the Overview's
 // "Price requests needing an answer" panel uses the same threshold.
@@ -352,6 +405,9 @@ function QuotationRow({
               disabled={busy}
               onConfirm={() => setStatus("cancelled")}
             />
+          )}
+          {quotation.status === "confirmed" && (
+            <DeliveryStageSelect quotation={quotation} onChanged={onChanged} />
           )}
           {quotation.status === "confirmed" && (
             <CancelConfirmDialog

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { addContactRequest } from "@/app/lib/admin-operations";
+import { checkRateLimit, clientKey, tooManyRequests } from "@/app/lib/rate-limit";
 import type { ContactRequest } from "@/app/lib/types";
 
 const ContactRequestSchema = z.object({
@@ -11,7 +12,10 @@ const ContactRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const limit = checkRateLimit(clientKey(request, "contact"), { limit: 5, windowMs: 10 * 60_000 });
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
+  const body = await request.json().catch(() => null);
   const parsed = ContactRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors }, { status: 400 });

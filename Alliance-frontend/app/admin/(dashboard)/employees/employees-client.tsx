@@ -9,9 +9,9 @@ import { AssignTaskInline } from "./assign-task-inline";
 import { LeaveCalendar } from "../leave/leave-calendar";
 import { LeavePendingList } from "../leave/leave-pending-list";
 import { LeaveDaysChart } from "../charts/leave-days-chart";
-import type { AccessArea, Employee, Task, TaskStatus, LeaveRequest, DailyReport } from "@/app/lib/types";
+import type { SafeEmployee, AccessArea, Task, TaskStatus, LeaveRequest, DailyReport } from "@/app/lib/types";
 
-const DESIGNATION_LABEL: Record<Employee["designation"], string> = {
+const DESIGNATION_LABEL: Record<SafeEmployee["designation"], string> = {
   "sales-associate": "Sales associate",
   "warehouse-staff": "Warehouse staff",
   "support-agent": "Support agent",
@@ -19,7 +19,7 @@ const DESIGNATION_LABEL: Record<Employee["designation"], string> = {
   other: "Other",
 };
 
-function designationLabel(e: Employee): string {
+function designationLabel(e: SafeEmployee): string {
   if (e.designation === "other") return e.customDesignation || "Other";
   return DESIGNATION_LABEL[e.designation];
 }
@@ -56,7 +56,7 @@ function RosterTab({
   tasks,
   reports,
 }: {
-  employees: Employee[];
+  employees: SafeEmployee[];
   tasks: Task[];
   reports: DailyReport[];
 }) {
@@ -139,7 +139,7 @@ function RosterTab({
   );
 }
 
-function TasksTab({ tasks, employees }: { tasks: Task[]; employees: Employee[] }) {
+function TasksTab({ tasks, employees }: { tasks: Task[]; employees: SafeEmployee[] }) {
   const [employeeFilter, setEmployeeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -231,7 +231,7 @@ function ReportsTab({
 }: {
   reports: DailyReport[];
   requests: LeaveRequest[];
-  employees: Employee[];
+  employees: SafeEmployee[];
 }) {
   function employeeName(id: string): string {
     return employees.find((e) => e.id === id)?.name ?? "Unknown";
@@ -283,7 +283,7 @@ export function EmployeesClient({
   dailyReports,
   initialTab,
 }: {
-  employees: Employee[];
+  employees: SafeEmployee[];
   tasks: Task[];
   leaveRequests: LeaveRequest[];
   dailyReports: DailyReport[];

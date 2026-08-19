@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { readLeaveRequests, readEmployees } from "@/app/lib/admin-employees";
+import { readLeaveRequests, readSafeEmployees } from "@/app/lib/admin-employees";
 import { LeaveCalendar } from "./leave-calendar";
 import { LeavePendingList } from "./leave-pending-list";
 import { LeaveRequestForm } from "./leave-request-form";
@@ -12,11 +12,11 @@ import { LeaveRequestForm } from "./leave-request-form";
 // cross-employee calendar, so no split is needed here per the spec.
 export default async function LeavePage() {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
 
   if (session.role === "super") {
-    const [requests, employees] = await Promise.all([readLeaveRequests(), readEmployees()]);
+    const [requests, employees] = await Promise.all([readLeaveRequests(), readSafeEmployees()]);
     return (
       <div className="space-y-6">
         <div>

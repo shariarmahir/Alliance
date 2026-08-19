@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local pre-migration data backup — contains PII and password hashes
+.backup-pre-migration/
+
+# ...but the placeholder template SHOULD be committed
+!.env.example

@@ -9,7 +9,7 @@ import type { AdminNavCounts } from "@/app/admin/nav-config";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
 
   // Sidebar counts are read here (server) and passed down, so the nav numbers

@@ -7,7 +7,7 @@ import { LoginAnimation } from "./login-animation";
 
 export default async function AdminLoginPage() {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (session) redirect(landingPathForRole(session.role));
 
   return (

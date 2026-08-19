@@ -9,7 +9,7 @@ import { TasksClient } from "./tasks-client";
 // all-employees task view — avoids a duplicate UI, per the Phase 4 spec.
 export default async function TasksPage() {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
 
   if (session.role === "super") {

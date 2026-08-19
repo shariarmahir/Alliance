@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { readEmployees, addEmployee } from "@/app/lib/admin-employees";
+import {
+  readEmployees,
+  addEmployee,
+  updateEmployee,
+  deleteEmployee,
+  stripPassword,
+} from "@/app/lib/admin-employees";
+import { hashPassword } from "@/app/lib/admin-auth";
 import { requireSuperAdminSession, isSessionResponse } from "../_auth";
 import type { Employee } from "@/app/lib/types";
-
-// MOCK ACCOUNTS check must stay in sync with app/lib/admin-auth.ts's hardcoded
-// list — a new employee must not collide with either of those emails.
-const HARDCODED_ADMIN_EMAILS = ["nurulislam@gmail.com", "subadmin@gmail.com"];
 
 const DesignationSchema = z.enum([
   "sales-associate",
@@ -17,11 +20,15 @@ const DesignationSchema = z.enum([
 ]);
 const AccessAreaSchema = z.enum(["quotations", "orders", "emails", "contact-requests"]);
 
+// 8 characters minimum: these accounts reach customer PII and pricing, and
+// the login is public. The old 4-character floor allowed "1234".
+const PasswordSchema = z.string().min(8, "Password must be at least 8 characters.");
+
 const CreateEmployeeSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required."),
     email: z.string().trim().email("Enter a valid email."),
-    password: z.string().min(4, "Password must be at least 4 characters."),
+    password: PasswordSchema,
     employeeIdNumber: z.string().trim().min(1, "Employee ID is required."),
     designation: DesignationSchema,
     customDesignation: z.string().trim().max(60).optional(),
@@ -32,7 +39,23 @@ const CreateEmployeeSchema = z
     path: ["customDesignation"],
   });
 
-// POST /api/admin/employees — super-admin-only, creates a new real employee account.
+const UpdateEmployeeSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(1).optional(),
+  password: PasswordSchema.optional(),
+  designation: DesignationSchema.optional(),
+  customDesignation: z.string().trim().max(60).optional(),
+  accessOptions: z.array(AccessAreaSchema).optional(),
+  disabled: z.boolean().optional(),
+});
+
+// The bootstrap super admin lives in the environment, not the roster — a new
+// employee must not claim that email or they would shadow the owner account.
+function bootstrapEmail(): string | null {
+  return process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() ?? null;
+}
+
+// POST /api/admin/employees — super-admin-only, creates a real employee account.
 export async function POST(request: NextRequest) {
   const session = await requireSuperAdminSession();
   if (isSessionResponse(session)) return session;
@@ -47,7 +70,7 @@ export async function POST(request: NextRequest) {
     parsed.data;
   const normalizedEmail = email.toLowerCase();
 
-  if (HARDCODED_ADMIN_EMAILS.includes(normalizedEmail)) {
+  if (normalizedEmail === bootstrapEmail()) {
     return NextResponse.json({ error: "This email is already in use." }, { status: 400 });
   }
 
@@ -64,7 +87,7 @@ export async function POST(request: NextRequest) {
     employeeIdNumber,
     name,
     email,
-    password,
+    password: await hashPassword(password),
     designation,
     ...(designation === "other" && customDesignation ? { customDesignation } : {}),
     accessOptions,
@@ -73,5 +96,53 @@ export async function POST(request: NextRequest) {
 
   await addEmployee(employee);
 
-  return NextResponse.json({ employee }, { status: 201 });
+  // stripPassword, not the raw record: the response used to echo the password
+  // straight back to the browser.
+  return NextResponse.json({ employee: stripPassword(employee) }, { status: 201 });
+}
+
+// PATCH /api/admin/employees — update access, reset a password, or disable an
+// account. Without this there was no way to change or revoke staff access
+// after creation.
+export async function PATCH(request: NextRequest) {
+  const session = await requireSuperAdminSession();
+  if (isSessionResponse(session)) return session;
+
+  const body = await request.json().catch(() => null);
+  const parsed = UpdateEmployeeSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const { id, password, ...rest } = parsed.data;
+
+  try {
+    const updated = await updateEmployee(id, {
+      ...rest,
+      ...(password ? { password: await hashPassword(password) } : {}),
+    });
+    return NextResponse.json({ employee: stripPassword(updated) });
+  } catch {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+}
+
+// DELETE /api/admin/employees?id=... — hard delete. Disabling via PATCH is
+// usually the better choice; tasks and reports reference employees by id.
+export async function DELETE(request: NextRequest) {
+  const session = await requireSuperAdminSession();
+  if (isSessionResponse(session)) return session;
+
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing employee id" }, { status: 400 });
+  }
+
+  const employees = await readEmployees();
+  if (!employees.some((e) => e.id === id)) {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+
+  await deleteEmployee(id);
+  return NextResponse.json({ ok: true });
 }

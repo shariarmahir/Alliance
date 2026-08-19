@@ -10,7 +10,7 @@ import { DailyReportForm } from "./daily-report-form";
 // sub-admin-primary like Tasks, per the spec.
 export default async function DailyReportPage() {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
 
   if (session.role === "super") {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { Employee } from "@/app/lib/types";
+import type { SafeEmployee } from "@/app/lib/types";
 
 // The design bundle puts task assignment inline on the employees screen rather
 // than behind a dialog, with the priority as a chip row. Priority is presentation
@@ -18,7 +18,7 @@ function defaultDue(): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function AssignTaskInline({ employees }: { employees: Employee[] }) {
+export function AssignTaskInline({ employees }: { employees: SafeEmployee[] }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [assigneeEmployeeId, setAssigneeEmployeeId] = useState("");

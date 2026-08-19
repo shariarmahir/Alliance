@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/app/lib/utils";
-import type { Employee, LeaveRequest } from "@/app/lib/types";
+import type { SafeEmployee, LeaveRequest } from "@/app/lib/types";
 
 function toIso(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -18,7 +18,7 @@ export function LeaveCalendar({
   employees,
 }: {
   requests: LeaveRequest[];
-  employees: Employee[];
+  employees: SafeEmployee[];
 }) {
   const [cursor, setCursor] = useState(() => {
     const now = new Date();

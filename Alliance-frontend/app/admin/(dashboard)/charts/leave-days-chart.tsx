@@ -2,7 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
-import type { Employee, LeaveRequest } from "@/app/lib/types";
+import type { SafeEmployee, LeaveRequest } from "@/app/lib/types";
 
 function countLeaveDaysThisMonth(requests: LeaveRequest[], employeeId: string): number {
   const now = new Date();
@@ -23,7 +23,7 @@ function countLeaveDaysThisMonth(requests: LeaveRequest[], employeeId: string): 
 }
 
 // Per-employee monthly approved-leave-days bar chart, one bar per employee.
-export function LeaveDaysChart({ requests, employees }: { requests: LeaveRequest[]; employees: Employee[] }) {
+export function LeaveDaysChart({ requests, employees }: { requests: LeaveRequest[]; employees: SafeEmployee[] }) {
   const data = employees.map((e) => ({
     name: e.name,
     days: countLeaveDaysThisMonth(requests, e.id),

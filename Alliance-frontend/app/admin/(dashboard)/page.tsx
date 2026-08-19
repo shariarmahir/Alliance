@@ -44,7 +44,7 @@ export default async function AdminOverviewPage({
   searchParams: Promise<{ range?: string }>;
 }) {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
 
   if (session.role === "sub") {

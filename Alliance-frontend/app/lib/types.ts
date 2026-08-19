@@ -138,12 +138,18 @@ export type Employee = {
   employeeIdNumber: string; // human-facing ID like "EMP-0042", admin-assigned, unique
   name: string;
   email: string;
-  password: string; // plain text — see mock-security note in Phase 4 design spec
+  password: string; // bcrypt hash — never plaintext, never returned by any API route
   designation: Designation;
   customDesignation?: string; // free-text label, set only when designation === "other"
+  role?: AdminRole; // defaults to "sub" when absent; lets a super admin promote staff
   accessOptions: AccessArea[]; // areas granted beyond the sub-admin default
+  disabled?: boolean; // soft-delete: blocks login but keeps tasks/reports resolvable
   createdAt: string; // ISO
 };
+
+// Employee with the password field removed — the only shape that may cross an
+// API boundary or reach a client component.
+export type SafeEmployee = Omit<Employee, "password">;
 
 export type TaskStatus = "pending" | "in-progress" | "completed";
 
@@ -242,6 +248,12 @@ export type OrderConfirmation = {
   grandTotal: number;
   terms: QuotationTerms;
   issuedAt: string; // ISO
+  // Real delivery progress, advanced by an admin from the Orders screen.
+  // Index into DELIVERY_STAGES (app/lib/delivery.ts); absent means stage 0
+  // ("Confirmed"). The customer tracking page reads this instead of the
+  // arithmetic-on-the-tracking-ID simulation it used to display.
+  deliveryStage?: number;
+  deliveryUpdatedAt?: string; // ISO
 };
 
 // A submitted quotation, persisted server-side (data/quotations.json) as of

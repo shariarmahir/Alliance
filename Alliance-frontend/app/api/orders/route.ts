@@ -1,54 +1,23 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { addOrder } from "@/app/lib/admin-operations";
-import type { Order } from "@/app/lib/types";
 
-// POST /api/orders — kept for admin-side order records. The customer flow no
-// longer creates orders directly (see app/(site)/track/quote/[id]/page.tsx):
-// an admin's quotation confirmation is the order now.
+// REMOVED — this endpoint used to accept unauthenticated order writes with
+// client-supplied `subtotal`, `shippingCost` and `grandTotal`, so anyone could
+// POST an order into the admin dashboard for any amount, with fabricated line
+// items and delivery addresses. It had no legitimate caller: the customer flow
+// stopped creating orders when the order-confirm screen was removed (an
+// admin's quotation confirmation is the order now).
+//
+// Kept as an explicit 410 rather than a deleted file so any stale client still
+// calling it fails loudly instead of hitting a confusing 404, and so the
+// reason it went away stays recorded here.
+//
+// If admin-side order creation is ever needed, rebuild it behind
+// requireAreaSession("orders") and compute every monetary field server-side
+// from the catalog — never from the request body.
 
-const QuoteItemSchema = z.object({
-  slug: z.string().min(1),
-  partNumber: z.string().min(1),
-  name: z.string().min(1),
-  brand: z.string(),
-  image: z.string(),
-  price: z.number(),
-  quantity: z.number().int().min(1),
-});
-
-const DeliveryAddressSchema = z.object({
-  name: z.string().min(1),
-  line: z.string().min(1),
-  city: z.string().min(1),
-  country: z.string().min(1),
-  phone: z.string().min(1),
-});
-
-const OrderSchema = z.object({
-  orderNumber: z.string().min(1),
-  trackingId: z.string().min(1),
-  items: z.array(QuoteItemSchema).min(1),
-  subtotal: z.number(),
-  shippingCost: z.number(),
-  grandTotal: z.number(),
-  deliveryOption: z.enum(["standard", "express", "air"]),
-  deliveryOptionName: z.string().min(1),
-  deliveryEta: z.string().min(1),
-  preferredDate: z.string().min(1),
-  address: DeliveryAddressSchema,
-  placedAt: z.string().min(1),
-});
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = OrderSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
-
-  const order: Order = { ...parsed.data, status: "pending" };
-  await addOrder(order);
-
-  return NextResponse.json({ order }, { status: 201 });
+export async function POST() {
+  return NextResponse.json(
+    { error: "This endpoint has been removed. Orders are created by confirming a quotation." },
+    { status: 410 }
+  );
 }

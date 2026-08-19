@@ -10,7 +10,7 @@ import type { AccessArea, AdminSession } from "@/app/lib/types";
 // admin (super or sub) may call them — only missing/invalid session is rejected.
 export async function requireAdminSession(): Promise<AdminSession | NextResponse> {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

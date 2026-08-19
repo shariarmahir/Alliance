@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { Employee, LeaveRequest, LeaveStatus } from "@/app/lib/types";
+import type { SafeEmployee, LeaveRequest, LeaveStatus } from "@/app/lib/types";
 
 const STATUS_LABEL: Record<LeaveStatus, { label: string; cls: string }> = {
   pending: { label: "PENDING", cls: "text-warn" },
@@ -100,7 +100,7 @@ export function LeavePendingList({
   employees,
 }: {
   requests: LeaveRequest[];
-  employees: Employee[];
+  employees: SafeEmployee[];
 }) {
   const router = useRouter();
 

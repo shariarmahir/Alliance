@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/app/lib/admin-auth";
+// Imports the Edge-safe token module directly, NOT admin-auth.ts — the latter
+// pulls in bcrypt and Blob-backed employee reads, neither of which can run in
+// middleware.
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
 import type { AccessArea } from "@/app/lib/types";
+
+// Inlined rather than imported from admin-auth.ts for the same reason.
+const ADMIN_LANDING = "/admin";
 
 // Prefix-matched: pathname === prefix OR pathname starts with `${prefix}/`.
 // Safe to add new entries here freely — each is scoped to its own subtree.
@@ -34,9 +40,9 @@ const SUB_ADMIN_GRANTABLE_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/admin/contact-requests", area: "contact-requests" },
 ];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = parseAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
 
   if (!session) {
     const loginUrl = new URL("/admin/login", request.url);
@@ -53,7 +59,7 @@ export function proxy(request: NextRequest) {
           (session.accessOptions ?? []).includes(area)
       );
     if (!allowed) {
-      return NextResponse.redirect(new URL(landingPathForRole("sub"), request.url));
+      return NextResponse.redirect(new URL(ADMIN_LANDING, request.url));
     }
   }
 

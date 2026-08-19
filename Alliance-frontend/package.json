@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@lottiefiles/dotlottie-react": "^0.19.13",
+    "@lottiefiles/dotlottie-web": "0.79.0",
     "@types/bcryptjs": "^2.4.6",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
@@ -41,5 +42,8 @@
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@lottiefiles/dotlottie-web": "0.79.0"
   }
 }

@@ -88,6 +88,30 @@ export async function readQuotation(id: string): Promise<Quotation | undefined> 
   return quotations.find((q) => q.id === id);
 }
 
+// Resolves a customer-facing tracking ID to the confirmed quotation that owns
+// it. Tracking IDs are minted at confirmation time (see generateTrackingId in
+// order-confirmation.ts), so only confirmed quotations are reachable — an
+// unknown or unissued ID returns undefined and the page renders "not found"
+// rather than inventing a status.
+export async function findByTrackingId(trackingId: string): Promise<Quotation | undefined> {
+  const quotations = await readQuotations();
+  const wanted = trackingId.trim().toUpperCase();
+  return quotations.find((q) => q.confirmation?.trackingId.toUpperCase() === wanted);
+}
+
+// Advances the delivery stage on a confirmed quotation. Stage indexes match
+// DELIVERY_STAGES in app/lib/delivery.ts.
+export async function updateDeliveryStage(trackingId: string, stage: number): Promise<Quotation> {
+  const quotations = await readQuotations();
+  const wanted = trackingId.trim().toUpperCase();
+  const quotation = quotations.find((q) => q.confirmation?.trackingId.toUpperCase() === wanted);
+  if (!quotation?.confirmation) throw new Error(`Tracking ID not found: ${trackingId}`);
+  quotation.confirmation.deliveryStage = stage;
+  quotation.confirmation.deliveryUpdatedAt = new Date().toISOString();
+  await writeQuotations(quotations);
+  return quotation;
+}
+
 // Issues the order confirmation: stores the admin's priced lines and flips the
 // quotation to confirmed in one write, so the two can never disagree.
 export async function confirmQuotation(

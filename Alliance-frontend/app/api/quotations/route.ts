@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { addQuotation } from "@/app/lib/admin-operations";
+import { checkRateLimit, clientKey, tooManyRequests } from "@/app/lib/rate-limit";
 import type { Quotation } from "@/app/lib/types";
 
 // POST /api/quotations — replaces the old stale app/api/quotes/route.ts
@@ -40,7 +41,10 @@ const QuotationRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const limit = checkRateLimit(clientKey(request, "quotation"), { limit: 10, windowMs: 10 * 60_000 });
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
+  const body = await request.json().catch(() => null);
   const parsed = QuotationRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors }, { status: 400 });

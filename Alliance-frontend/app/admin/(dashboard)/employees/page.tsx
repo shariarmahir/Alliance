@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/app/lib/admin-auth";
-import { readEmployees, readTasks, readLeaveRequests, readDailyReports } from "@/app/lib/admin-employees";
+import { readSafeEmployees, readTasks, readLeaveRequests, readDailyReports } from "@/app/lib/admin-employees";
 import { EmployeesClient } from "./employees-client";
 
 // "leave" is no longer a tab — the leave calendar and approval queue are a
@@ -15,7 +15,7 @@ const VALID_TABS = new Set(["roster", "tasks", "reports"]);
 // duplicate UI).
 export default async function EmployeesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const cookieStore = await cookies();
-  const session = parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   if (!session) redirect("/admin/login");
   if (session.role !== "super") redirect(landingPathForRole(session.role));
 
@@ -23,7 +23,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
   const initialTab = tab && VALID_TABS.has(tab) ? tab : "roster";
 
   const [employees, tasks, leaveRequests, dailyReports] = await Promise.all([
-    readEmployees(),
+    readSafeEmployees(),
     readTasks(),
     readLeaveRequests(),
     readDailyReports(),
