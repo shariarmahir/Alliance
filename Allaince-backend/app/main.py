@@ -22,12 +22,42 @@ logger = logging.getLogger("app")
 logging.basicConfig(level=logging.INFO)
 
 
+def _check_production_config() -> None:
+    """Fails fast on settings that are silently insecure in production.
+
+    Each of these looks fine locally and is a real vulnerability once
+    deployed, so the app refuses to start rather than running exposed.
+    """
+    problems: list[str] = []
+
+    if "*" in settings.cors_origins_list:
+        # Credentialed CORS plus a wildcard origin lets any site call the API
+        # with the admin's cookie attached.
+        problems.append("CORS_ALLOWED_ORIGINS must list exact origins, not '*'.")
+    if not settings.cookie_secure:
+        problems.append("COOKIE_SECURE must be true so the session cookie requires HTTPS.")
+    if settings.cookie_samesite != "none":
+        # Frontend and API are different origins in production; anything
+        # stricter means the cookie is never sent and login silently fails.
+        logger.warning(
+            "COOKIE_SAMESITE is %r; cross-origin admin sessions need 'none'.",
+            settings.cookie_samesite,
+        )
+    if settings.database_url.startswith("sqlite"):
+        problems.append("DATABASE_URL points at SQLite; production expects PostgreSQL.")
+
+    if problems:
+        raise RuntimeError("Unsafe production configuration:\n  - " + "\n  - ".join(problems))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.is_production and not settings.redis_url:
-        # Stated as a hard requirement in the design: per-worker in-memory
-        # limiting is a speed bump, not a control, once there are many workers.
-        logger.warning("REDIS_URL is not set in production — rate limiting is per-worker only.")
+    if settings.is_production:
+        _check_production_config()
+        if not settings.redis_url:
+            # Per-worker in-memory limiting is a speed bump, not a control,
+            # once there is more than one worker.
+            logger.warning("REDIS_URL is not set — rate limiting is per-worker only.")
     yield
 
 
