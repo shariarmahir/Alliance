@@ -111,7 +111,10 @@ export default function Home() {
 
       <div className="grid grid-cols-2 gap-px border-b border-slate-line bg-slate-line sm:grid-cols-4">
         {heroStats.map((s) => (
-          <div key={s.label} className="flex flex-col justify-center bg-surface px-7 py-3.5">
+          <div
+            key={s.label}
+            className="flex flex-col items-center justify-center bg-surface px-7 py-3.5 text-center"
+          >
             <p className="mono-label text-[10.5px] tracking-[0.09em] text-[#8a94a6]">{s.label}</p>
             <p className="mt-1 text-[19px] font-bold text-primary">{s.value}</p>
           </div>
