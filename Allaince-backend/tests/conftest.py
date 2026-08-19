@@ -10,6 +10,7 @@ os.environ.setdefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -27,6 +28,15 @@ async def engine():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # SQLite ignores foreign keys unless asked. Without this, ON DELETE SET NULL
+    # silently does nothing and the tests would not reflect Postgres.
+    @event.listens_for(test_engine.sync_engine, "connect")
+    def _enable_fk(dbapi_connection, _record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield test_engine

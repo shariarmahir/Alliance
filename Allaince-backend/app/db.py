@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
@@ -12,6 +13,17 @@ if not settings.database_url.startswith("sqlite"):
     _engine_kwargs |= {"pool_size": 10, "max_overflow": 20, "pool_pre_ping": True, "pool_recycle": 1800}
 
 engine = create_async_engine(settings.database_url, **_engine_kwargs)
+
+if settings.database_url.startswith("sqlite"):
+    # SQLite ignores foreign keys unless asked, which would silently disable
+    # the ON DELETE SET NULL behaviour that Postgres enforces in production.
+    @event.listens_for(engine.sync_engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 

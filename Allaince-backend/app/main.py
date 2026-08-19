@@ -7,7 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import admin_catalog, admin_operations, auth, catalog, operations
+from app.routers import (
+    admin_catalog,
+    admin_operations,
+    analytics,
+    auth,
+    catalog,
+    employees,
+    operations,
+)
 
 logger = logging.getLogger("app")
 logging.basicConfig(level=logging.INFO)
@@ -45,9 +53,20 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     # Frontend forms expect { error } — mirror that shape rather than FastAPI's
     # default { detail: [...] }, and keep the field breakdown alongside it.
+    #
+    # errors() carries the original exception object for custom validators,
+    # which json cannot encode; keep only the serialisable fields.
+    details = [
+        {
+            "loc": [str(part) for part in error.get("loc", ())],
+            "msg": str(error.get("msg", "")),
+            "type": str(error.get("type", "")),
+        }
+        for error in exc.errors()
+    ]
     return JSONResponse(
         status_code=422,
-        content={"error": "Invalid request body.", "details": exc.errors()},
+        content={"error": "Invalid request body.", "details": details},
     )
 
 
@@ -56,6 +75,8 @@ app.include_router(catalog.router)
 app.include_router(admin_catalog.router)
 app.include_router(operations.router)
 app.include_router(admin_operations.router)
+app.include_router(employees.router)
+app.include_router(analytics.router)
 
 
 @app.get("/health", tags=["meta"])
