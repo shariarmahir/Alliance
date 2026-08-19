@@ -13,6 +13,7 @@ from app.routers import (
     analytics,
     auth,
     catalog,
+    emails,
     employees,
     operations,
 )
@@ -77,6 +78,7 @@ app.include_router(operations.router)
 app.include_router(admin_operations.router)
 app.include_router(employees.router)
 app.include_router(analytics.router)
+app.include_router(emails.router)
 
 
 @app.get("/health", tags=["meta"])
