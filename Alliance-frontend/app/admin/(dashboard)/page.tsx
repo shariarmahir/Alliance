@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { readRangeAnalytics, type AnalyticsRange } from "@/app/lib/admin-analytics";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
+import { readRangeAnalytics, type AnalyticsRange } from "@/app/lib/admin-data";
 import { formatPrice } from "@/app/lib/utils";
 import { RangeToggle } from "./range-toggle";
 import { StatCard } from "./stat-card";

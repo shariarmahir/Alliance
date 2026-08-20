@@ -1,4 +1,4 @@
-import { readQuotations } from "@/app/lib/admin-operations";
+import { readQuotations } from "@/app/lib/admin-data";
 import { QuotationsClient } from "./quotations-client";
 
 export default async function AdminQuotationsPage() {

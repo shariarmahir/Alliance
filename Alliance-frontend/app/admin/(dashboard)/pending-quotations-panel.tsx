@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { readQuotations } from "@/app/lib/admin-operations";
+import { readQuotations } from "@/app/lib/admin-data";
 
 // The design's "Price requests needing an answer" table. Rows come from real
 // data/quotations.json (not mock analytics) so the SLA ages are meaningful —

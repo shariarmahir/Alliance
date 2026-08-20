@@ -1,7 +1,9 @@
-import { isGmailConnected } from "@/app/lib/gmail-client";
+import { readGmailStatus } from "@/app/lib/admin-data";
 import { EmailsClient } from "./emails-client";
 
 export default async function AdminEmailsPage() {
-  const status = await isGmailConnected();
-  return <EmailsClient connected={status.connected} connectedSince={status.savedAt ?? null} />;
+  const status = await readGmailStatus();
+  return (
+    <EmailsClient connected={status.connected} connectedSince={status.connectedAt ?? null} />
+  );
 }

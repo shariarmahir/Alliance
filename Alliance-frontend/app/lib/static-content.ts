@@ -1,44 +1,8 @@
-// TEMPORARY MOCK DATA — replace with FastAPI backend
-//
-// products/categories read from Blob-backed data/*.json (written to by the
-// admin catalog write layer, app/lib/admin-catalog.ts). Every export that
-// touches them is async — Blob reads are HTTP fetches, unlike the local-disk
-// fs.readFileSync this module used before the Vercel Blob migration, which
-// let it fake synchronous "always fresh" arrays via a Proxy. Callers (all
-// Server Components or Route Handlers) await these directly.
-import "server-only";
-import { readBlobJson } from "./blob-store";
-import type { Brand, Category, FaqItem, Product, Review } from "./types";
+import type { FaqItem, Review } from '@/app/lib/types';
 
-// ---------------------------------------------------------------------------
-// Brands (not admin-manageable this phase — stays hardcoded)
-// ---------------------------------------------------------------------------
-
-export const brands: Brand[] = [
-  { slug: "allen-bradley", name: "Allen Bradley", logo: "/images/brands/allen-bradley.png" },
-  { slug: "siemens", name: "Siemens", logo: "/images/brands/siemens.png" },
-  { slug: "mitsubishi", name: "Mitsubishi", logo: "/images/brands/mitsubishi.png" },
-  { slug: "omron", name: "Omron", logo: "/images/brands/omron.png" },
-  { slug: "schneider-electric", name: "Schneider Electric", logo: "/images/brands/schneider-electric.png" },
-  { slug: "danfoss", name: "Danfoss", logo: "/images/brands/danfoss.png" },
-];
-
-// ---------------------------------------------------------------------------
-// Products & Categories — read from data/*.json (seeded from the original
-// hardcoded arrays; mutated by the admin catalog write layer from this point on)
-// ---------------------------------------------------------------------------
-
-export async function getAllProducts(): Promise<Product[]> {
-  return readBlobJson<Product[]>("products.json");
-}
-
-export async function getAllCategories(): Promise<Category[]> {
-  return readBlobJson<Category[]>("categories.json");
-}
-
-// ---------------------------------------------------------------------------
-// Reviews
-// ---------------------------------------------------------------------------
+// Static marketing copy: customer testimonials and the storefront FAQ.
+// Deliberately not backend data - these are editorial content, not records the
+// admin manages, so they live in source rather than behind an API call.
 
 export const reviews: Review[] = [
   {
@@ -125,31 +89,3 @@ export const faqs: FaqItem[] = [
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------
-
-export async function getProductBySlug(slug: string): Promise<Product | undefined> {
-  const products = await getAllProducts();
-  return products.find((p) => p.slug === slug);
-}
-
-export async function getProductsByCategory(slug: string): Promise<Product[]> {
-  const products = await getAllProducts();
-  return products.filter((p) => p.categorySlug === slug);
-}
-
-export async function getTopSelling(period: "week" | "month" | "year"): Promise<Product[]> {
-  const products = await getAllProducts();
-  const rankKey = period === "week" ? "weekRank" : period === "month" ? "monthRank" : "yearRank";
-  return products
-    .filter((p) => p[rankKey] !== undefined)
-    .sort((a, b) => (a[rankKey] as number) - (b[rankKey] as number))
-    .slice(0, 6);
-}
-
-export async function getRelatedProducts(slug: string): Promise<Product[]> {
-  const product = await getProductBySlug(slug);
-  if (!product) return [];
-  const products = await getAllProducts();
-  return products
-    .filter((p) => p.slug !== slug && p.categorySlug === product.categorySlug)
-    .slice(0, 4);
-}

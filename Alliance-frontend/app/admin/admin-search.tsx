@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Package, FileText, Box, User, Loader2 } from "lucide-react";
-import type { SearchResult, SearchResultType } from "@/app/lib/admin-search";
+import type { SearchResult } from "@/app/lib/admin-data";
+
+type SearchResultType = SearchResult["type"];
 
 const TYPE_META: Record<
   SearchResultType,

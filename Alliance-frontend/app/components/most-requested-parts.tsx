@@ -1,19 +1,20 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { TopSellerCard } from "@/app/components/top-seller-card";
-import { topSellersFor, type TopSellerPeriod } from "@/app/lib/top-sellers";
+import { getTopSellers } from "@/app/lib/catalog-data";
+import { MostRequestedPartsTabs } from "@/app/components/most-requested-parts-tabs";
 
-const PERIODS: { id: TopSellerPeriod; label: string }[] = [
-  { id: "week", label: "This week" },
-  { id: "month", label: "This month" },
-  { id: "year", label: "This year" },
-];
+// Server component: top sellers are now aggregated from real issued order
+// confirmations, so the three periods are fetched here and handed to the
+// client tabs. Previously this computed a fabricated ranking in the browser.
+export async function MostRequestedParts() {
+  const [week, month, year] = await Promise.all([
+    getTopSellers("week", 4),
+    getTopSellers("month", 4),
+    getTopSellers("year", 4),
+  ]);
 
-export function MostRequestedParts() {
-  const [period, setPeriod] = useState<TopSellerPeriod>("week");
-  const items = topSellersFor(period, 4);
+  // Nothing has been sold in any window yet — the section would render three
+  // empty tabs, so it is omitted entirely rather than showing a dead control.
+  if (!week.length && !month.length && !year.length) return null;
 
   return (
     <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
@@ -22,7 +23,7 @@ export function MostRequestedParts() {
           <h2 className="mb-1 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
             Most requested parts
           </h2>
-          <p className="text-[13.5px] text-[#64748b]">Ranked by price requests received</p>
+          <p className="text-[13.5px] text-[#64748b]">Ranked by units ordered</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
@@ -31,33 +32,9 @@ export function MostRequestedParts() {
           >
             Want more?
           </Link>
-          <div className="flex rounded-[9px] border border-slate-line bg-[#f2f4f7] p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPeriod(p.id)}
-                aria-pressed={period === p.id}
-                className={`rounded-md px-5 py-2 text-[13px] font-semibold transition-colors ${
-                  period === p.id
-                    ? "bg-white text-ink shadow-[0_1px_3px_rgba(16,25,45,.12)]"
-                    : "font-medium text-[#64748b] hover:text-primary"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
-      {/* Two per row from the base breakpoint up, not one — the same fix as
-          the category grid: grid-cols-1 stuck phones with a single
-          full-width card at a time. */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:grid-cols-4">
-        {items.map((p, i) => (
-          <TopSellerCard key={p.id} product={p} rank={i === 0 ? 1 : undefined} periodLabel={PERIODS.find((x) => x.id === period)?.label} />
-        ))}
-      </div>
+      <MostRequestedPartsTabs week={week} month={month} year={year} />
     </section>
   );
 }

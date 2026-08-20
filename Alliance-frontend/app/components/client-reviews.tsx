@@ -1,4 +1,4 @@
-import { reviews } from "@/app/lib/mock-data";
+import { reviews } from "@/app/lib/static-content";
 import { ClientReviewsCarousel } from "@/app/components/client-reviews-carousel";
 
 export function ClientReviews() {

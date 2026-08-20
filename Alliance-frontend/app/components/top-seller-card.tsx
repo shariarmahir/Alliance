@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { TopSeller } from "@/app/lib/top-sellers";
+import type { Product } from "@/app/lib/types";
 
 // Stock badge mirrors the design bundle's three states: green in-stock,
 // amber low-stock, neutral sourced-to-order when the shelf is empty. Sized
@@ -19,15 +19,19 @@ function StockBadge({ stock }: { stock: number }) {
 
 export function TopSellerCard({
   product,
+  quantitySold,
   rank,
   periodLabel = "This week",
 }: {
-  product: TopSeller;
+  product: Product;
+  // Units actually sold in the period, from issued order confirmations. The
+  // card previously showed a fabricated star rating and review count; neither
+  // exists as real data, so this replaces them with a figure that does.
+  quantitySold: number;
   rank?: number;
   periodLabel?: string;
 }) {
-  const browseHref = `/products?q=${encodeURIComponent(product.partNumber)}`;
-  const filled = Math.round(product.rating);
+  const browseHref = `/products/${product.slug}`;
 
   return (
     <div className="group overflow-hidden rounded-[10px] border border-slate-line bg-white transition-all duration-300 hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_12px_28px_rgba(16,25,45,.1)]">
@@ -46,7 +50,7 @@ export function TopSellerCard({
               <span className="hidden sm:inline"> {periodLabel.toUpperCase()}</span>
             </span>
           )}
-          <StockBadge stock={product.stock} />
+          <StockBadge stock={product.stockQty} />
         </div>
       </Link>
 
@@ -63,15 +67,14 @@ export function TopSellerCard({
           {product.name}
         </p>
 
-        {/* Star rating hidden below sm — a two-up card doesn't have the width
-            for five glyphs plus "4.0 · 8 reviews" without wrapping. */}
+        {/* Hidden below sm for the same reason the rating row was: a two-up
+            card has no width for a second metadata line. */}
         <div className="mb-3.5 hidden items-center gap-1.5 sm:flex">
-          <span className="font-mono text-xs tracking-[0.06em] text-accent">
-            {"★".repeat(filled)}
-            <span className="text-[#d7dee7]">{"★".repeat(5 - filled)}</span>
+          <span className="font-mono text-xs font-semibold tracking-[0.06em] text-accent">
+            {quantitySold}
           </span>
           <span className="text-[11.5px] text-[#8a94a6]">
-            {product.rating.toFixed(1)} · {product.reviews} reviews
+            {quantitySold === 1 ? "unit" : "units"} ordered {periodLabel.toLowerCase()}
           </span>
         </div>
 

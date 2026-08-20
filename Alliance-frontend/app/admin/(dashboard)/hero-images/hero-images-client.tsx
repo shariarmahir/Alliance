@@ -6,7 +6,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { UploadCloud, ImageOff } from "lucide-react";
 import { PageHeader, Panel, Pill } from "../admin-ui";
-import type { HeroImageEntry } from "@/app/lib/admin-catalog";
+import type { HeroImageEntry } from "@/app/lib/catalog-data";
 
 const SLOTS = [1, 2, 3, 4, 5];
 

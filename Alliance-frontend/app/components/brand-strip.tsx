@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { brands } from "@/app/lib/mock-data";
+import { getBrands } from "@/app/lib/catalog-data";
 
-export function BrandStrip() {
+export async function BrandStrip() {
+  const brands = await getBrands();
   return (
     <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
       <div className="mb-5 flex items-baseline justify-between">

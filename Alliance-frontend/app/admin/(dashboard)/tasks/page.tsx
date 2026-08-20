@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { readTasks } from "@/app/lib/admin-employees";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
+import { readTasks } from "@/app/lib/admin-data";
 import { TasksClient } from "./tasks-client";
 
 // Sub-admin's own task board. Super admin visiting this URL is redirected to

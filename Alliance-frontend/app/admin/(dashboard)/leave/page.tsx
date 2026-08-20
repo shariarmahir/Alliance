@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { readLeaveRequests, readSafeEmployees } from "@/app/lib/admin-employees";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
+import { readEmployees, readLeaveRequests } from "@/app/lib/admin-data";
 import { LeaveCalendar } from "./leave-calendar";
 import { LeavePendingList } from "./leave-pending-list";
 import { LeaveRequestForm } from "./leave-request-form";
@@ -16,7 +16,7 @@ export default async function LeavePage() {
   if (!session) redirect("/admin/login");
 
   if (session.role === "super") {
-    const [requests, employees] = await Promise.all([readLeaveRequests(), readSafeEmployees()]);
+    const [requests, employees] = await Promise.all([readLeaveRequests(), readEmployees()]);
     return (
       <div className="space-y-6">
         <div>

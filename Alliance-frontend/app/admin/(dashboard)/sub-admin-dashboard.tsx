@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { readTasks, readDailyReports } from "@/app/lib/admin-employees";
+import { readDailyReports, readTasks } from "@/app/lib/admin-data";
 import type { AdminSession } from "@/app/lib/types";
 import { WeeklyHoursChart } from "./charts/weekly-hours-chart";
 import { MyTasksList } from "./my-tasks-list";

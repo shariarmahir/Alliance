@@ -1,4 +1,4 @@
-import { readOrders } from "@/app/lib/admin-operations";
+import { readOrders } from "@/app/lib/admin-data";
 import { OrdersClient } from "./orders-client";
 
 // Reads fresh on every request (no module-level cache) — see

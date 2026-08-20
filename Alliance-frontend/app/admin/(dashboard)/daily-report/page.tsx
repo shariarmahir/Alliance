@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
-import { readDailyReports } from "@/app/lib/admin-employees";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
+import { readDailyReports } from "@/app/lib/admin-data";
 import { DailyReportForm } from "./daily-report-form";
 
 // Sub-admin's own submission form + history. Super admin visiting this URL

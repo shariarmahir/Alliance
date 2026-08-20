@@ -1,4 +1,4 @@
-import { readContactRequests } from "@/app/lib/admin-operations";
+import { readContactRequests } from "@/app/lib/admin-data";
 import { ContactRequestsClient } from "./contact-requests-client";
 
 export default async function AdminContactRequestsPage() {

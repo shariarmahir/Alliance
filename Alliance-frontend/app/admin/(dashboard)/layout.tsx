@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/admin-auth";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
 import { navGroupsForRole } from "@/app/admin/nav-config";
 import { AdminShell } from "@/app/admin/admin-shell";
-import { readProducts } from "@/app/lib/admin-catalog";
-import { readOrders, readQuotations, readContactRequests } from "@/app/lib/admin-operations";
+
+import { readContactRequests, readOrders, readQuotations, readProducts } from "@/app/lib/admin-data";
 import type { AdminNavCounts } from "@/app/admin/nav-config";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {

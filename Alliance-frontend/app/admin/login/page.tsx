@@ -1,14 +1,14 @@
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE, parseAdminSession, landingPathForRole } from "@/app/lib/admin-auth";
+import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
 import { LoginForm } from "./login-form";
 import { LoginAnimation } from "./login-animation";
 
 export default async function AdminLoginPage() {
   const cookieStore = await cookies();
   const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
-  if (session) redirect(landingPathForRole(session.role));
+  if (session) redirect("/admin");
 
   return (
     <div className="flex min-h-screen">

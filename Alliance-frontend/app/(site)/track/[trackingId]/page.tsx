@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { PackageSearch, SearchX } from "lucide-react";
 import { TrackingTimeline } from "@/app/components/tracking-timeline";
-import { findByTrackingId } from "@/app/lib/admin-operations";
+import { getTracking } from "@/app/lib/catalog-data";
 import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
-import { formatPrice } from "@/app/lib/utils";
 
 // Real delivery status, looked up by tracking ID. This page previously
 // simulated a status by summing the tracking ID's character codes
 // (charCodeSum(id) % 4), so any string produced a confident-looking timeline
 // and a genuine order's true state was never shown. Stages are now advanced
 // by an admin from the Orders screen and read straight off the confirmation.
+//
+// The backend's tracking endpoint returns progress only — no pricing, no
+// contact details — because a tracking ID may be forwarded to anyone, so this
+// page no longer shows the order total it used to.
 
 export default async function TrackingPage({
   params,
@@ -17,10 +20,9 @@ export default async function TrackingPage({
   params: Promise<{ trackingId: string }>;
 }) {
   const { trackingId } = await params;
-  const quotation = await findByTrackingId(trackingId);
-  const confirmation = quotation?.confirmation;
+  const tracking = await getTracking(trackingId);
 
-  if (!confirmation) {
+  if (!tracking) {
     return (
       <div className="mx-auto flex max-w-xl flex-col items-center px-7 py-20 text-center">
         <SearchX className="size-14 text-[#c8d0da]" />
@@ -47,8 +49,8 @@ export default async function TrackingPage({
     );
   }
 
-  const stage = clampStage(confirmation.deliveryStage);
-  const updatedAt = confirmation.deliveryUpdatedAt ?? confirmation.issuedAt;
+  const stage = clampStage(tracking.stage);
+  const updatedAt = tracking.updatedAt ?? tracking.issuedAt;
 
   const steps = DELIVERY_STAGES.map((s, i) => ({
     label: s.label,
@@ -67,7 +69,7 @@ export default async function TrackingPage({
         <PackageSearch className="size-8 text-primary" />
         <div>
           <h1 className="text-2xl font-bold text-ink">
-            Tracking: <span className="font-mono">{confirmation.trackingId}</span>
+            Tracking: <span className="font-mono">{tracking.trackingId}</span>
           </h1>
           <p className="text-sm text-ink-muted">
             Current status:{" "}
@@ -80,26 +82,37 @@ export default async function TrackingPage({
         <TrackingTimeline currentStep={stage} steps={steps} />
       </div>
 
+      {/* Reference and dates only. The order total used to sit here, but a
+          tracking link is shareable, so pricing is no longer exposed. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-slate-line bg-surface p-4">
           <span className="mono-label text-[10.5px] tracking-[0.07em] text-[#8a94a6]">
             REFERENCE
           </span>
           <p className="mt-1 font-mono text-[13.5px] font-semibold text-ink">
-            {confirmation.refNumber}
+            {tracking.refNumber}
           </p>
         </div>
         <div className="rounded-lg border border-slate-line bg-surface p-4">
-          <span className="mono-label text-[10.5px] tracking-[0.07em] text-[#8a94a6]">ITEMS</span>
+          <span className="mono-label text-[10.5px] tracking-[0.07em] text-[#8a94a6]">ISSUED</span>
           <p className="mt-1 text-[13.5px] font-semibold text-ink">
-            {confirmation.lines.length}{" "}
-            {confirmation.lines.length === 1 ? "line" : "lines"}
+            {new Date(tracking.issuedAt).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </p>
         </div>
         <div className="rounded-lg border border-slate-line bg-surface p-4">
-          <span className="mono-label text-[10.5px] tracking-[0.07em] text-[#8a94a6]">TOTAL</span>
+          <span className="mono-label text-[10.5px] tracking-[0.07em] text-[#8a94a6]">
+            LAST UPDATE
+          </span>
           <p className="mt-1 text-[13.5px] font-semibold text-ink">
-            {formatPrice(confirmation.grandTotal)}
+            {new Date(updatedAt).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 // Server component: reads hero background image paths (admin-editable via
 // /admin/hero-images) and hands them to the client carousel. Headline/subheadline
 // text stays hardcoded — image only, per design spec.
-import { readHeroImages } from "@/app/lib/admin-catalog";
+import { getHeroImages } from "@/app/lib/catalog-data";
 import { HeroCarouselClient } from "./hero-carousel-client";
 
 const SLIDE_COPY = [
@@ -26,7 +26,7 @@ const SLIDE_COPY = [
 ];
 
 export async function HeroCarousel() {
-  const heroImages = (await readHeroImages()).sort((a, b) => a.slot - b.slot);
+  const heroImages = (await getHeroImages()).sort((a, b) => a.slot - b.slot);
   const slides = SLIDE_COPY.map((copy, i) => ({
     ...copy,
     image: heroImages[i]?.path ?? "/images/hero/image1.jpg",

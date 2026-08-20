@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getAllProducts } from "@/app/lib/mock-data";
+import { getProducts } from "@/app/lib/catalog-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://www.autolink.example";
@@ -7,7 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}${path}`,
     lastModified: new Date(),
   }));
-  const products = await getAllProducts();
+  const products = (await getProducts({ pageSize: 100 })).items;
   const productRoutes = products.map((p) => ({
     url: `${base}/products/${p.slug}`,
     lastModified: new Date(),

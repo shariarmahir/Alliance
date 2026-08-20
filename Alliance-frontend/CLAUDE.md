@@ -27,10 +27,10 @@ management, and analytics.
 - Tailwind CSS v4 (`@theme` tokens in `app/globals.css`, no `tailwind.config.js`)
 - shadcn/ui components (Base UI primitives, not Radix) in `app/components/ui/`
 - Recharts for admin analytics charts
-- No external database — persistence is JSON files under `data/`, read/written via
-  server-only modules. No FastAPI/Python backend exists; `Allaince-backend/` (sibling
-  folder, one level up) is currently empty. Everything runs through Next.js Route
-  Handlers.
+- **All data comes from the FastAPI backend in `Allaince-backend/`** (sibling folder,
+  one level up) over HTTP. This app has no database, no `app/api/**` route handlers,
+  and no JSON persistence — those were removed once the backend took over. See
+  "Data Layer" below.
 
 **Read `node_modules/next/dist/docs/` before writing App Router code that touches
 routing, layouts, or server/client boundaries** — this Next.js version has breaking
@@ -43,9 +43,13 @@ should be committed as-is, not hand-edited.
 ```
 Alliance/                  ← repo root folder name (legacy, unchanged)
 ├── Alliance-frontend/     ← this app (see below) — folder name also legacy/unchanged
-├── Allaince-backend/      ← empty; not in use
+├── Allaince-backend/      ← FastAPI + PostgreSQL backend (folder-name typo is
+│                             pre-existing and deliberate; see its README)
 └── docs/superpowers/      ← design specs and implementation plans for each phase
 ```
+
+Run both in development: the backend on `:8000` (`uvicorn app.main:app --reload`) and
+this app on `:3000`. Without the backend up, every page renders its empty state.
 
 Everything in this file is scoped to `Alliance-frontend/`.
 
@@ -122,62 +126,68 @@ Shape: `{ role: "super" | "sub", name, email, employeeId? }`.
 - Shared (super + sub, per RBAC below): `/admin/products`, `/admin/stock`,
   `/admin/hero-images`, `/admin/tasks`, `/admin/leave`, `/admin/daily-report`
 
-**RBAC is enforced in two places, deliberately:**
-1. `proxy.ts` — route-level. `SUB_ADMIN_ALLOWED_PREFIXES` (prefix match) plus a
-   separate `SUB_ADMIN_ALLOWED_EXACT = ["/admin"]` (exact match only — `/admin` must
-   never become a prefix match, or it would swallow every other `/admin/*` super-only
-   route). If you add a new sub-admin-accessible route, add it to the prefix list; if
-   you add a new super-only route, add nothing — it's blocked by default.
-2. Per-resource ownership inside route handlers — e.g. a sub-admin can `PATCH` their
-   own task's status but gets `403` on another employee's task, checked by comparing
-   `session.employeeId` against the resource's owning employee ID. RBAC alone isn't
-   enough for employee-scoped data; always check ownership too.
+**RBAC is enforced in the backend.** `proxy.ts` is now only a navigation gate: it keeps
+a sub-admin from landing on a page that would render nothing but 403s. Being wrong
+there degrades the UI; it does not expose data, because the backend rejects an
+unauthorised request regardless of which UI made it.
+
+`SUB_ADMIN_ALLOWED_PREFIXES` (prefix match) plus `SUB_ADMIN_ALLOWED_EXACT = ["/admin"]`
+(exact only — `/admin` must never become a prefix match or it would swallow every
+super-only `/admin/*` route) still drive those redirects. Add a new sub-admin route to
+the prefix list; add nothing for a super-only route, which is blocked by default.
+
+The real rules live in `Allaince-backend/app/core/deps.py` — `require_admin`,
+`require_area(area)`, `require_super_admin`, plus `owns_or_super()` for per-resource
+ownership (a sub-admin may progress their own task but gets 403 on a colleague's).
 
 ## Auth & Accounts
 
-`verifyAdminCredentials()` in `app/lib/admin-auth.ts` checks, in order:
-1. Two hardcoded mock accounts (kept for backward compatibility):
-   - Super admin: `nurulislam@gmail.com` / `superpassword`
-   - Sub admin: `subadmin@gmail.com` / `subpassword`
-2. `data/employees.json` — real employee accounts created via the admin Employees
-   screen, each with an `id` (becomes `session.employeeId`), email, password,
-   designation.
+Credential checking, bcrypt hashing and login rate limiting all live in the backend.
+`loginAction` in `app/admin/login/actions.ts` posts to `POST /api/admin/login`, then
+copies the signed token out of the backend's `Set-Cookie` onto this app's own origin
+(the backend's cookie is scoped to the API origin, which the browser will not send
+back here).
 
-Both paths land on `/admin` (`landingPathForRole()` returns `/admin` for both roles;
-the page itself branches on `session.role`).
+Accounts come from the backend's `employees` table, plus one bootstrap super admin
+configured through its environment (`SUPER_ADMIN_EMAIL` /
+`SUPER_ADMIN_PASSWORD_HASH_B64`). The previously hardcoded mock accounts are gone.
+
+Both roles land on `/admin`; the page branches on `session.role`.
 
 ## Data Layer
 
-No database. Persistence is JSON files in `data/` at the repo root of
-`Alliance-frontend/`, read/written via `fs`/`fs/promises` in server-only modules —
-**no module-level caching**, every read hits disk so admin mutations are immediately
-visible.
+Everything is fetched from the FastAPI backend over HTTP. There is no database, no
+`data/*.json` persistence and no `app/api/**` in this app any more.
 
-| File | Module | Covers |
+| Module | Use from | Covers |
 |---|---|---|
-| `products.json`, `categories.json` | `app/lib/admin-catalog.ts` | Catalog, stock, bulk import |
-| `orders.json`, `quotations.json`, `contact-requests.json`, `emails.json` | `app/lib/admin-operations.ts` | Operations |
-| `employees.json`, `tasks.json`, `leave-requests.json`, `daily-reports.json` | `app/lib/admin-employees.ts` | Employee system |
-| `hero-images.json` | — | Hero carousel image control |
+| `app/lib/api-client.ts` | server components, server actions | Low-level `api.get/post/patch/delete`, `getOrNull`, `getOrDefault`. Forwards the session cookie when called with `auth: true`. |
+| `app/lib/api-browser.ts` | `"use client"` components | `apiFetch`, `apiUpload` (multipart), `apiDownload` (PDFs). Sends `credentials: "include"`. |
+| `app/lib/catalog-data.ts` | storefront | Products, categories, brands, hero images, top sellers, tracking, quotation submit |
+| `app/lib/admin-data.ts` | admin screens | Analytics, orders, quotations, employees, tasks, leave, reports, search, Gmail |
+| `app/lib/static-content.ts` | anywhere | `reviews` and `faqs` — editorial copy, deliberately not backend data |
 
-Products/categories/reviews/FAQ that aren't yet admin-editable still live as arrays in
-`app/lib/mock-data.ts` (itself `server-only`, seeded from `data/*.json` where
-applicable). **These are mock/seed values — replace with real product data before
-production**, per the original project brief.
+`API_URL` (server-side) and `NEXT_PUBLIC_API_URL` (browser) point at the backend.
 
-`app/lib/mock-analytics.ts` holds generated chart data for the admin dashboards
-(revenue, order ratio, traffic, etc.) — also mock, not derived from real orders yet.
+**`SESSION_SECRET` must be byte-identical to the backend's.** `proxy.ts` verifies the
+session JWT locally to decide redirects, so a mismatch means every backend-issued
+token is rejected and the whole admin area redirects to `/admin/login` with no error
+in any log — the exact symptom is a 307 on every `/admin/*` page.
+
+Admin reads return `[]` when the caller lacks the grant (see `getOrDefault`), so a
+sub-admin's dashboard renders empty sections instead of failing the page. Real
+authorisation is the backend's job — it 403s regardless of which UI called it.
+
+`app/lib/mock-analytics.ts` still holds generated data for a few secondary charts
+(traffic sources, clients by country); the KPI cards and revenue chart are real.
 
 ### Server-only import boundary (recurring gotcha)
 
-Any module with `import "server-only"` (all of the `admin-*.ts` files, `mock-data.ts`)
-can **only** be imported by server components. If a component needs `"use client"`
-(state, refs, event handlers, effects), it must not import those modules directly —
-split into a server component that fetches the data and a client child that receives
-it as a prop. Example: `app/components/client-reviews.tsx` (server, imports
-`mock-data.ts`) renders `app/components/client-reviews-carousel.tsx` (`"use client"`,
-takes `reviews` as a prop). Get this wrong and the build fails with *"You're importing
-a module that depends on 'server-only' into a React Client Component module."*
+`api-client.ts` uses `next/headers`, so it only works in server components and server
+actions. A `"use client"` component must use `api-browser.ts`, or take the data as a
+prop from a server parent. Example: `most-requested-parts.tsx` (server, fetches all
+three periods) renders `most-requested-parts-tabs.tsx` (`"use client"`, receives them
+as props) so switching tabs needs no round trip.
 
 ### `useSearchParams()` requires Suspense
 

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { getAllCategories } from "@/app/lib/mock-data";
+import { getCategories } from "@/app/lib/catalog-data";
 
 export async function Footer() {
-  const categories = await getAllCategories();
+  const categories = await getCategories();
   return (
     <footer className="bg-[#0d1626] text-white/[0.68]">
       <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">

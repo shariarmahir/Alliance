@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { AnalyticsRange } from "@/app/lib/admin-analytics";
+import type { AnalyticsRange } from "@/app/lib/admin-data";
 
 const RANGES: { value: AnalyticsRange; label: string }[] = [
   { value: "week", label: "Week" },

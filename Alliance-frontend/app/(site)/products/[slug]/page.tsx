@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts } from "@/app/lib/mock-data";
+import { getProduct, getRelatedProducts } from "@/app/lib/catalog-data";
 import { ProductGallery } from "@/app/components/product-gallery";
 import { ProductDetailTabs } from "@/app/components/product-detail-tabs";
 import { QuoteCta } from "@/app/components/quote-cta";
@@ -41,7 +41,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getProduct(slug);
   if (!product) return { title: "Product Not Found" };
   return {
     title: `${product.partNumber} | ${product.name}`,
@@ -55,10 +55,10 @@ export default async function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getProduct(slug);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(slug);
+  const related = await getRelatedProducts(product);
   const pill = stockPill[product.stock];
 
   return (

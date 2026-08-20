@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllCategories, getAllProducts, brands } from "@/app/lib/mock-data";
+import { getBrands, getCategories, getProducts } from "@/app/lib/catalog-data";
 import { ProductGridCard } from "@/app/components/product-grid-card";
 import { ProductFilters } from "@/app/components/product-filters";
 
@@ -13,8 +13,12 @@ export default async function ProductsPage({
   searchParams: Promise<{ category?: string; brand?: string; q?: string; inStock?: string; page?: string }>;
 }) {
   const sp = await searchParams;
-  const categories = await getAllCategories();
-  const products = await getAllProducts();
+  const [categories, brands, { items: products }] = await Promise.all([
+    getCategories(),
+    getBrands(),
+    // One page covers this catalog; the filters narrow it client-side.
+    getProducts({ pageSize: 100 }),
+  ]);
   let filtered = products;
   if (sp.category) filtered = filtered.filter((p) => p.categorySlug === sp.category);
   if (sp.brand) filtered = filtered.filter((p) => p.brand === sp.brand);
