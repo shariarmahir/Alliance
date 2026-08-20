@@ -1,10 +1,52 @@
 import logging
+import os
+import sys
 from html import escape
+from pathlib import Path
 
 from app.config import settings
 from app.services.operations import amount_in_words
 
 logger = logging.getLogger("app.pdf")
+
+# On Linux (including the Docker image) the loader finds Pango/Cairo on the
+# normal library path. On Windows it will not: the GTK stack ships in a
+# separate prefix that is never on PATH by default, so WeasyPrint fails to
+# import even when correctly installed. Registering the directory here means
+# no caller has to remember to export PATH.
+_WINDOWS_GTK_CANDIDATES = (
+    r"C:\msys64\mingw64\bin",
+    r"C:\Program Files\GTK3-Runtime Win64\bin",
+)
+
+
+def _register_windows_gtk() -> None:
+    if sys.platform != "win32":
+        return
+
+    configured = os.environ.get("WEASYPRINT_DLL_DIRECTORIES")
+    candidates = (
+        [c.strip() for c in configured.split(os.pathsep) if c.strip()]
+        if configured
+        else list(_WINDOWS_GTK_CANDIDATES)
+    )
+
+    for candidate in candidates:
+        path = Path(candidate)
+        if not (path / "libgobject-2.0-0.dll").exists():
+            continue
+        # add_dll_directory is what actually satisfies cffi's dlopen on
+        # modern Python; PATH alone is no longer enough since 3.8.
+        try:
+            os.add_dll_directory(str(path))
+        except (OSError, AttributeError):
+            pass
+        if str(path) not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = f"{path}{os.pathsep}{os.environ.get('PATH', '')}"
+        return
+
+
+_register_windows_gtk()
 
 
 class PdfUnavailable(RuntimeError):
@@ -23,7 +65,11 @@ def _render_html(html: str) -> bytes:
         # while its native libraries are missing.
         raise PdfUnavailable(
             "PDF rendering is unavailable: WeasyPrint and its native "
-            "dependencies (GTK/Pango/Cairo) are not installed on this host."
+            "dependencies (GTK/Pango/Cairo) are not installed on this host. "
+            "On Windows, install MSYS2 and "
+            "`pacman -S mingw-w64-x86_64-pango mingw-w64-x86_64-cairo "
+            "mingw-w64-x86_64-gdk-pixbuf2`, or set WEASYPRINT_DLL_DIRECTORIES "
+            "to the directory holding libgobject-2.0-0.dll."
         ) from exc
     return HTML(string=html).write_pdf()
 

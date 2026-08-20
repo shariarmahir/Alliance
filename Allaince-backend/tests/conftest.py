@@ -1,8 +1,13 @@
 import os
 
+# Set TEST_DATABASE_URL to run the whole suite against a real PostgreSQL, e.g.
+#   TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/allaince_test
+# Unset, the suite uses in-memory SQLite so it runs anywhere with no services.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
 # Must be set before app.config is imported anywhere.
 os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL or "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("SESSION_SECRET", "test-secret-must-be-at-least-32-characters")
 os.environ.setdefault("GMAIL_TOKEN_ENCRYPTION_SECRET", "test-secret-must-be-at-least-32-characters")
 os.environ.setdefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
@@ -12,7 +17,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.db import get_db
 from app.main import app
@@ -21,6 +26,17 @@ from app.models.base import Base
 
 @pytest_asyncio.fixture
 async def engine():
+    if TEST_DATABASE_URL:
+        # NullPool: each test drops and recreates the schema, and a pooled
+        # connection holding the old tables would deadlock against the DDL.
+        test_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+        yield test_engine
+        await test_engine.dispose()
+        return
+
     # StaticPool keeps every connection pointed at the same in-memory database;
     # without it each connection gets a private, empty one.
     test_engine = create_async_engine(
