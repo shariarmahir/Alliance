@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/app/components/ui/sonner";
 import { Providers } from "./providers";
+import { BUSINESS, SITE_NAME, SITE_SHORT_NAME, SITE_URL } from "@/app/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,44 +16,180 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "AutoLink Integrated Technologies — Industrial Electronics & Automation Parts", template: "%s | AutoLink" },
+  // Without metadataBase every relative URL in metadata (OG images, canonicals)
+  // resolves against localhost in the built output, so shared links and
+  // canonical tags point nowhere.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    // The brand name leads: someone searching "autolink" should see it as the
+    // first words of the result, not buried behind a keyword phrase.
+    default: `${SITE_SHORT_NAME} — Industrial Electronics & Automation Parts in Bangladesh`,
+    template: `%s | ${SITE_SHORT_NAME}`,
+  },
   description:
-    "AutoLink Integrated Technologies supplies PLCs, drives, servos, HMIs, and industrial automation components worldwide, shipped from Bangladesh.",
-  applicationName: "AutoLink Integrated Technologies",
+    "AutoLink Integrated Technologies supplies PLCs, drives, servos, HMIs and industrial automation spares from Uttara, Dhaka — quoted within 4 working hours and shipped worldwide.",
+  applicationName: SITE_NAME,
+  // Tells Google which URL is the real one when a page is reachable at several
+  // (www vs bare domain, query-string variants).
+  alternates: { canonical: "/" },
+  keywords: [
+    "AutoLink",
+    "AutoLink Integrated Technologies",
+    "industrial electronics Bangladesh",
+    "PLC supplier Dhaka",
+    "automation parts Bangladesh",
+    "servo drives Dhaka",
+    "HMI supplier Bangladesh",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      // Lets Google show full-length text snippets, large image previews and
+      // video previews — without this it may truncate the listing.
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    siteName: "AutoLink Integrated Technologies",
-    title: "AutoLink Integrated Technologies — Industrial Electronics & Automation Parts",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — Industrial Electronics & Automation Parts`,
     description:
       "PLCs, drives, servos, HMIs and automation spares, quoted within 4 working hours and shipped worldwide from Bangladesh.",
+    url: SITE_URL,
     type: "website",
+    locale: "en_US",
+    images: [{ url: "/logo-mark.png", width: 512, height: 512, alt: SITE_NAME }],
   },
+  twitter: {
+    card: "summary",
+    title: `${SITE_NAME} — Industrial Electronics & Automation Parts`,
+    description:
+      "PLCs, drives, servos, HMIs and automation spares, shipped worldwide from Bangladesh.",
+    images: ["/logo-mark.png"],
+  },
+  icons: { icon: "/logo-mark.png", apple: "/logo-mark.png" },
 };
 
-// Tells search engines the registered entity behind the "AutoLink" wordmark,
-// so the legal name, contact details and address can surface in rich results.
-const ORGANIZATION_SCHEMA = {
+// Structured data describing the business to search engines.
+//
+// Three linked entities rather than one blob, because Google treats them
+// differently: the Organization is what a knowledge panel and the logo in a
+// result are drawn from, the LocalBusiness with geo coordinates is what places
+// a map pin, and the WebSite entity is what lets the brand name resolve to
+// this site. They are cross-referenced by @id so Google reads them as one
+// business rather than three unrelated things.
+//
+// Every URL here is absolute. Relative paths are silently ignored in
+// structured data, which is the usual reason a logo never appears in results.
+const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+const WEBSITE_ID = `${SITE_URL}/#website`;
+
+const STRUCTURED_DATA = {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "AutoLink Integrated Technologies",
-  alternateName: "AutoLink",
-  description:
-    "Supplier of industrial electronics and automation spares — PLCs, drives, servos, HMIs and power system electronics.",
-  logo: "/logo-mark.png",
-  email: "info@auto-bd.com",
-  telephone: "+8801713-116019",
-  foundingDate: "2009",
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "House: 104, Road: 15, Sector: 11",
-    addressLocality: "Uttara, Dhaka-1230",
-    addressCountry: "BD",
-  },
-  contactPoint: {
-    "@type": "ContactPoint",
-    contactType: "sales",
-    email: "info@auto-bd.com",
-    telephone: "+8801713-116019",
-  },
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": ORGANIZATION_ID,
+      name: SITE_NAME,
+      alternateName: [SITE_SHORT_NAME, "AutoLink Bangladesh"],
+      url: SITE_URL,
+      description:
+        "Supplier of industrial electronics and automation spares — PLCs, drives, servos, HMIs and power system electronics.",
+      logo: {
+        "@type": "ImageObject",
+        "@id": `${SITE_URL}/#logo`,
+        url: `${SITE_URL}/logo-mark.png`,
+        contentUrl: `${SITE_URL}/logo-mark.png`,
+        width: 512,
+        height: 512,
+        caption: SITE_NAME,
+      },
+      image: { "@id": `${SITE_URL}/#logo` },
+      email: BUSINESS.email,
+      telephone: BUSINESS.telephone,
+      foundingDate: "2009",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: BUSINESS.streetAddress,
+        addressLocality: BUSINESS.locality,
+        postalCode: BUSINESS.postalCode,
+        addressCountry: BUSINESS.country,
+      },
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "sales",
+          email: BUSINESS.email,
+          telephone: BUSINESS.telephone,
+          areaServed: "Worldwide",
+          availableLanguage: ["en", "bn"],
+        },
+      ],
+    },
+    {
+      // The geo block is what produces a map location for the business.
+      "@type": "LocalBusiness",
+      "@id": `${SITE_URL}/#localbusiness`,
+      parentOrganization: { "@id": ORGANIZATION_ID },
+      name: SITE_NAME,
+      url: SITE_URL,
+      image: { "@id": `${SITE_URL}/#logo` },
+      email: BUSINESS.email,
+      telephone: BUSINESS.telephone,
+      priceRange: "$$",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: BUSINESS.streetAddress,
+        addressLocality: BUSINESS.locality,
+        postalCode: BUSINESS.postalCode,
+        addressCountry: BUSINESS.country,
+      },
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: BUSINESS.latitude,
+        longitude: BUSINESS.longitude,
+      },
+      // Sunday-Thursday is the Bangladeshi working week; Friday is the weekly
+      // holiday and Saturday is commonly worked in trade.
+      openingHoursSpecification: [
+        {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: [
+            "Saturday",
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+          ],
+          opens: "09:00",
+          closes: "18:00",
+        },
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": WEBSITE_ID,
+      url: SITE_URL,
+      name: SITE_NAME,
+      alternateName: SITE_SHORT_NAME,
+      publisher: { "@id": ORGANIZATION_ID },
+      inLanguage: "en",
+      // Offers the catalogue search box directly in the result listing.
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/products?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -65,7 +202,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_SCHEMA) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
         />
         <Providers>
           {children}

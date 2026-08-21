@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getBrands } from "@/app/lib/catalog-data";
+import { BrandLogo } from "@/app/components/brand-logo";
 
 export async function BrandStrip() {
   const brands = await getBrands();
@@ -24,7 +24,7 @@ export async function BrandStrip() {
             href={`/products?brand=${b.slug}`}
             className="relative flex h-[92px] items-center justify-center rounded-[10px] border border-slate-line bg-white p-4.5 transition-all hover:border-primary hover:shadow-[0_8px_20px_rgba(16,25,45,.08)]"
           >
-            <Image src={b.logo} alt={b.name} fill sizes="200px" className="object-contain p-4" />
+            <BrandLogo slug={b.slug} name={b.name} logo={b.logo} />
           </Link>
         ))}
       </div>

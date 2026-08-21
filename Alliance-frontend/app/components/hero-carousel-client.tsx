@@ -39,9 +39,22 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
         <span className="w-fit rounded-[20px] border border-white/[0.22] bg-white/[0.13] px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[#ffd15c] backdrop-blur-sm">
           Obsolete &amp; Hard-To-Find Specialists
         </span>
-        <h1 className="max-w-[680px] text-3xl font-extrabold leading-[1.06] tracking-[-0.025em] text-white sm:text-4xl md:text-[52px]">
-          {slides[active].headlineLine1} {slides[active].headlineLine2}
+        {/* The page's h1 names the business. The carousel headline cannot: it
+            rotates, so the single heading search engines weigh most would keep
+            changing and would never contain the brand name — which is why
+            searching "autolink" found nothing. Visually hidden, not removed,
+            so the design is unchanged and screen readers still get a stable
+            page title. */}
+        <h1 className="sr-only">
+          AutoLink Integrated Technologies — industrial electronics and
+          automation parts supplier in Uttara, Dhaka, Bangladesh
         </h1>
+        {/* A p, not a heading: it is the slide's message rather than a section
+            title, and it is still read aloud — hiding it would remove real
+            content from screen readers to no benefit. */}
+        <p className="max-w-[680px] text-3xl font-extrabold leading-[1.06] tracking-[-0.025em] text-white sm:text-4xl md:text-[52px]">
+          {slides[active].headlineLine1} {slides[active].headlineLine2}
+        </p>
         <p className="max-w-[520px] text-sm leading-relaxed text-white/[0.82] md:text-[17px]">
           {slides[active].subheadline}
         </p>

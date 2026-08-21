@@ -158,14 +158,22 @@ async def list_brands(db: AsyncSession) -> list[Brand]:
 
 async def ensure_brand(db: AsyncSession, name: str) -> Brand | None:
     """Brands are implied by products rather than managed directly, so a
-    product referencing a new brand creates it."""
+    product referencing a new brand creates it.
+
+    The logo follows the storefront's naming convention rather than being left
+    empty. There is no admin screen for uploading a brand logo, so an empty
+    string here is permanent, and the storefront rendered it as a broken image.
+    Pointing at the conventional path means dropping a correctly-named file in
+    is all it takes; the storefront falls back to a text wordmark when no such
+    file exists, so a guessed path costs nothing when it is wrong.
+    """
     if not name or not name.strip():
         return None
     slug = slugify(name)
     existing = await db.get(Brand, slug)
     if existing:
         return existing
-    brand = Brand(slug=slug, name=name.strip())
+    brand = Brand(slug=slug, name=name.strip(), logo=f"/images/brands/{slug}.png")
     db.add(brand)
     await db.flush()
     return brand
