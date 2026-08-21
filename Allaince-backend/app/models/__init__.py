@@ -8,6 +8,7 @@ from app.models.operations import (
     OrderConfirmation,
     Quotation,
 )
+from app.models.session import RevokedSession
 
 __all__ = [
     "Base",
@@ -27,4 +28,5 @@ __all__ = [
     "Order",
     "OrderConfirmation",
     "Quotation",
+    "RevokedSession",
 ]

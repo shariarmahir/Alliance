@@ -38,7 +38,10 @@ async def _seed_employee(db, employee_id="emp-1", email="one@x.com", id_number="
 # --- employee CRUD ----------------------------------------------------------
 
 
-async def test_employee_routes_are_super_admin_only(client):
+async def test_employee_routes_are_super_admin_only(client, db):
+    # The row has to exist: a token whose employee is gone is now 401, and this
+    # test is about the 403 a live sub-admin gets instead.
+    await _seed_employee(db)
     _auth(client, role="sub", employee_id="emp-1")
     assert (await client.get("/api/admin/employees")).status_code == 403
     assert (await client.post("/api/admin/employees", json=NEW_EMPLOYEE)).status_code == 403

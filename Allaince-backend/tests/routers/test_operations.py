@@ -2,8 +2,20 @@ import pytest
 
 from app.core.rate_limit import reset_in_memory_buckets
 from app.core.session_token import ADMIN_SESSION_COOKIE, create_session_token
-from app.models import Category, Product
+from app.models import Category, Employee, Product
 from app.schemas.session import AdminSession
+
+async def _seed_sub_admin(db, employee_id="emp-1"):
+    """require_admin re-checks that a token's employee still exists, so a
+    sub-admin session needs a real row behind it or it reads as deleted."""
+    db.add(
+        Employee(
+            id=employee_id, employee_id_number=employee_id, name="Sub", email=f"{employee_id}@x.com",
+            password_hash="x", role="sub", access_options=[],
+        )
+    )
+    await db.commit()
+
 
 QUOTE_PAYLOAD = {
     "items": [
@@ -138,12 +150,14 @@ async def test_quotation_list_requires_authentication(client):
     assert (await client.get("/api/admin/quotations")).status_code == 401
 
 
-async def test_sub_admin_without_grant_is_forbidden(client):
+async def test_sub_admin_without_grant_is_forbidden(client, db):
+    await _seed_sub_admin(db)
     _auth(client, role="sub", employee_id="emp-1", access_options=["orders"])
     assert (await client.get("/api/admin/quotations")).status_code == 403
 
 
-async def test_sub_admin_with_grant_can_read_quotations(client):
+async def test_sub_admin_with_grant_can_read_quotations(client, db):
+    await _seed_sub_admin(db)
     _auth(client, role="sub", employee_id="emp-1", access_options=["quotations"])
     assert (await client.get("/api/admin/quotations")).status_code == 200
 

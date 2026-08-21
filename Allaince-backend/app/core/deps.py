@@ -4,9 +4,15 @@ from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.session_token import ADMIN_SESSION_COOKIE, SESSION_TTL, parse_admin_session
+from app.core.session_token import (
+    ADMIN_SESSION_COOKIE,
+    SESSION_TTL,
+    SessionClaims,
+    parse_session_claims,
+)
 from app.db import get_db
 from app.schemas.session import AccessArea, AdminSession
+from app.services.sessions import account_is_active, is_session_revoked
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -19,16 +25,40 @@ def _forbidden() -> HTTPException:
     return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
-async def require_admin(request: Request) -> AdminSession:
+async def require_session_claims(request: Request, db: DbSession) -> SessionClaims:
+    """Verifies the token, then checks it is still supposed to work.
+
+    A signed, unexpired JWT is not on its own proof of a live session. Two
+    things can have happened since it was minted, and neither leaves a trace in
+    the token itself:
+
+      - the holder signed out, which used to clear only the browser's cookie
+        and left the token itself valid for the rest of its 8 hours;
+      - the account was deleted or disabled, which used to remove the row while
+        the token carried on authenticating reads *and writes*.
+
+    Both are checked here rather than in `parse_session_claims` because both
+    need the database, and that function also runs where there is none.
+    """
+    claims = parse_session_claims(request.cookies.get(ADMIN_SESSION_COOKIE))
+    if claims is None:
+        raise _unauthorized()
+    if await is_session_revoked(db, claims.session_id):
+        raise _unauthorized()
+    if not await account_is_active(db, claims.session.employee_id):
+        raise _unauthorized()
+    return claims
+
+
+async def require_admin(
+    claims: Annotated[SessionClaims, Depends(require_session_claims)],
+) -> AdminSession:
     """Any authenticated admin — super or sub.
 
     Backs products, stock, categories, hero images, and the self-service
     task/leave/report routes.
     """
-    session = parse_admin_session(request.cookies.get(ADMIN_SESSION_COOKIE))
-    if session is None:
-        raise _unauthorized()
-    return session
+    return claims.session
 
 
 async def require_super_admin(
@@ -59,6 +89,7 @@ def require_area(area: AccessArea):
     return dependency
 
 
+SessionClaimsDep = Annotated[SessionClaims, Depends(require_session_claims)]
 AdminDep = Annotated[AdminSession, Depends(require_admin)]
 SuperAdminDep = Annotated[AdminSession, Depends(require_super_admin)]
 

@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
+import { API_BASE_URL } from "@/app/lib/api-browser";
 import type { AccessArea } from "@/app/lib/types";
 
-// Navigation-level gate only. Authorisation itself is the backend's job now —
-// it rejects an unauthorised request regardless of which UI made it, so this
-// no longer has to be the security boundary. What it still does is keep a
-// sub-admin from landing on a page that would render nothing but 403s, which
-// is a worse experience than a redirect.
+// Navigation-level gate. Authorisation itself is the backend's job — it
+// rejects an unauthorised request regardless of which UI made it — but this
+// gate still decides whether an admin page renders at all, so it must agree
+// with the backend about whether a session is live.
 //
-// Because it is no longer the enforcement point, being wrong here degrades
-// the UI rather than exposing data.
+// Verifying the signature locally is not enough for that. A signed, unexpired
+// token says nothing about whether its holder signed out or had their account
+// deleted since, because neither event changes the token. Trusting the
+// signature alone is what let a logged-out session keep opening admin pages by
+// pasting the URL. So the token is checked against the API, which is the only
+// component that knows what is still valid.
+//
+// The signature check stays as a cheap first pass: a missing or forged cookie
+// is rejected without a network round trip.
 
 const ADMIN_LANDING = "/admin";
 
@@ -38,12 +45,34 @@ const SUB_ADMIN_GRANTABLE_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/admin/contact-requests", area: "contact-requests" },
 ];
 
+// Confirms with the API that this exact session is still live. A network
+// failure denies rather than admits: an unreachable API is not evidence that a
+// session is valid, and every page behind this gate would fail its own data
+// fetches anyway.
+async function sessionIsLive(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/me`, {
+      headers: { Cookie: `${ADMIN_SESSION_COOKIE}=${token}` },
+      cache: "no-store",
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = await parseAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await parseAdminSession(token);
 
-  if (!session) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  if (!session || !token || !(await sessionIsLive(token))) {
+    // Clear the cookie on the way out. Without this a revoked token sits in
+    // the browser being re-checked and re-rejected on every navigation, and
+    // the login page it lands on cannot tell why it was sent there.
+    const redirect = NextResponse.redirect(new URL("/admin/login", request.url));
+    redirect.cookies.delete(ADMIN_SESSION_COOKIE);
+    return redirect;
   }
 
   if (session.role === "sub") {

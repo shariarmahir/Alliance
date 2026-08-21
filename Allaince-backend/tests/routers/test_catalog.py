@@ -1,7 +1,7 @@
 import io
 
 from app.core.session_token import ADMIN_SESSION_COOKIE, create_session_token
-from app.models import Category, Product
+from app.models import Category, Employee, Product
 from app.schemas.session import AdminSession
 
 PNG = (
@@ -16,6 +16,18 @@ def _auth(client, role="super", **kwargs):
         ADMIN_SESSION_COOKIE,
         create_session_token(AdminSession(role=role, name="A", email="a@x.com", **kwargs)),
     )
+
+
+async def _seed_sub_admin(db, employee_id="emp-1"):
+    """require_admin re-checks that a token's employee still exists, so a
+    sub-admin session needs a real row behind it or it reads as deleted."""
+    db.add(
+        Employee(
+            id=employee_id, employee_id_number=employee_id, name="Sub", email=f"{employee_id}@x.com",
+            password_hash="x", role="sub", access_options=[],
+        )
+    )
+    await db.commit()
 
 
 async def _seed(db):
@@ -73,6 +85,7 @@ async def test_catalog_writes_require_authentication(client):
 
 async def test_sub_admin_may_manage_catalog(client, db):
     await _seed(db)
+    await _seed_sub_admin(db)
     # Catalog is open to any authenticated admin, unlike operations.
     _auth(client, role="sub", employee_id="emp-1")
     assert (await client.get("/api/admin/products")).status_code == 200
