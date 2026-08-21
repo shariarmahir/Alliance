@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from app.core.deps import AdminDep, DbSession
@@ -16,6 +16,7 @@ from app.integrations.object_storage import (
 )
 from app.schemas.catalog import (
     CategoryCreate,
+    CategoryUpdate,
     CategoryOut,
     HeroImageOut,
     ProductCreate,
@@ -125,6 +126,29 @@ async def list_categories(session: AdminDep, db: DbSession):
 async def create_category(payload: CategoryCreate, session: AdminDep, db: DbSession):
     category = await svc.create_category(db, payload.name, payload.icon)
     return CategoryOut.model_validate(category)
+
+
+@router.patch("/categories/{slug}", response_model=CategoryOut)
+async def rename_category(
+    slug: str, payload: CategoryUpdate, session: AdminDep, db: DbSession
+):
+    category = await svc.rename_category(db, slug, payload.name)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found.")
+    return CategoryOut.model_validate(category)
+
+
+@router.delete("/categories/{slug}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_category(slug: str, session: AdminDep, db: DbSession) -> Response:
+    try:
+        deleted = await svc.delete_category(db, slug)
+    except svc.CategoryInUse as exc:
+        # 409, not 400: the request is well formed and the admin may well
+        # want it again once the category is empty.
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Category not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/categories/{slug}/icon", response_model=CategoryOut)

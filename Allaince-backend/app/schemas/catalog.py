@@ -19,6 +19,12 @@ class CategoryCreate(CamelModel):
     icon: str = ""
 
 
+class CategoryUpdate(CamelModel):
+    # Name only: the slug is the products' foreign key and appears in
+    # storefront URLs, so it is not renameable. See rename_category.
+    name: str = Field(min_length=1, max_length=200)
+
+
 class BrandOut(CamelModel):
     slug: str
     name: str

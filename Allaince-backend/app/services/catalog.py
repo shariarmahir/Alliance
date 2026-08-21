@@ -70,6 +70,60 @@ async def create_category(db: AsyncSession, name: str, icon: str = "") -> Catego
     return category
 
 
+class CategoryInUse(ValueError):
+    """Refused: products still reference this category."""
+
+    def __init__(self, product_count: int) -> None:
+        self.product_count = product_count
+        super().__init__(
+            f"{product_count} product(s) still use this category. "
+            "Move or delete them first."
+        )
+
+
+async def rename_category(db: AsyncSession, slug: str, name: str) -> Category | None:
+    """Changes the display name only.
+
+    The slug stays put deliberately. It is the primary key products point at
+    and it appears in storefront URLs, so regenerating it from the new name
+    would orphan every product in the category and break any link already
+    shared. A rename here is a label change, not a re-identification.
+    """
+    category = await db.get(Category, slug)
+    if category is None:
+        return None
+    category.name = name.strip()
+    await db.commit()
+    await db.refresh(category)
+    return category
+
+
+async def delete_category(db: AsyncSession, slug: str) -> bool:
+    """Deletes an empty category. Raises CategoryInUse when products remain.
+
+    The FK is ON DELETE RESTRICT, so the database would refuse this anyway —
+    but it would surface as an opaque IntegrityError well after the fact.
+    Counting first turns that into an answer the admin can act on.
+    """
+    category = await db.get(Category, slug)
+    if category is None:
+        return False
+
+    in_use = (
+        await db.execute(
+            select(func.count())
+            .select_from(Product)
+            .where(Product.category_slug == slug)
+        )
+    ).scalar_one()
+    if in_use:
+        raise CategoryInUse(in_use)
+
+    await db.delete(category)
+    await db.commit()
+    return True
+
+
 async def sync_category_product_counts(db: AsyncSession) -> None:
     """Recompute the denormalized product_count after any product write.
 

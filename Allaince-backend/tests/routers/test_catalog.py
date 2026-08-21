@@ -122,6 +122,51 @@ async def test_create_category_slugifies_name(client):
     assert r.status_code == 201 and r.json()["slug"] == "servo-motion"
 
 
+async def test_rename_category_keeps_the_slug(client, db):
+    # The slug is the products' foreign key and appears in storefront URLs, so
+    # a rename must change the label only.
+    await _seed(db)
+    _auth(client)
+    r = await client.patch("/api/admin/categories/plc", json={"name": "PLCs & Controllers"})
+    assert r.status_code == 200
+    assert r.json() == {**r.json(), "slug": "plc", "name": "PLCs & Controllers"}
+    # The product still resolves through the unchanged slug.
+    assert (await client.get("/api/products/widget")).json()["categorySlug"] == "plc"
+
+
+async def test_rename_unknown_category_is_404(client):
+    _auth(client)
+    assert (
+        await client.patch("/api/admin/categories/nope", json={"name": "X"})
+    ).status_code == 404
+
+
+async def test_delete_category_refuses_while_products_reference_it(client, db):
+    await _seed(db)
+    _auth(client)
+    r = await client.delete("/api/admin/categories/plc")
+    assert r.status_code == 409
+    assert "1 product" in r.json()["detail"]
+    # Still there, and still usable.
+    assert (await client.get("/api/products/widget")).status_code == 200
+
+
+async def test_delete_empty_category(client, db):
+    await _seed(db)
+    _auth(client)
+    assert (await client.delete("/api/admin/products/widget")).status_code == 204
+    assert (await client.delete("/api/admin/categories/plc")).status_code == 204
+    assert (await client.get("/api/categories")).json() == []
+
+
+async def test_category_writes_require_authentication(client, db):
+    await _seed(db)
+    assert (
+        await client.patch("/api/admin/categories/plc", json={"name": "X"})
+    ).status_code == 401
+    assert (await client.delete("/api/admin/categories/plc")).status_code == 401
+
+
 # --- uploads ----------------------------------------------------------------
 
 
