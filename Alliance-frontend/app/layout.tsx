@@ -72,6 +72,14 @@ export const metadata: Metadata = {
     images: ["/logo-mark.png"],
   },
   icons: { icon: "/logo-mark.png", apple: "/logo-mark.png" },
+  // Search Console's HTML-tag verification, as an alternative to the DNS TXT
+  // record. Set GOOGLE_SITE_VERIFICATION to the token Google gives you and
+  // redeploy; when unset the meta tag is simply omitted. Worth having because
+  // DNS verification depends on the registrar's editor accepting the record,
+  // and this route does not.
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 // Structured data describing the business to search engines.
