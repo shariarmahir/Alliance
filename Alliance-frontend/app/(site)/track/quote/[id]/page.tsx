@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Clock, CheckCircle2, XCircle, PackageSearch } from "lucide-react";
 import { formatPrice } from "@/app/lib/utils";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation } from "@/app/lib/types";
 
 // No order-confirm form: the admin's own confirmation IS the order, and its
@@ -20,17 +21,14 @@ export default function QuoteStatusPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`/api/quotations/${params.id}`);
-      if (res.status === 404) {
+      return await apiFetch<Quotation>(
+        `/api/quotations/${encodeURIComponent(params.id)}`
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
         setNotFound(true);
-        return null;
       }
-      if (res.ok) {
-        const data = await res.json();
-        return (data.quotation as Quotation | undefined) ?? null;
-      }
-    } catch {
-      // offline — keep whatever state is already shown
+      // Any other failure (offline, 5xx) keeps whatever state is already shown.
     }
     return null;
   }, [params.id]);

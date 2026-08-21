@@ -9,7 +9,7 @@ import { useQuote } from "@/app/lib/quote-context";
 import type { QuotationDetails } from "@/app/lib/types";
 import { QuoteLineItem } from "@/app/components/quote-line-item";
 import { QuotationForm, type QuotationFormValues } from "@/app/components/quotation-form";
-import { quotationRequestPdfToBase64 } from "@/app/lib/quotation-pdf";
+import { apiFetch } from "@/app/lib/api-browser";
 
 const QUOTATION_STORAGE_KEY = "autolink_quotation";
 
@@ -55,33 +55,15 @@ export default function QuotePage() {
     // is no separate order-confirm step, so the customer is sent straight to
     // a status page keyed by the quotation's own ID.
     try {
-      const res = await fetch("/api/quotations", {
+      // The backend computes the total itself from its own catalogue prices,
+      // so only the lines and the customer's details are sent.
+      const created = await apiFetch<{ id: string }>("/api/quotations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, total, details: quotation }),
+        body: { items, details: quotation },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.quotation) {
-        toast.error("We couldn't send your request. Please try again or WhatsApp us.");
-        setSubmitting(false);
-        return;
-      }
       clear();
       toast.success("Request sent — an engineer will price it shortly.");
-
-      // Best-effort courtesy copy to the company inbox — must never delay or
-      // block the redirect the customer is waiting on.
-      quotationRequestPdfToBase64(data.quotation)
-        .then(({ base64, fileName }) =>
-          fetch(`/api/quotations/${data.quotation.id}/notify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pdfBase64: base64, fileName }),
-          })
-        )
-        .catch(() => {});
-
-      router.push(`/track/quote/${data.quotation.id}`);
+      router.push(`/track/quote/${created.id}`);
     } catch {
       toast.error("We couldn't send your request. Please try again or WhatsApp us.");
       setSubmitting(false);

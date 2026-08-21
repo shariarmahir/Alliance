@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 type FormValues = { name: string; email: string; subject: string; message: string };
 
@@ -36,19 +37,14 @@ export default function ContactPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Could not send your message. Please try again.");
-        return;
-      }
+      await apiFetch("/api/contact", { method: "POST", body: values });
       setSubmitted(true);
-    } catch {
-      toast.error("Could not send your message. Please try again.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Could not send your message. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }

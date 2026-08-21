@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { apiFetch } from "@/app/lib/api-browser";
 
 const FIELD =
   "w-full rounded-md border border-[#dde3ea] bg-white px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-primary focus:ring-3 focus:ring-primary/15";
@@ -37,17 +38,15 @@ export function HomeEnquiryForm() {
     ].join("\n");
 
     try {
-      const res = await fetch("/api/contact", {
+      await apiFetch("/api/contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           name: values.name,
           email: values.email,
           subject: "Homepage enquiry — Ask Price",
           message,
-        }),
+        },
       });
-      if (!res.ok) throw new Error("request failed");
       toast.success("Enquiry sent. An engineer replies within four working hours.");
       setValues(EMPTY);
     } catch {
