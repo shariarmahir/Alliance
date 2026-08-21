@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { TaskCompletionChart } from "../charts/task-completion-chart";
 import { PageHeader, Panel, Pill, type PillTone } from "../admin-ui";
 import type { Task, TaskStatus } from "@/app/lib/types";
+import { apiFetch } from "@/app/lib/api-browser";
 
 const COLUMNS: { status: TaskStatus; label: string; tone: PillTone }[] = [
   { status: "pending", label: "Pending", tone: "neutral" },
@@ -36,16 +37,10 @@ function TaskCard({ task, onChanged }: { task: Task; onChanged: () => void }) {
     if (!next) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/tasks/${task.id}/status`, {
+      await apiFetch(`/api/admin/tasks/${encodeURIComponent(task.id)}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
+        body: { status: next },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update task status.");
-        return;
-      }
       toast.success(`"${task.title}" moved to ${next.replace("-", " ")}.`);
       onChanged();
     } catch {

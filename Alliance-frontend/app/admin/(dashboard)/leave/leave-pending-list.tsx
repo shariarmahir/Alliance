@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { SafeEmployee, LeaveRequest, LeaveStatus } from "@/app/lib/types";
+import { apiFetch } from "@/app/lib/api-browser";
 
 const STATUS_LABEL: Record<LeaveStatus, { label: string; cls: string }> = {
   pending: { label: "PENDING", cls: "text-warn" },
@@ -45,16 +46,10 @@ function PendingCard({
   async function setStatus(status: "approved" | "rejected") {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/leave-requests/${request.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update leave request.");
-        return;
-      }
+      await apiFetch(
+        `/api/admin/leave-requests/${encodeURIComponent(request.id)}/status`,
+        { method: "PATCH", body: { status } }
+      );
       toast.success(status === "approved" ? "Leave approved." : "Leave declined.");
       onChanged();
     } catch {

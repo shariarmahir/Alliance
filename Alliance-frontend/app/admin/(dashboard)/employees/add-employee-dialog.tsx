@@ -18,6 +18,7 @@ import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Switch } from "@/app/components/ui/switch";
 import type { AccessArea, Designation } from "@/app/lib/types";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 const DESIGNATIONS: { value: Designation; label: string }[] = [
   { value: "sales-associate", label: "Sales Associate" },
@@ -70,10 +71,9 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/employees", {
+      await apiFetch("/api/admin/employees", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           name,
           email,
           password,
@@ -81,20 +81,19 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
           designation,
           customDesignation: designation === "other" ? customDesignation : undefined,
           accessOptions,
-        }),
+        },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Could not add employee.");
-        toast.error(data.error ?? "Could not add employee.");
-        return;
-      }
       toast.success(`${name} added to the roster.`);
       resetForm();
       setOpen(false);
       onCreated();
-    } catch {
-      toast.error("Could not add employee.");
+    } catch (err) {
+      // The API rejects duplicates and short passwords with a message worth
+      // showing verbatim; only fall back when there is nothing to quote.
+      const message =
+        err instanceof ApiError ? err.message : "Could not add employee.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +125,20 @@ export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              aria-describedby="password-hint"
+            />
+            {/* The API enforces 8 characters; saying so up front beats a
+                rejected submission that loses nothing but wastes a round trip. */}
+            <p id="password-hint" className="text-[11.5px] text-ink-muted">
+              At least 8 characters.
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">

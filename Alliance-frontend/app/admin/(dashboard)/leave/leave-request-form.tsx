@@ -10,6 +10,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import type { LeaveRequest, LeaveStatus } from "@/app/lib/types";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 const STATUS_BADGE: Record<LeaveStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   pending: { label: "Pending", variant: "default" },
@@ -40,24 +41,20 @@ export function LeaveRequestForm({ myRequests }: { myRequests: LeaveRequest[] })
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/leave-requests", {
+      await apiFetch("/api/admin/leave-requests", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startDate, endDate, reason }),
+        body: { startDate, endDate, reason },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Could not submit leave request.");
-        toast.error(data.error ?? "Could not submit leave request.");
-        return;
-      }
       toast.success("Leave request submitted.");
       setStartDate("");
       setEndDate("");
       setReason("");
       router.refresh();
-    } catch {
-      toast.error("Could not submit leave request.");
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : "Could not submit leave request.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

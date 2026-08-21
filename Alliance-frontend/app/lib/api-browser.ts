@@ -21,13 +21,33 @@ export class ApiError extends Error {
   }
 }
 
+type FieldError = { loc?: unknown[]; msg?: string };
+
+// A 422 carries the generic "Invalid request body." in `error` and the useful
+// part — which field, and why — in `details`. Showing only the former tells an
+// admin their input was rejected without saying what to change, so the field
+// errors are folded into the message.
+function fieldMessages(details: unknown): string | null {
+  if (!Array.isArray(details)) return null;
+  const parts = (details as FieldError[])
+    .map((d) => {
+      if (!d?.msg) return null;
+      const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : undefined;
+      return typeof field === "string" && field !== "body"
+        ? `${field}: ${d.msg}`
+        : d.msg;
+    })
+    .filter((p): p is string => Boolean(p));
+  return parts.length > 0 ? parts.join("; ") : null;
+}
+
 async function parseError(response: Response): Promise<ApiError> {
   let message = `Request failed (${response.status})`;
   let details: unknown;
   try {
     const payload = await response.json();
-    message = payload.detail ?? payload.error ?? message;
     details = payload.details ?? payload.errors;
+    message = fieldMessages(details) ?? payload.detail ?? payload.error ?? message;
   } catch {
     // Non-JSON body — keep the status-based message.
   }

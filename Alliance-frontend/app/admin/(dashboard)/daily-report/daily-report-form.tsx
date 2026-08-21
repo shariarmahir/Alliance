@@ -9,6 +9,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import type { DailyReport } from "@/app/lib/types";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -30,17 +31,10 @@ export function DailyReportForm({ myReports }: { myReports: DailyReport[] }) {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/daily-reports", {
+      await apiFetch("/api/admin/daily-reports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, hoursWorked: Number(hoursWorked), summary }),
+        body: { date, hoursWorked: Number(hoursWorked), summary },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Could not submit daily report.");
-        toast.error(data.error ?? "Could not submit daily report.");
-        return;
-      }
       toast.success("Daily report submitted.");
       setDate(today());
       setHoursWorked("8");

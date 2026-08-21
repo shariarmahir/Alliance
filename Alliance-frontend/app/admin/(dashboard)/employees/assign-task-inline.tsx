@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { SafeEmployee } from "@/app/lib/types";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 // The design bundle puts task assignment inline on the employees screen rather
 // than behind a dialog, with the priority as a chip row. Priority is presentation
@@ -31,27 +32,23 @@ export function AssignTaskInline({ employees }: { employees: SafeEmployee[] }) {
     if (!title.trim() || !assigneeEmployeeId) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/tasks", {
+      await apiFetch("/api/admin/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           title: title.trim(),
           description: priority === "Normal" ? title.trim() : `${priority} — ${title.trim()}`,
           assigneeEmployeeId,
           dueDate,
-        }),
+        },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not assign task.");
-        return;
-      }
       toast.success(`"${title.trim()}" assigned.`);
       setTitle("");
       setPriority("Normal");
       router.refresh();
-    } catch {
-      toast.error("Could not assign task.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Could not assign task."
+      );
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 // Compact composer for the sub-admin task desk (design 2d), posting to the same
 // endpoint as the full /admin/daily-report page. Date and hours use sensible
@@ -18,20 +19,14 @@ export function DailyReportInline({ defaultHours = 8 }: { defaultHours?: number 
     if (!summary.trim()) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/daily-reports", {
+      await apiFetch("/api/admin/daily-reports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           date: new Date().toISOString().slice(0, 10),
           hoursWorked: Number(hours),
           summary: summary.trim(),
-        }),
+        },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not submit daily report.");
-        return;
-      }
       toast.success("Daily report sent to the super admin.");
       setSummary("");
       router.refresh();

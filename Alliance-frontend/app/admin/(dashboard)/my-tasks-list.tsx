@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/app/lib/utils";
 import type { Task } from "@/app/lib/types";
+import { apiFetch } from "@/app/lib/api-browser";
 
 const STATUS_PILL: Record<Task["status"], { label: string; cls: string }> = {
   pending: { label: "PENDING", cls: "bg-[#f2f4f7] text-ink-muted" },
@@ -40,16 +41,10 @@ export function MyTasksList({ tasks }: { tasks: Task[] }) {
     const next = task.status === "completed" ? "pending" : "completed";
     setBusyId(task.id);
     try {
-      const res = await fetch(`/api/admin/tasks/${task.id}/status`, {
+      await apiFetch(`/api/admin/tasks/${encodeURIComponent(task.id)}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
+        body: { status: next },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update task.");
-        return;
-      }
       toast.success(next === "completed" ? "Task completed." : "Task reopened.");
       router.refresh();
     } catch {
