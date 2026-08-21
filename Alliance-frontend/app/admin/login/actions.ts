@@ -67,6 +67,11 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
 
   const cookieStore = await cookies();
   const secure = process.env.NODE_ENV === "production";
+  // Drop any host-only cookie from an earlier build first. Both scopes can
+  // coexist under the same name, and the browser would send the host-only one
+  // to this app while the API still received nothing — signing in again would
+  // appear to do nothing.
+  cookieStore.delete({ name: ADMIN_SESSION_COOKIE, path: "/" });
   cookieStore.set({
     name: ADMIN_SESSION_COOKIE,
     value: token,
@@ -132,13 +137,17 @@ export async function logoutAction() {
     }
   }
 
-  // Must match the attributes it was set with — a delete that omits the
-  // domain leaves the parent-scoped cookie in place and the admin stays
-  // signed in.
-  cookieStore.delete({
-    name: ADMIN_SESSION_COOKIE,
-    path: "/",
-    domain: process.env.NODE_ENV === "production" ? cookieParentDomain() : undefined,
-  });
+  // A delete only matches a cookie with the same name, path and domain, so
+  // both scopes are cleared: the parent-domain one set above, and the
+  // host-only one that earlier builds wrote. Without the second, an admin
+  // carrying a pre-fix cookie can never sign out of it — the host-scoped
+  // cookie keeps satisfying proxy.ts while never reaching the API, which
+  // looks exactly like being signed in but unable to save anything.
+  const parentDomain =
+    process.env.NODE_ENV === "production" ? cookieParentDomain() : undefined;
+  cookieStore.delete({ name: ADMIN_SESSION_COOKIE, path: "/" });
+  if (parentDomain) {
+    cookieStore.delete({ name: ADMIN_SESSION_COOKIE, path: "/", domain: parentDomain });
+  }
   redirect("/admin/login");
 }
