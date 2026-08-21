@@ -16,6 +16,7 @@ import {
   ROW,
   type PillTone,
 } from "../admin-ui";
+import { apiFetch } from "@/app/lib/api-browser";
 import type { Order, OrderStatus } from "@/app/lib/types";
 
 const STATUS_PILL: Record<OrderStatus, { label: string; tone: PillTone }> = {
@@ -30,16 +31,10 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
   async function setStatus(status: OrderStatus) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/orders/${order.orderNumber}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update order status.");
-        return;
-      }
+      await apiFetch(
+        `/api/admin/orders/${encodeURIComponent(order.orderNumber)}/status`,
+        { method: "PATCH", body: { status } }
+      );
       toast.success(`Order ${order.orderNumber} marked ${status}.`);
       onChanged();
     } catch {

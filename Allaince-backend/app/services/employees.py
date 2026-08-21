@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models import DailyReport, Employee, LeaveRequest, Task
+from app.models.base import business_today
 
 
 class DuplicateEmployee(ValueError):
@@ -218,8 +219,9 @@ async def list_daily_reports(
 async def create_daily_report(db: AsyncSession, data: dict) -> DailyReport:
     report = DailyReport(
         employee_id=data.get("employee_id"),
-        # Defaults to the submission day, matching the frontend's behaviour.
-        date=data.get("date") or datetime.now(timezone.utc).date(),
+        # Defaults to the submission day in Dhaka, not UTC: a report filed
+        # before 06:00 local would otherwise be dated to the previous day.
+        date=data.get("date") or business_today(),
         hours_worked=float(data.get("hours_worked", 0)),
         summary=data["summary"],
     )

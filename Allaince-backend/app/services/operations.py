@@ -4,7 +4,8 @@ from datetime import date, datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ContactRequest, Order, OrderConfirmation, Quotation
+from app.models import ContactRequest, Order, OrderConfirmation, Product, Quotation
+from app.models.base import business_today
 
 # Delivery stages shared with the customer tracking page.
 DELIVERY_STAGES = [
@@ -121,8 +122,29 @@ def amount_in_words(amount: float) -> str:
 
 async def add_quotation(db: AsyncSession, items: list[dict], details: dict) -> Quotation:
     """Totals are computed here, never taken from the client — a submitted
-    total is a customer-supplied number and must not be trusted."""
-    total = sum(float(i.get("price", 0)) * int(i.get("quantity", 0)) for i in items)
+    total is a customer-supplied number and must not be trusted.
+
+    Unit prices are re-read from the catalogue for the same reason: the browser
+    sends them, so a crafted request could otherwise post a $2,000 part at
+    $0.01 and have that figure sit in the admin's queue looking like the
+    customer's own request. A slug that no longer exists prices at 0 rather
+    than rejecting the enquiry — the admin prices every line by hand when
+    issuing anyway, and losing a genuine customer's request is the worse
+    failure.
+    """
+    slugs = {str(i.get("slug", "")) for i in items if i.get("slug")}
+    catalogue: dict[str, float] = {}
+    if slugs:
+        rows = await db.execute(
+            select(Product.slug, Product.price).where(Product.slug.in_(slugs))
+        )
+        catalogue = {slug: float(price) for slug, price in rows.all()}
+
+    items = [
+        {**item, "price": catalogue.get(str(item.get("slug", "")), 0.0)}
+        for item in items
+    ]
+    total = sum(float(i["price"]) * int(i.get("quantity", 0)) for i in items)
     submitted_at = datetime.now(timezone.utc)
     details = {**details, "submittedAt": submitted_at.isoformat()}
 
@@ -210,7 +232,9 @@ async def confirm_quotation(
         )
 
     company = (quotation.details or {}).get("companyName") or ""
-    today = datetime.now(timezone.utc).date()
+    # Dhaka, not UTC: an offer issued after 18:00 UTC would otherwise carry
+    # yesterday's date on the PDF the customer receives.
+    today = business_today()
 
     if quotation.confirmation is not None:
         # Re-issuing keeps the original ref and tracking ID: the customer may

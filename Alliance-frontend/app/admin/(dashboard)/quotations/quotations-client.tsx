@@ -27,6 +27,7 @@ import {
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
+import { apiFetch } from "@/app/lib/api-browser";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
 // Advances what the customer sees on /track/[trackingId]. That page reads
@@ -45,16 +46,10 @@ function DeliveryStageSelect({
   async function setStage(next: number) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/quotations/${quotation.id}/delivery`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: next }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update the delivery stage.");
-        return;
-      }
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/delivery`,
+        { method: "PATCH", body: { stage: next } }
+      );
       toast.success(`Delivery marked "${DELIVERY_STAGES[next].label}".`);
       onChanged();
     } catch {
@@ -316,16 +311,10 @@ function QuotationRow({
   async function setStatus(status: QuotationStatus) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/quotations/${quotation.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update quotation status.");
-        return;
-      }
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/status`,
+        { method: "PATCH", body: { status } }
+      );
       toast.success(`Quotation for ${quotation.details.companyName} marked ${status}.`);
       onChanged();
     } catch {

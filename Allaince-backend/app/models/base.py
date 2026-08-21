@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import DateTime, TypeDecorator
 from sqlalchemy.dialects.postgresql import JSONB
@@ -54,3 +54,13 @@ class UTCDateTime(TypeDecorator):
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# The business runs in Bangladesh and the admin UI labels every timestamp
+# GMT+6, so "today" for a working day is a Dhaka date. Deriving it from UTC
+# instead would file anything submitted before 06:00 local under yesterday.
+BUSINESS_TZ = timezone(timedelta(hours=6))
+
+
+def business_today() -> date:
+    return datetime.now(BUSINESS_TZ).date()

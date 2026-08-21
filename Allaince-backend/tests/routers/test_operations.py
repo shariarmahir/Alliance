@@ -2,6 +2,7 @@ import pytest
 
 from app.core.rate_limit import reset_in_memory_buckets
 from app.core.session_token import ADMIN_SESSION_COOKIE, create_session_token
+from app.models import Category, Product
 from app.schemas.session import AdminSession
 
 QUOTE_PAYLOAD = {
@@ -44,7 +45,23 @@ def _auth(client, role="super", **kwargs):
 # --- public submission ------------------------------------------------------
 
 
-async def test_submit_quotation_computes_total_and_returns_id(client):
+async def _seed_catalogue(db, price=100.0):
+    """The quotation service prices from the catalogue, so the product the
+    payload refers to has to exist for the total to be non-zero."""
+    db.add(Category(slug="drives", name="Drives"))
+    await db.flush()
+    db.add(
+        Product(
+            slug="drive-1", part_number="PN-A", name="Siemens Drive",
+            brand="siemens", category_slug="drives", price=price,
+            stock="in-stock", stock_qty=10,
+        )
+    )
+    await db.commit()
+
+
+async def test_submit_quotation_computes_total_and_returns_id(client, db):
+    await _seed_catalogue(db)
     r = await client.post("/api/quotations", json=QUOTE_PAYLOAD)
     assert r.status_code == 201
     body = r.json()
@@ -53,11 +70,38 @@ async def test_submit_quotation_computes_total_and_returns_id(client):
     assert body["id"]
 
 
-async def test_submitted_total_from_client_is_ignored(client):
+async def test_submitted_total_from_client_is_ignored(client, db):
     # A client-supplied total must never be trusted.
+    await _seed_catalogue(db)
     payload = {**QUOTE_PAYLOAD, "total": 1}
     r = await client.post("/api/quotations", json=payload)
     assert r.json()["total"] == 200.0
+
+
+async def test_submitted_unit_price_is_replaced_by_the_catalogue(client, db):
+    # The browser sends the price, so a crafted request could otherwise put a
+    # 100.00 part into the admin's queue at 0.01 and misprice the offer.
+    await _seed_catalogue(db)
+    forged = {
+        **QUOTE_PAYLOAD,
+        "items": [{**QUOTE_PAYLOAD["items"][0], "price": 0.01}],
+    }
+    body = (await client.post("/api/quotations", json=forged)).json()
+    assert body["items"][0]["price"] == 100.0
+    assert body["total"] == 200.0
+
+
+async def test_unknown_slug_prices_at_zero_rather_than_rejecting(client, db):
+    # A delisted product must not lose the customer's enquiry; the admin
+    # prices every line by hand when issuing regardless.
+    await _seed_catalogue(db)
+    stale = {
+        **QUOTE_PAYLOAD,
+        "items": [{**QUOTE_PAYLOAD["items"][0], "slug": "no-such-product"}],
+    }
+    r = await client.post("/api/quotations", json=stale)
+    assert r.status_code == 201
+    assert r.json()["total"] == 0.0
 
 
 async def test_quotation_requires_valid_email(client):

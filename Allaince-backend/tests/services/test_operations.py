@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from app.models import Category, Product
 from app.services.operations import (
     add_contact_request,
     add_order,
@@ -26,6 +27,20 @@ ITEMS = [
     {"slug": "b", "partNumber": "PN-B", "name": "Relay", "price": 50.0, "quantity": 1},
 ]
 DETAILS = {"fullName": "Ada", "email": "Ada@Example.com", "companyName": "Mahir Fabrics Ltd"}
+
+
+async def seed_catalogue(db):
+    """add_quotation prices from the catalogue, so ITEMS' slugs must exist
+    for the totals these tests assert on."""
+    db.add(Category(slug="c", name="C"))
+    await db.flush()
+    db.add_all([
+        Product(slug="a", part_number="PN-A", name="Drive", brand="siemens",
+                category_slug="c", price=100.0, stock="in-stock", stock_qty=5),
+        Product(slug="b", part_number="PN-B", name="Relay", brand="omron",
+                category_slug="c", price=50.0, stock="in-stock", stock_qty=5),
+    ])
+    await db.commit()
 
 
 # --- pure helpers -----------------------------------------------------------
@@ -81,6 +96,7 @@ def test_clamp_stage(raw, expected):
 
 
 async def test_add_quotation_computes_total_server_side(db):
+    await seed_catalogue(db)
     quotation = await add_quotation(db, ITEMS, DETAILS)
     # 100*2 + 50*1 — never taken from the client.
     assert quotation.total == 250.0
@@ -106,6 +122,7 @@ async def test_confirm_issues_document_and_flips_status(db):
 
 
 async def test_confirming_does_not_overwrite_the_original_request(db):
+    await seed_catalogue(db)
     quotation = await add_quotation(db, ITEMS, DETAILS)
     await confirm_quotation(
         db, quotation.id, lines=[{"name": "Drive", "quantity": 2, "unitPrice": 999.0}]

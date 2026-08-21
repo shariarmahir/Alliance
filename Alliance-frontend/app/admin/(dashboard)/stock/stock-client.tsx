@@ -16,6 +16,7 @@ import {
   ROW,
   type PillTone,
 } from "../admin-ui";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Category, Product, StockStatus } from "@/app/lib/types";
 
 const STOCK_PILL: Record<StockStatus, { label: string; tone: PillTone }> = {
@@ -41,23 +42,25 @@ function StockRow({
   const [exact, setExact] = useState(String(product.stockQty));
   const [busy, setBusy] = useState(false);
 
+  // The API takes an absolute quantity only, so a stock-in/out step is
+  // resolved against the quantity on screen before sending. Clamped at zero:
+  // stocking out more than is held should empty the shelf, not go negative.
   async function patch(body: { stockQty: number; delta?: boolean }) {
+    const nextQty = body.delta
+      ? Math.max(0, product.stockQty + body.stockQty)
+      : body.stockQty;
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/products/${product.slug}/stock`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update stock.");
-        return;
-      }
-      toast.success(`${product.partNumber}: stock updated to ${data.product.stockQty}.`);
+      const updated = await apiFetch<{ stockQty: number }>(
+        `/api/admin/products/${encodeURIComponent(product.slug)}/stock`,
+        { method: "PATCH", body: { stockQty: nextQty } }
+      );
+      toast.success(`${product.partNumber}: stock updated to ${updated.stockQty}.`);
       onChanged();
-    } catch {
-      toast.error("Could not save changes.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not save changes."
+      );
     } finally {
       setBusy(false);
     }

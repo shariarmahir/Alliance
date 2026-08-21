@@ -19,7 +19,8 @@ import {
   defaultSubject,
   generateRefNumber,
 } from "@/app/lib/order-confirmation";
-import { downloadQuotationPdf, quotationPdfToBase64 } from "@/app/lib/quotation-pdf";
+import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationTerms } from "@/app/lib/types";
 
 // Editable per-line state. Product IDs are deliberately absent — the server
@@ -173,28 +174,37 @@ export function ConfirmQuotationPanel({
       return fail("Every line needs a quantity of at least 1 and a non-negative price.");
     }
 
-    const res = await fetch(`/api/admin/quotations/${quotation.id}/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        refNumber,
-        subject,
-        issuedDate,
-        terms,
-        lines: priced.map((l) => ({
-          slug: l.slug,
-          specifications: l.specifications,
-          quantity: l.quantity,
-          unit: l.unit,
-          unitPrice: l.value,
-        })),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return fail(data.error ?? "Could not issue the order confirmation.");
+    try {
+      return await apiFetch<Quotation>(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/confirm`,
+        {
+          method: "POST",
+          body: {
+            refNumber,
+            subject,
+            issuedDate,
+            terms,
+            lines: priced.map((l) => ({
+              slug: l.slug,
+              // name is required by the API: the confirmation snapshots what
+              // was offered, so it cannot look the item up later.
+              name: l.name,
+              partNumber: l.partNumber,
+              specifications: l.specifications,
+              quantity: l.quantity,
+              unit: l.unit,
+              unitPrice: l.value,
+            })),
+          },
+        }
+      );
+    } catch (error) {
+      return fail(
+        error instanceof ApiError
+          ? error.message
+          : "Could not issue the order confirmation."
+      );
     }
-    return data.quotation as Quotation;
   }
 
   async function saveOnly() {
@@ -231,56 +241,34 @@ export function ConfirmQuotationPanel({
       }
 
       try {
-        toast.loading("Preparing the quotation PDF...", { id: toastId });
-        const { base64, fileName } = await quotationPdfToBase64(saved);
-
         toast.loading(`Sending to ${saved.details.email}...`, { id: toastId });
-        // Echo the confirmation the confirm call just returned: Blob reads
-        // briefly lag the write, so the email route cannot rely on re-reading
-        // it — that race made the first send after confirming fail.
-        const c = saved.confirmation!;
-        const res = await fetch(`/api/admin/quotations/${quotation.id}/email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pdfBase64: base64,
-            fileName,
-            confirmation: {
-              refNumber: c.refNumber,
-              subject: c.subject,
-              issuedDate: c.issuedDate,
-              grandTotal: c.grandTotal,
-              trackingId: c.trackingId,
-              lineCount: c.lines.length,
-            },
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          // The confirmation is saved either way — say so explicitly, so the
-          // admin knows to retry only the email rather than re-issue.
-          toast.error(data.error ?? "Could not send the email.", {
-            id: toastId,
-            description: `Confirmation ${refNumber} was saved. Use Re-issue to try emailing again.`,
-            duration: 7000,
-          });
-          setSentTo(null);
-          return;
-        }
+        // The API renders the PDF from the confirmation it just stored and
+        // attaches it server-side, so nothing is uploaded from here.
+        const result = await apiFetch<{ sent: boolean; attached: boolean }>(
+          `/api/admin/quotations/${encodeURIComponent(quotation.id)}/email`,
+          { method: "POST" }
+        );
         toast.success("Email sent", {
           id: toastId,
-          description: `${refNumber} delivered to ${saved.details.email} with the PDF attached.`,
+          description: result.attached
+            ? `${refNumber} delivered to ${saved.details.email} with the PDF attached.`
+            : `${refNumber} delivered to ${saved.details.email}, but the PDF could not be attached.`,
           duration: 8000,
         });
         setSentTo(saved.details.email);
         onConfirmed();
         return;
-      } catch {
-        toast.error("Could not send the email.", {
-          id: toastId,
-          description: `Confirmation ${refNumber} was saved. Use Re-issue to try emailing again.`,
-          duration: 7000,
-        });
+      } catch (error) {
+        // The confirmation is saved either way — say so explicitly, so the
+        // admin knows to retry only the email rather than re-issue.
+        toast.error(
+          error instanceof ApiError ? error.message : "Could not send the email.",
+          {
+            id: toastId,
+            description: `Confirmation ${refNumber} was saved. Use Re-issue to try emailing again.`,
+            duration: 7000,
+          }
+        );
         setSentTo(null);
         return;
       }
