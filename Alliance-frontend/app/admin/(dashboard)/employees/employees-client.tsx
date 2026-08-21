@@ -2,6 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/app/components/ui/dialog";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { AddEmployeeDialog } from "./add-employee-dialog";
@@ -85,6 +97,9 @@ function RosterTab({
                   <th className={TH}>ACCESS</th>
                   <th className={TH}>OPEN / DONE</th>
                   <th className={TH}>DS TIME</th>
+                  <th className={TH}>
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -125,6 +140,13 @@ function RosterTab({
                       <td className={`${TD} font-mono ${ds?.low ? "text-warn" : "text-ok"}`}>
                         {ds?.label ?? "—"}
                       </td>
+                      <td className={TD}>
+                        <DeleteEmployeeButton
+                          employee={e}
+                          openTasks={open}
+                          onDeleted={() => router.refresh()}
+                        />
+                      </td>
                     </tr>
                   );
                 })}
@@ -136,6 +158,87 @@ function RosterTab({
 
       <AssignTaskInline employees={employees} />
     </div>
+  );
+}
+
+function DeleteEmployeeButton({
+  employee,
+  openTasks,
+  onDeleted,
+}: {
+  employee: SafeEmployee;
+  openTasks: number;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await apiFetch(`/api/admin/employees/${encodeURIComponent(employee.id)}`, {
+        method: "DELETE",
+      });
+      toast.success(`${employee.name} removed.`);
+      setOpen(false);
+      onDeleted();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not remove this employee."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`Delete ${employee.name}`}
+        onClick={() => setOpen(true)}
+        className="flex size-7 items-center justify-center rounded-md border border-[#f0d0d0] bg-white text-[#c22] transition-colors hover:border-[#c22] hover:bg-[#c22] hover:text-white"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {employee.name}?</DialogTitle>
+            <DialogDescription>
+              They lose access immediately and cannot sign in again. Their
+              tasks, leave requests and daily reports are kept, but stop being
+              attributed to anyone — the records remain, the name does not.
+              {openTasks > 0 && (
+                <>
+                  {" "}
+                  <strong className="text-ink">
+                    {openTasks} open task{openTasks === 1 ? "" : "s"}
+                  </strong>{" "}
+                  will be left unassigned; reassign {openTasks === 1 ? "it" : "them"} first
+                  if someone else should pick {openTasks === 1 ? "it" : "them"} up.
+                </>
+              )}{" "}
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={remove} disabled={busy}>
+              {busy ? "Removing..." : "Remove employee"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
