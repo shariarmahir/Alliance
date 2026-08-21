@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, Download } from "lucide-react";
@@ -98,14 +98,26 @@ const CONTACT_LABEL: Record<string, string> = {
   whatsapp: "WhatsApp",
 };
 
-function ageLabel(submittedAt: string): { label: string; breached: boolean } {
-  const ms = Date.now() - new Date(submittedAt).getTime();
+// now is passed in rather than read from Date.now() here: the elapsed time
+// (and the resulting SLA-breach flag) would otherwise differ between the
+// server's render and the client's, which React treats as a hydration
+// mismatch on this row every single load.
+function ageLabel(submittedAt: string, now: number): { label: string; breached: boolean } {
+  const ms = now - new Date(submittedAt).getTime();
   const hours = Math.floor(ms / 3_600_000);
   const minutes = Math.floor((ms % 3_600_000) / 60_000);
   return {
     label: hours > 0 ? `${hours} h ${String(minutes).padStart(2, "0")} m` : `${minutes} m`,
     breached: ms > SLA_HOURS * 3_600_000,
   };
+}
+
+// Fixed to the business's own timezone (matches admin-topbar.tsx) rather than
+// the viewer's local zone: the server renders in UTC and a browser in Dhaka
+// would otherwise disagree with it, which is the same hydration problem as
+// the elapsed-time label above.
+function formatSubmittedDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka" }).format(new Date(iso));
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -139,7 +151,7 @@ function QuotationDetailDialog({ quotation }: { quotation: Quotation }) {
         <DialogHeader>
           <DialogTitle className="text-[17px] font-bold text-ink">Quotation details</DialogTitle>
           <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
-            Submitted {new Date(d.submittedAt).toLocaleString("en-GB")}
+            Submitted {formatSubmittedDate(d.submittedAt)}
           </DialogDescription>
         </DialogHeader>
 
@@ -325,7 +337,14 @@ function QuotationRow({
   }
 
   const pending = quotation.status === "pending";
-  const age = ageLabel(quotation.details.submittedAt);
+  // null until mounted, so the server and the first client render agree (both
+  // show the placeholder); the real elapsed time then fills in a moment
+  // later, which is invisible in practice.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+  const age = now === null ? { label: "—", breached: false } : ageLabel(quotation.details.submittedAt, now);
   const pill = STATUS_PILL[quotation.status];
 
   return (
@@ -358,7 +377,7 @@ function QuotationRow({
           pending && age.breached ? "font-semibold text-[#c22]" : "text-ink-muted"
         }`}
       >
-        {pending ? age.label : new Date(quotation.details.submittedAt).toLocaleDateString("en-GB")}
+        {pending ? age.label : formatSubmittedDate(quotation.details.submittedAt)}
       </td>
       <td className={TD}>
         {pending && age.breached ? (
@@ -425,13 +444,23 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | QuotationStatus>("all");
 
+  // null until mounted — see ageLabel's own comment. The breach count is a
+  // one-line summary, so a beat of "0" while it fills in is unnoticeable.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
   const count = (s: QuotationStatus) => initialQuotations.filter((q) => q.status === s).length;
   // Next ref sequence, so a freshly opened confirm form pre-fills a number
   // that doesn't clash with the ones already issued.
   const nextSequence = initialQuotations.filter((q) => q.confirmation).length + 1;
-  const breached = initialQuotations.filter(
-    (q) => q.status === "pending" && ageLabel(q.details.submittedAt).breached
-  ).length;
+  const breached =
+    now === null
+      ? 0
+      : initialQuotations.filter(
+          (q) => q.status === "pending" && ageLabel(q.details.submittedAt, now).breached
+        ).length;
 
   // Oldest first while pending — the ones closest to breaching the SLA need
   // answering first; everything else reads newest first.
