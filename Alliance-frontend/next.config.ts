@@ -1,5 +1,24 @@
 import type { NextConfig } from "next";
 
+// The browser talks to the API directly (client components, uploads, PDF
+// downloads), so its origin has to be allowed by connect-src. Without this the
+// CSP blocks every call the moment the API is on its own domain — which is
+// exactly what happens in production.
+const originOf = (raw: string | undefined): string => {
+  if (!raw) return "";
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "";
+  }
+};
+
+const apiOrigin = originOf(process.env.NEXT_PUBLIC_API_URL);
+// Product/category images are served from the object-storage bucket, which is
+// a third origin the CSP and the image optimiser both have to know about.
+const mediaOrigin = originOf(process.env.NEXT_PUBLIC_MEDIA_URL);
+const extraOrigins = [apiOrigin, mediaOrigin].filter(Boolean).join(" ");
+
 const nextConfig: NextConfig = {
   // Single build worker on Windows only: the default parallel worker pool
   // crashes on Windows dev machines with a native STATUS_STACK_BUFFER_OVERRUN
@@ -20,6 +39,16 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "images.pexels.com" },
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      // The API (uploads served from disk in dev) and the object-storage
+      // bucket. Both are runtime config, so an unset one is simply skipped
+      // rather than hardcoded to a host this project may not use.
+      ...[apiOrigin, mediaOrigin]
+        .filter(Boolean)
+        .map((origin) => new URL(origin))
+        .map(({ protocol, hostname }) => ({
+          protocol: protocol.replace(":", "") as "http" | "https",
+          hostname,
+        })),
     ],
   },
 
@@ -62,8 +91,8 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://images.unsplash.com https://images.pexels.com",
-              "connect-src 'self' https://*.public.blob.vercel-storage.com",
+              `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://images.unsplash.com https://images.pexels.com${extraOrigins ? ` ${extraOrigins}` : ""}`,
+              `connect-src 'self' https://*.public.blob.vercel-storage.com${extraOrigins ? ` ${extraOrigins}` : ""}`,
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
