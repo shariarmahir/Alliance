@@ -6,9 +6,15 @@ import { toast } from "sonner";
 import { Check, Undo2 } from "lucide-react";
 import { PageHeader, Panel, EmptyState, FilterBar, Pill, RowButton } from "../admin-ui";
 import type { ContactRequest } from "@/app/lib/types";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
+import { useClientNow } from "@/app/lib/use-client-now";
 
-function ageLabel(submittedAt: string): string {
-  const ms = Date.now() - new Date(submittedAt).getTime();
+// `now` is passed in rather than read here: Date.now() during render differs
+// between the server and the browser, which React reports as a hydration
+// mismatch. The caller supplies it from an effect, so the first paint matches
+// what the server sent.
+function ageLabel(submittedAt: string, now: number): string {
+  const ms = now - new Date(submittedAt).getTime();
   const hours = Math.floor(ms / 3_600_000);
   if (hours < 1) return `${Math.max(1, Math.floor(ms / 60_000))} M AGO`;
   if (hours < 24) return `${hours} H AGO`;
@@ -18,9 +24,11 @@ function ageLabel(submittedAt: string): string {
 function ContactRequestCard({
   request,
   onChanged,
+  now,
 }: {
   request: ContactRequest;
   onChanged: () => void;
+  now: number | null;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -28,20 +36,19 @@ function ContactRequestCard({
     setBusy(true);
     const nextHandled = !request.handled;
     try {
-      const res = await fetch(`/api/admin/contact-requests/${request.id}/handled`, {
+      // apiFetch, not fetch: a relative path resolves against this app's own
+      // origin, which serves no API — in production that is a 404 the UI
+      // reported as "Could not update this request."
+      await apiFetch(`/api/admin/contact-requests/${request.id}/handled`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handled: nextHandled }),
+        body: { handled: nextHandled },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not update this request.");
-        return;
-      }
       toast.success(nextHandled ? "Marked as handled." : "Marked as unhandled.");
       onChanged();
-    } catch {
-      toast.error("Could not update this request.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Could not update this request."
+      );
     } finally {
       setBusy(false);
     }
@@ -56,7 +63,7 @@ function ContactRequestCard({
             {request.handled ? (
               <Pill tone="ok">HANDLED</Pill>
             ) : (
-              <Pill tone="warn">{ageLabel(request.submittedAt)}</Pill>
+              now !== null && <Pill tone="warn">{ageLabel(request.submittedAt, now)}</Pill>
             )}
           </div>
           <p className="text-[11.5px] text-[#8a94a6]">
@@ -93,6 +100,9 @@ function ContactRequestCard({
 export function ContactRequestsClient({ initialRequests }: { initialRequests: ContactRequest[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unhandled" | "handled">("all");
+  // Null during SSR; a real timestamp once mounted. Ages are omitted rather
+  // than guessed while it is null — see useClientNow.
+  const now = useClientNow();
 
   const unhandled = initialRequests.filter((r) => !r.handled);
   const filtered = initialRequests.filter((r) => {
@@ -139,7 +149,8 @@ export function ContactRequestsClient({ initialRequests }: { initialRequests: Co
         <div className="flex flex-wrap items-center gap-2.5 rounded-[10px] border border-tint-line bg-[#f4faff] px-4 py-3">
           <Pill tone="info">{unhandled.length} OPEN</Pill>
           <p className="text-[12.5px] text-[#00618f]">
-            {unhandled.length} unanswered, oldest {ageLabel(oldest).toLowerCase()}.
+            {unhandled.length} unanswered
+            {now !== null && `, oldest ${ageLabel(oldest, now).toLowerCase()}`}.
           </p>
         </div>
       )}
@@ -153,6 +164,7 @@ export function ContactRequestsClient({ initialRequests }: { initialRequests: Co
               key={request.id}
               request={request}
               onChanged={() => router.refresh()}
+              now={now}
             />
           ))}
         </div>

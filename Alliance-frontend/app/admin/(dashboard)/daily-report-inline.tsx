@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { apiFetch, ApiError } from "@/app/lib/api-browser";
+import { apiFetch } from "@/app/lib/api-browser";
 
 // Compact composer for the sub-admin task desk (design 2d), posting to the same
 // endpoint as the full /admin/daily-report page. Date and hours use sensible

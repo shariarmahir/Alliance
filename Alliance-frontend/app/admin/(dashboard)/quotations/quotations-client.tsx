@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, Download } from "lucide-react";
@@ -27,6 +27,7 @@ import {
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
+import { useClientNow } from "@/app/lib/use-client-now";
 import { apiFetch } from "@/app/lib/api-browser";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
@@ -340,10 +341,7 @@ function QuotationRow({
   // null until mounted, so the server and the first client render agree (both
   // show the placeholder); the real elapsed time then fills in a moment
   // later, which is invisible in practice.
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-  }, []);
+  const now = useClientNow();
   const age = now === null ? { label: "—", breached: false } : ageLabel(quotation.details.submittedAt, now);
   const pill = STATUS_PILL[quotation.status];
 
@@ -446,10 +444,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
 
   // null until mounted — see ageLabel's own comment. The breach count is a
   // one-line summary, so a beat of "0" while it fills in is unnoticeable.
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-  }, []);
+  const now = useClientNow();
 
   const count = (s: QuotationStatus) => initialQuotations.filter((q) => q.status === s).length;
   // Next ref sequence, so a freshly opened confirm form pre-fills a number

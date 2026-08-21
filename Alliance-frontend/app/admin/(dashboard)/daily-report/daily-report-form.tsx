@@ -9,7 +9,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import type { DailyReport } from "@/app/lib/types";
-import { apiFetch, ApiError } from "@/app/lib/api-browser";
+import { apiFetch } from "@/app/lib/api-browser";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);

@@ -1,15 +1,18 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Mail, Loader2, PlugZap, RefreshCw, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/app/lib/utils";
 import { PageHeader, Panel, EmptyState, Pill } from "../admin-ui";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 
 type ThreadSummary = {
   id: string;
+  // The list is of messages, but a message is opened by its *thread* id —
+  // using the message id here 404s on any mail with a reply attached.
+  threadId: string;
   from: string;
   subject: string;
   preview: string;
@@ -17,7 +20,30 @@ type ThreadSummary = {
   unread: boolean;
 };
 
-type ThreadDetail = ThreadSummary & { bodyText: string };
+// One message within an opened thread.
+type ThreadMessage = {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  receivedAt: string;
+  body: string;
+};
+
+type ThreadDetail = { id: string; messages: ThreadMessage[] };
+
+// Gmail's Date header is an RFC 2822 string, and an unparseable one would
+// otherwise render as "Invalid Date". Fixed timezone so the server and the
+// browser agree — see the hydration note on the quotations screen.
+function formatReceived(raw: string): string {
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Dhaka",
+  }).format(parsed);
+}
 
 // "Padma Power <a.hasan@padma-power.com>" -> "PP". Falls back to the address.
 function initials(from: string): string {
@@ -32,23 +58,56 @@ function initials(from: string): string {
   );
 }
 
-function ConnectPanel() {
+function ConnectPanel({ configured }: { configured: boolean }) {
+  const [starting, setStarting] = useState(false);
+
+  // The API hands back Google's consent URL as JSON rather than redirecting,
+  // so this cannot be a plain link — following one would display the JSON.
+  // Fetch the URL, then send the browser to Google.
+  async function connect() {
+    setStarting(true);
+    try {
+      const { url } = await apiFetch<{ url: string }>("/api/admin/emails/oauth/start");
+      window.location.href = url;
+    } catch (err) {
+      // 503 means the Google credentials are not set on the server. Say that,
+      // rather than a generic failure the admin cannot act on.
+      const message =
+        err instanceof ApiError && err.status === 503
+          ? "Gmail sign-in is not configured on the server yet."
+          : err instanceof ApiError
+            ? err.message
+            : "Could not start Gmail sign-in.";
+      toast.error(message);
+      setStarting(false);
+    }
+  }
+
   return (
     <Panel className="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-tint">
         <PlugZap className="size-5 text-primary" />
       </span>
       <h2 className="text-[15.5px] font-bold text-ink">Connect info@auto-bd.com</h2>
+      {/* Two different situations, and offering the button in the second one
+          sends the admin to a dead end: the server has no Google credentials,
+          so there is nothing for the button to open. */}
       <p className="max-w-sm text-[13px] leading-[1.65] text-ink-muted">
-        Sign in as the mailbox once to see real messages here — AutoLink only reads mail, it never
-        sends or deletes anything through this connection.
+        {configured
+          ? "Sign in as the mailbox once to see real messages here — AutoLink only reads mail, it never sends or deletes anything through this connection."
+          : "Google sign-in is not set up on the server yet. Once the Gmail credentials are added there, this is where you connect the mailbox."}
       </p>
-      <Link
-        href="/api/admin/emails/oauth/start"
-        className="btn-glass mt-2 inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-[13px] font-bold"
-      >
-        <PlugZap className="size-4" /> Connect Gmail
-      </Link>
+      {configured && (
+        <button
+          type="button"
+          onClick={connect}
+          disabled={starting}
+          className="btn-glass mt-2 inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-[13px] font-bold disabled:opacity-60"
+        >
+          {starting ? <Loader2 className="size-4 animate-spin" /> : <PlugZap className="size-4" />}
+          {starting ? "Opening Google..." : "Connect Gmail"}
+        </button>
+      )}
     </Panel>
   );
 }
@@ -56,7 +115,11 @@ function ConnectPanel() {
 // useSearchParams() requires a Suspense boundary above it or the build fails
 // at static-generation time (not caught by tsc/eslint) — this thin wrapper is
 // the boundary, EmailsClientInner does the actual work.
-export function EmailsClient(props: { connected: boolean; connectedSince: string | null }) {
+export function EmailsClient(props: {
+  configured: boolean;
+  connected: boolean;
+  connectedSince: string | null;
+}) {
   return (
     <Suspense fallback={null}>
       <EmailsClientInner {...props} />
@@ -65,9 +128,11 @@ export function EmailsClient(props: { connected: boolean; connectedSince: string
 }
 
 function EmailsClientInner({
+  configured,
   connected: initiallyConnected,
   connectedSince,
 }: {
+  configured: boolean;
   connected: boolean;
   connectedSince: string | null;
 }) {
@@ -101,13 +166,15 @@ function EmailsClientInner({
   async function loadThreads() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/emails");
-      const data = await res.json().catch(() => ({}));
+      const data = await apiFetch<{ connected: boolean; threads: ThreadSummary[] }>(
+        "/api/admin/emails"
+      );
       setConnected(Boolean(data.connected));
       setThreads(data.threads ?? []);
-      if (data.threads?.[0]) setSelectedId((id) => id ?? data.threads[0].id);
-    } catch {
-      toast.error("Could not load the inbox.");
+      // Open by thread id, not message id — see ThreadSummary.
+      if (data.threads?.[0]) setSelectedId((id) => id ?? data.threads[0].threadId);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not load the inbox.");
     } finally {
       setLoading(false);
     }
@@ -131,11 +198,13 @@ function EmailsClientInner({
     async function load() {
       setDetailLoading(true);
       try {
-        const res = await fetch(`/api/admin/emails/${selectedId}`);
-        const data = await res.json();
-        if (!cancelled) setDetail(data.thread ?? null);
-      } catch {
-        if (!cancelled) toast.error("Could not load that message.");
+        // The endpoint returns the thread itself, not a { thread } wrapper.
+        const thread = await apiFetch<ThreadDetail>(`/api/admin/emails/${selectedId}`);
+        if (!cancelled) setDetail(thread ?? null);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof ApiError ? err.message : "Could not load that message.");
+        }
       } finally {
         if (!cancelled) setDetailLoading(false);
       }
@@ -154,15 +223,16 @@ function EmailsClientInner({
   async function disconnect() {
     setDisconnecting(true);
     try {
-      const res = await fetch("/api/admin/emails", { method: "DELETE" });
-      if (!res.ok) {
-        toast.error("Could not disconnect.");
-        return;
-      }
+      // The connection lives at /connection; DELETE on the collection is a
+      // different (nonexistent) route.
+      await apiFetch("/api/admin/emails/connection", { method: "DELETE" });
       setConnected(false);
       setThreads([]);
       setSelectedId(null);
+      setDetail(null);
       toast.success("Gmail disconnected.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not disconnect.");
     } finally {
       setDisconnecting(false);
     }
@@ -207,15 +277,17 @@ function EmailsClientInner({
         </div>
       ) : (
         <div className="flex items-center gap-2.5 rounded-[10px] border border-tint-line bg-[#f4faff] px-4 py-3">
-          <Pill tone="info">NOT CONNECTED</Pill>
+          <Pill tone="info">{configured ? "NOT CONNECTED" : "NOT SET UP"}</Pill>
           <p className="text-[12.5px] text-[#00618f]">
-            Connect the info@auto-bd.com mailbox to see real messages here.
+            {configured
+              ? "Connect the info@auto-bd.com mailbox to see real messages here."
+              : "Gmail access needs to be set up on the server before the mailbox can be connected."}
           </p>
         </div>
       )}
 
       {!connected ? (
-        <ConnectPanel />
+        <ConnectPanel configured={configured} />
       ) : loading ? (
         <Panel className="flex items-center justify-center gap-2 py-16 text-ink-muted">
           <Loader2 className="size-4 animate-spin" /> Loading inbox...
@@ -226,12 +298,14 @@ function EmailsClientInner({
         <Panel className="grid overflow-hidden lg:grid-cols-[340px_1fr]">
           <div className="scrollbar-slim max-h-128 overflow-y-auto border-b border-slate-line lg:max-h-144 lg:border-b-0 lg:border-r">
             {threads.map((email) => {
-              const active = selectedId === email.id;
+              // Selection is by thread id: opening a message fetches its
+              // whole conversation, and the message id would not resolve.
+              const active = selectedId === email.threadId;
               return (
                 <button
                   key={email.id}
                   type="button"
-                  onClick={() => setSelectedId(email.id)}
+                  onClick={() => setSelectedId(email.threadId)}
                   aria-current={active ? "true" : undefined}
                   className={cn(
                     "flex w-full gap-3 border-b border-[#f2f4f7] px-4 py-3.5 text-left transition-colors last:border-b-0",
@@ -278,25 +352,39 @@ function EmailsClientInner({
               <div className="flex h-full items-center justify-center text-ink-muted">
                 <Loader2 className="size-5 animate-spin" />
               </div>
-            ) : visibleDetail ? (
+            ) : visibleDetail && visibleDetail.messages.length > 0 ? (
               <>
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-line pb-4">
-                  <div className="min-w-0">
-                    <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-                      {visibleDetail.subject}
-                    </h2>
-                    <p className="mt-1 text-[12.5px] text-ink-muted">From {visibleDetail.from}</p>
-                    <p className="mt-0.5 font-mono text-[10.5px] text-[#8a94a6]">
-                      {new Date(visibleDetail.receivedAt).toLocaleString("en-GB")}
+                <div className="mb-4 border-b border-slate-line pb-4">
+                  <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
+                    {visibleDetail.messages[0].subject}
+                  </h2>
+                  {visibleDetail.messages.length > 1 && (
+                    <p className="mt-1 text-[12.5px] text-ink-muted">
+                      {visibleDetail.messages.length} messages in this conversation
                     </p>
-                  </div>
-                  <Pill tone={visibleDetail.unread ? "warn" : "ok"}>
-                    {visibleDetail.unread ? "UNREAD" : "READ"}
-                  </Pill>
+                  )}
                 </div>
-                <p className="whitespace-pre-wrap text-[13px] leading-[1.75] text-ink-soft">
-                  {visibleDetail.bodyText}
-                </p>
+                {/* A thread is a conversation, not one message — rendering only
+                    the first would hide every reply. */}
+                <div className="space-y-5">
+                  {visibleDetail.messages.map((message, index) => (
+                    <article
+                      key={message.id}
+                      className={cn(index > 0 && "border-t border-slate-line pt-5")}
+                    >
+                      <p className="text-[12.5px] font-semibold text-ink">{message.from}</p>
+                      {message.to && (
+                        <p className="mt-0.5 text-[12px] text-ink-muted">To {message.to}</p>
+                      )}
+                      <p className="mt-0.5 font-mono text-[10.5px] text-[#8a94a6]">
+                        {formatReceived(message.receivedAt)}
+                      </p>
+                      <p className="mt-2.5 whitespace-pre-wrap text-[13px] leading-[1.75] text-ink-soft">
+                        {message.body}
+                      </p>
+                    </article>
+                  ))}
+                </div>
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-ink-muted">
