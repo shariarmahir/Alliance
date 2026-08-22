@@ -17,6 +17,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import type { Brand, Category } from "@/app/lib/types";
+import { apiUpload, ApiError } from "@/app/lib/api-browser";
 
 type RepeatableListProps = {
   label: string;
@@ -129,19 +130,24 @@ export function AddProductDialog({
     gallery.forEach((f) => form.append("gallery", f));
 
     try {
-      const res = await fetch("/api/admin/products", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrors(data.errors ?? { form: "Could not save product." });
-        toast.error("Could not add product. Check the highlighted fields.");
-        return;
-      }
+      // apiUpload, not fetch: a relative path resolves against this app's own
+      // origin, which serves no API — in production that is a 404.
+      await apiUpload("/api/admin/products", form);
       toast.success(`"${name}" added to the catalog.`);
       resetForm();
       setOpen(false);
       onCreated();
-    } catch {
-      toast.error("Could not save changes.");
+    } catch (err) {
+      // A 422 carries per-field detail; keep surfacing it against the fields
+      // rather than collapsing everything into one banner.
+      const fields =
+        err instanceof ApiError && err.details && !Array.isArray(err.details)
+          ? (err.details as Record<string, string>)
+          : null;
+      setErrors(fields ?? { form: err instanceof ApiError ? err.message : "Could not save product." });
+      toast.error(
+        err instanceof ApiError ? err.message : "Could not add product."
+      );
     } finally {
       setSubmitting(false);
     }

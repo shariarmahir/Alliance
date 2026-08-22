@@ -9,6 +9,7 @@ import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import type { BulkImportError, Category } from "@/app/lib/types";
+import { apiUpload, ApiError } from "@/app/lib/api-browser";
 
 // Prices are BDT — the example figures reflect that scale so a new admin
 // pasting a real line doesn't anchor on 100x-too-small numbers.
@@ -34,20 +35,33 @@ export function BulkImportTab({ categories, onImported }: { categories: Category
     images.forEach((f) => form.append("images", f));
 
     try {
-      const res = await fetch("/api/admin/products/bulk", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrors(data.errors ?? [{ lineNumber: null, message: "Could not import products." }]);
-        toast.error("Bulk import failed. Fix the errors below and try again.");
-        return;
-      }
+      // apiUpload, not fetch: a relative path resolves against this app's own
+      // origin, which serves no API — in production that is a 404.
+      const data = await apiUpload<{ products?: unknown[] }>(
+        "/api/admin/products/bulk",
+        form
+      );
       toast.success(`${data.products?.length ?? 0} products imported.`);
       setProductsText("");
       setImages([]);
       setCategorySlug("");
       onImported();
-    } catch {
-      toast.error("Could not save changes.");
+    } catch (err) {
+      // The per-line errors are what make a failed import fixable; keep them
+      // attached to their lines instead of flattening to one message.
+      const lineErrors =
+        err instanceof ApiError && Array.isArray(err.details)
+          ? (err.details as BulkImportError[])
+          : null;
+      setErrors(
+        lineErrors ?? [
+          {
+            lineNumber: null,
+            message: err instanceof ApiError ? err.message : "Could not import products.",
+          },
+        ]
+      );
+      toast.error("Bulk import failed. Fix the errors below and try again.");
     } finally {
       setSubmitting(false);
     }

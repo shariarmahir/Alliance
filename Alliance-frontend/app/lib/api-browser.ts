@@ -56,15 +56,18 @@ async function parseError(response: Response): Promise<ApiError> {
 
 export async function apiFetch<T>(
   path: string,
-  options: { method?: string; body?: unknown } = {}
+  // `signal` is here for debounced callers (admin search) that must cancel a
+  // request the user has already typed past.
+  options: { method?: string; body?: unknown; signal?: AbortSignal } = {}
 ): Promise<T> {
-  const { method = "GET", body } = options;
+  const { method = "GET", body, signal } = options;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     credentials: "include",
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) throw await parseError(response);

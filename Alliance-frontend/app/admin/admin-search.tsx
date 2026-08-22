@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Package, FileText, Box, User, Loader2 } from "lucide-react";
 import type { SearchResult } from "@/app/lib/admin-data";
+import { apiFetch } from "@/app/lib/api-browser";
 
 type SearchResultType = SearchResult["type"];
 
@@ -40,11 +41,13 @@ export function AdminSearch() {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/admin/search?q=${encodeURIComponent(trimmed)}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        // apiFetch, not fetch: a relative path resolves against this app's own
+        // origin, which serves no API — in production that is a 404, so search
+        // silently returned nothing.
+        const data = await apiFetch<{ results?: SearchResult[] }>(
+          `/api/admin/search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal }
+        );
         setResults(data.results ?? []);
         setActiveIndex(0);
       } catch {

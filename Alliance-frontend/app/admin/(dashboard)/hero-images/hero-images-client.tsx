@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { UploadCloud, ImageOff } from "lucide-react";
 import { PageHeader, Panel, Pill } from "../admin-ui";
 import type { HeroImageEntry } from "@/app/lib/catalog-data";
+import { apiUpload, ApiError } from "@/app/lib/api-browser";
 
 const SLOTS = [1, 2, 3, 4, 5];
 
@@ -37,18 +38,17 @@ function HeroSlotCard({
     form.set("image", file);
 
     try {
-      const res = await fetch("/api/admin/hero-images", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not upload hero image.");
-        return;
-      }
+      // apiUpload, not fetch: a relative path resolves against this app's own
+      // origin, which serves no API — in production that is a 404.
+      await apiUpload("/api/admin/hero-images", form);
       toast.success(`Hero slot ${slot} updated.`);
       setFile(null);
       setPreview(null);
       onChanged();
-    } catch {
-      toast.error("Could not save changes.");
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "Could not upload hero image."
+      );
     } finally {
       setUploading(false);
     }
