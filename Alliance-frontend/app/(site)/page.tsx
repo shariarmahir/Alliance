@@ -7,6 +7,16 @@ import { ClientReviews } from "@/app/components/client-reviews";
 import { MostRequestedParts } from "@/app/components/most-requested-parts";
 import { FaqAccordion } from "@/app/components/faq-accordion";
 import { HomeEnquiryForm } from "@/app/components/home-enquiry-form";
+import type { Metadata } from "next";
+
+// The homepage inherits the root title but needs its own description and
+// canonical: a search result's snippet is drawn from the description, and the
+// brand name has to appear in it for a brand search to look like a match.
+export const metadata: Metadata = {
+  description:
+    "AutoLink Integrated Technologies (AutoLink) is an industrial electronics and automation parts supplier in Uttara, Dhaka, Bangladesh. PLCs, VFDs, servo drives, HMIs and obsolete spares — quoted within 4 working hours, shipped worldwide.",
+  alternates: { canonical: "/" },
+};
 
 const uptimeTags = [
   { icon: ShieldCheck, label: "Automation spares" },

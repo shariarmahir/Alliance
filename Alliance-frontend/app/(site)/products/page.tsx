@@ -5,7 +5,12 @@ import { ProductFilters } from "@/app/components/product-filters";
 
 const PAGE_SIZE = 24;
 
-export const metadata = { title: "All Products" };
+export const metadata = {
+  title: "Industrial Automation Parts & Spares",
+  description:
+    "Browse AutoLink's catalogue of PLCs, VFDs, servo drives, HMIs, sensors and power system electronics from Siemens, Omron, Mitsubishi, Allen-Bradley, Schneider Electric and Danfoss. Shipped worldwide from Dhaka, Bangladesh.",
+  alternates: { canonical: "/products" },
+};
 
 export default async function ProductsPage({
   searchParams,
