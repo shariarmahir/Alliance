@@ -26,56 +26,9 @@ import {
 } from "../admin-ui";
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
-import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
 import { useClientNow } from "@/app/lib/use-client-now";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
-
-// Internal delivery-stage tracker (pending/confirmed/shipped/delivered). This
-// is not customer-facing — there is no public tracking page — it exists so
-// staff can see and update where an order actually is.
-function DeliveryStageSelect({
-  quotation,
-  onChanged,
-}: {
-  quotation: Quotation;
-  onChanged: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const stage = clampStage(quotation.confirmation?.deliveryStage);
-
-  async function setStage(next: number) {
-    setBusy(true);
-    try {
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/delivery`,
-        { method: "PATCH", body: { stage: next } }
-      );
-      toast.success(`Delivery marked "${DELIVERY_STAGES[next].label}".`);
-      onChanged();
-    } catch {
-      toast.error("Could not update the delivery stage.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <select
-      value={stage}
-      disabled={busy}
-      onChange={(e) => setStage(Number(e.target.value))}
-      aria-label="Delivery stage"
-      className="shrink-0 rounded-md border border-[#dde3ea] bg-white px-2 py-1.5 text-[11.5px] font-semibold text-ink-soft outline-none transition-colors hover:border-primary focus:border-primary disabled:opacity-60"
-    >
-      {DELIVERY_STAGES.map((s, i) => (
-        <option key={s.label} value={i}>
-          {s.label}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 // The storefront promises a quote within 4 working hours; the Overview's
 // "Price requests needing an answer" panel uses the same threshold.
@@ -431,9 +384,9 @@ function QuotationRow({
               onConfirm={() => setStatus("cancelled")}
             />
           )}
-          {quotation.status === "confirmed" && (
-            <DeliveryStageSelect quotation={quotation} onChanged={onChanged} />
-          )}
+          {/* Delivery progress is managed on the Orders screen, where a
+              confirmed quotation lives as an order — this screen is about
+              answering price requests, not running deliveries. */}
           {quotation.status === "confirmed" && (
             <CancelConfirmDialog
               quotation={quotation}
