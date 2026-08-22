@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileText, Mail, ReceiptText, BadgeCheck } from "lucide-react";
+import { Download, FileText, Mail, ReceiptText, BadgeCheck, Wallet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -296,6 +296,219 @@ function CreateChallanDialog({ quotation }: { quotation: Quotation }) {
   );
 }
 
+// Payment is three related actions — record it, then produce or send the
+// receipt — so they live behind one control rather than three competing for
+// room in the row. Recording is a real decision (it gates the receipt, and a
+// receipt asserts money arrived), which a dropdown that fires on change makes
+// too easy to do by mistake.
+function PaymentDialog({
+  quotation,
+  onChanged,
+}: {
+  quotation: Quotation;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<"save" | "download" | "email" | null>(null);
+  const confirmation = quotation.confirmation;
+  const saved: PaymentStatus = confirmation?.paymentStatus ?? "pending";
+  const [choice, setChoice] = useState<PaymentStatus>(saved);
+
+  if (!confirmation) return null;
+  const paid = saved === "received";
+  const dirty = choice !== saved;
+
+  async function save() {
+    setBusy("save");
+    try {
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/payment`,
+        { method: "PATCH", body: { status: choice } }
+      );
+      toast.success(
+        choice === "received" ? "Payment marked received." : "Payment marked pending.",
+        {
+          description:
+            choice === "received"
+              ? "The money receipt is now available to download or send."
+              : undefined,
+        }
+      );
+      onChanged();
+    } catch {
+      toast.error("Could not update the payment status.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function download() {
+    setBusy("download");
+    try {
+      await downloadReceiptPdf(quotation);
+    } catch {
+      toast.error("Could not generate the receipt.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sendEmail() {
+    setBusy("email");
+    const toastId = toast.loading("Preparing the receipt...");
+    try {
+      // Rendered here and posted, so the customer receives the same file the
+      // download button produces rather than a server-side approximation.
+      const { base64, fileName } = await receiptPdfToBase64(quotation);
+      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/receipt/email`,
+        { method: "POST", body: { pdfBase64: base64, fileName } }
+      );
+      toast.success("Receipt sent", {
+        id: toastId,
+        description: `Delivered to ${quotation.details.email}.`,
+        duration: 7000,
+      });
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not send the receipt.",
+        { id: toastId }
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // Reopening must show what is stored, not an abandoned edit.
+        if (next) setChoice(saved);
+        setOpen(next);
+      }}
+    >
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <Wallet className="size-3.5" /> Payment
+          </button>
+        }
+      />
+      <DialogContent className="max-h-[85vh] w-full max-w-lg overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-[17px] font-bold text-ink">Payment</DialogTitle>
+          <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
+            {confirmation.refNumber} &middot;{" "}
+            {quotation.details.companyName || quotation.details.fullName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between gap-4 rounded-[10px] border border-slate-line bg-surface px-3.5 py-3">
+          <span className="text-[12.5px] font-semibold text-ink">Order value</span>
+          <span className="font-mono text-[15px] font-bold text-ink">
+            {formatPrice(confirmation.grandTotal)}
+          </span>
+        </div>
+
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-[12.5px] font-semibold text-ink">Payment status</legend>
+          {(
+            [
+              { value: "pending", label: "Pending", hint: "Payment has not arrived yet." },
+              {
+                value: "received",
+                label: "Received",
+                hint: "Records the payment date and unlocks the money receipt.",
+              },
+            ] as const
+          ).map((option) => (
+            <label
+              key={option.value}
+              className={`flex cursor-pointer items-start gap-3 rounded-[10px] border px-3.5 py-3 transition-colors ${
+                choice === option.value
+                  ? "border-primary bg-tint"
+                  : "border-slate-line hover:border-[#c8d0da]"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`payment-${quotation.id}`}
+                value={option.value}
+                checked={choice === option.value}
+                onChange={() => setChoice(option.value)}
+                className="mt-0.5 size-3.5 accent-primary"
+              />
+              <span className="min-w-0">
+                <span className="block text-[12.5px] font-semibold text-ink">{option.label}</span>
+                <span className="block text-[11.5px] leading-normal text-[#8a94a6]">
+                  {option.hint}
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+
+        {paid && confirmation.paymentReceivedAt && (
+          <p className="text-[11.5px] text-[#8a94a6]">
+            Recorded on{" "}
+            <strong className="text-ink">
+              {new Date(confirmation.paymentReceivedAt).toLocaleDateString("en-GB")}
+            </strong>
+            . The receipt prints this date, not today&rsquo;s.
+          </p>
+        )}
+
+        {!paid && (
+          <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
+            A receipt states that money was received, so it becomes available once the
+            payment is recorded.
+          </p>
+        )}
+
+        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
+          {paid && (
+            <>
+              <button
+                type="button"
+                onClick={download}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <Download className="size-4" />
+                {busy === "download" ? "Preparing..." : "Download Receipt"}
+              </button>
+              <button
+                type="button"
+                onClick={sendEmail}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <Mail className="size-4" />
+                {busy === "email" ? "Sending..." : "Send Email"}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy !== null || !dirty}
+            className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-4 py-2.5 text-[13px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:translate-y-0 disabled:opacity-60"
+          >
+            <BadgeCheck className="size-4" />
+            {busy === "save" ? "Saving..." : dirty ? "Save" : "Saved"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OrderRow({
   quotation,
   onChanged,
@@ -305,8 +518,6 @@ function OrderRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [receipting, setReceipting] = useState(false);
-  const [emailingReceipt, setEmailingReceipt] = useState(false);
   const confirmation = quotation.confirmation;
   if (!confirmation) return null;
 
@@ -359,62 +570,6 @@ function OrderRow({
     }
   }
 
-  async function setPayment(next: PaymentStatus) {
-    setBusy(true);
-    try {
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/payment`,
-        { method: "PATCH", body: { status: next } }
-      );
-      toast.success(
-        next === "received" ? "Payment marked received." : "Payment marked pending."
-      );
-      onChanged();
-    } catch {
-      toast.error("Could not update the payment status.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function downloadReceipt() {
-    setReceipting(true);
-    try {
-      await downloadReceiptPdf(quotation);
-    } catch {
-      toast.error("Could not generate the receipt.");
-    } finally {
-      setReceipting(false);
-    }
-  }
-
-  async function emailReceipt() {
-    setEmailingReceipt(true);
-    const toastId = toast.loading("Preparing the receipt...");
-    try {
-      // Rendered here and posted, so the customer receives the same file the
-      // download button produces rather than a server-side approximation.
-      const { base64, fileName } = await receiptPdfToBase64(quotation);
-      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/receipt/email`,
-        { method: "POST", body: { pdfBase64: base64, fileName } }
-      );
-      toast.success("Receipt sent", {
-        id: toastId,
-        description: `Delivered to ${quotation.details.email}.`,
-        duration: 7000,
-      });
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not send the receipt.",
-        { id: toastId }
-      );
-    } finally {
-      setEmailingReceipt(false);
-    }
-  }
-
   return (
     <tr className={ROW}>
       <td className={`${TD} font-mono text-[12px] font-semibold text-ink`}>
@@ -463,40 +618,7 @@ function OrderRow({
           >
             <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
           </button>
-          <select
-            value={confirmation.paymentStatus ?? "pending"}
-            disabled={busy}
-            onChange={(e) => setPayment(e.target.value as PaymentStatus)}
-            aria-label="Payment status"
-            className="rounded-md border border-[#dde3ea] bg-white px-2 py-1.5 text-[11.5px] font-semibold text-ink-soft outline-none transition-colors hover:border-primary focus:border-primary disabled:opacity-60"
-          >
-            <option value="pending">Payment: Pending</option>
-            <option value="received">Payment: Received</option>
-          </select>
-          {/* A receipt is proof money was taken, so it only exists once
-              payment is actually recorded as received. */}
-          {paid && (
-            <>
-              <button
-                type="button"
-                onClick={downloadReceipt}
-                disabled={receipting}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-              >
-                <BadgeCheck className="size-3.5" />
-                {receipting ? "..." : "Download Receipt"}
-              </button>
-              <button
-                type="button"
-                onClick={emailReceipt}
-                disabled={emailingReceipt}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-              >
-                <Download className="size-3.5" />
-                {emailingReceipt ? "..." : "Send Email"}
-              </button>
-            </>
-          )}
+          <PaymentDialog quotation={quotation} onChanged={onChanged} />
           <CreateChallanDialog quotation={quotation} />
           <CreateInvoiceDialog quotation={quotation} />
           <RowButton tone="danger" disabled={busy} onClick={cancel}>
