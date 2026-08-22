@@ -309,6 +309,46 @@ async def email_invoice(
     return {"sent": True, "attached": True}
 
 
+@router.post("/quotations/{quotation_id}/receipt/email")
+async def email_receipt(
+    quotation_id: str,
+    db: DbSession,
+    payload: QuotationEmailRequest | None = None,
+    session: AdminSession = OrdersArea,
+):
+    """Emails the money receipt the admin's browser rendered.
+
+    Refuses unless payment is actually recorded as received: a receipt is
+    proof money changed hands, and sending one for an unpaid order is a
+    claim the business cannot support. The UI hides the action in that
+    state, but the rule belongs here too — the UI is not the guard.
+    """
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+    if quotation.confirmation is None:
+        raise HTTPException(
+            status_code=400, detail="Confirm the order before sending a receipt."
+        )
+    if quotation.confirmation.payment_status != "received":
+        raise HTTPException(
+            status_code=400,
+            detail="Mark the payment received before sending a receipt.",
+        )
+
+    pdf_bytes = _decode_pdf(payload.pdf_base64 if payload else None)
+    if pdf_bytes is None:
+        raise HTTPException(status_code=422, detail="No receipt PDF was supplied.")
+
+    sent = await email_integration.send_receipt(quotation, pdf_bytes)
+    if not sent:
+        raise HTTPException(
+            status_code=502, detail="Email could not be sent. Check the mail configuration."
+        )
+    logger.info("%s emailed receipt for %s", session.email, quotation_id)
+    return {"sent": True, "attached": True}
+
+
 @router.get("/quotations/{quotation_id}/pdf")
 async def quotation_pdf(
     quotation_id: str, db: DbSession, session: AdminSession = QuotationsArea

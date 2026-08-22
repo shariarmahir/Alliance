@@ -36,6 +36,7 @@ import {
   challanPdfToBase64,
   quotationToChallan,
   downloadReceiptPdf,
+  receiptPdfToBase64,
 } from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import type { Quotation, PaymentStatus } from "@/app/lib/types";
@@ -303,6 +304,7 @@ function OrderRow({
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [receipting, setReceipting] = useState(false);
+  const [emailingReceipt, setEmailingReceipt] = useState(false);
   const confirmation = quotation.confirmation;
   if (!confirmation) return null;
 
@@ -384,6 +386,33 @@ function OrderRow({
     }
   }
 
+  async function emailReceipt() {
+    setEmailingReceipt(true);
+    const toastId = toast.loading("Preparing the receipt...");
+    try {
+      // Rendered here and posted, so the customer receives the same file the
+      // download button produces rather than a server-side approximation.
+      const { base64, fileName } = await receiptPdfToBase64(quotation);
+      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/receipt/email`,
+        { method: "POST", body: { pdfBase64: base64, fileName } }
+      );
+      toast.success("Receipt sent", {
+        id: toastId,
+        description: `Delivered to ${quotation.details.email}.`,
+        duration: 7000,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not send the receipt.",
+        { id: toastId }
+      );
+    } finally {
+      setEmailingReceipt(false);
+    }
+  }
+
   return (
     <tr className={ROW}>
       <td className={`${TD} font-mono text-[12px] font-semibold text-ink`}>
@@ -445,15 +474,26 @@ function OrderRow({
           {/* A receipt is proof money was taken, so it only exists once
               payment is actually recorded as received. */}
           {paid && (
-            <button
-              type="button"
-              onClick={downloadReceipt}
-              disabled={receipting}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-            >
-              <BadgeCheck className="size-3.5" />
-              {receipting ? "..." : "Download Receipt"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={downloadReceipt}
+                disabled={receipting}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <BadgeCheck className="size-3.5" />
+                {receipting ? "..." : "Download Receipt"}
+              </button>
+              <button
+                type="button"
+                onClick={emailReceipt}
+                disabled={emailingReceipt}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <Download className="size-3.5" />
+                {emailingReceipt ? "..." : "Send Email"}
+              </button>
+            </>
           )}
           <CreateChallanDialog quotation={quotation} />
           <CreateInvoiceDialog quotation={quotation} />

@@ -402,3 +402,13 @@ export async function downloadReceiptPdf(quotation: Quotation): Promise<void> {
   const doc = await buildReceiptPdf(spec);
   doc.save(spec.fileName);
 }
+
+/** Base64 (no data: URI prefix) + file name, for the email attachment. */
+export async function receiptPdfToBase64(
+  quotation: Quotation
+): Promise<{ base64: string; fileName: string }> {
+  const spec = quotationToReceipt(quotation);
+  const doc = await buildReceiptPdf(spec);
+  const dataUri = doc.output("datauristring");
+  return { base64: dataUri.slice(dataUri.indexOf(",") + 1), fileName: spec.fileName };
+}

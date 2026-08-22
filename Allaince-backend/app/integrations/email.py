@@ -429,3 +429,60 @@ async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
         _shell(f"Invoice {invoice_ref}", body),
         attachments,
     )
+
+
+async def send_receipt(quotation, pdf_bytes: bytes | None = None) -> bool:
+    """Sends the money receipt acknowledging payment, with the PDF attached.
+
+    Short by design: a receipt confirms one fact — that this amount arrived —
+    so restating line items or terms here would only bury it.
+    """
+    details = quotation.details or {}
+    confirmation = quotation.confirmation
+    to = details.get("email")
+    if not to:
+        logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
+        return False
+    if confirmation is None:
+        logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
+        return False
+
+    receipt_ref = re.sub(r"/Q-?", "/R", confirmation.ref_number, flags=re.IGNORECASE)
+
+    body = (
+        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
+        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Thank you — we have '
+        f"received your payment against order "
+        f"<strong>{escape(confirmation.ref_number)}</strong>. The money receipt is "
+        f"attached for your records.</p>"
+        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
+        + _rows(
+            [
+                ("Receipt", receipt_ref),
+                ("Amount received", f"BDT {confirmation.grand_total:,.2f}"),
+                ("Against order", confirmation.ref_number),
+            ]
+        )
+        + "</table>"
+        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">If anything on this receipt looks wrong, reply to '
+        "this email, or message us on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    )
+
+    attachments = None
+    if pdf_bytes:
+        import base64
+
+        attachments = [
+            {
+                "filename": f"Receipt-{receipt_ref.replace('/', '-')}.pdf",
+                "content": base64.b64encode(pdf_bytes).decode(),
+            }
+        ]
+
+    return await send_email(
+        to,
+        f"Payment received — {confirmation.ref_number}",
+        _shell(f"Money receipt {receipt_ref}", body),
+        attachments,
+    )

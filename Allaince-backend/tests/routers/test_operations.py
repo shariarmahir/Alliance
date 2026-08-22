@@ -432,6 +432,63 @@ async def test_challan_email_requires_a_pdf(client, db):
     assert r.status_code == 422
 
 
+async def test_receipt_email_requires_payment_to_be_received(client, db):
+    """A receipt asserts money arrived. Emailing one for an unpaid order would
+    put a claim in the customer's inbox that the business cannot support, so
+    the rule is enforced here and not left to the UI hiding the button."""
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_receipt",
+        new=AsyncMock(return_value=True),
+    ) as send:
+        r = await client.post(
+            f"/api/admin/quotations/{quotation_id}/receipt/email",
+            json={"pdfBase64": base64.b64encode(b"%PDF-1.4 receipt").decode()},
+        )
+
+    assert r.status_code == 400
+    assert send.await_count == 0
+
+
+async def test_receipt_email_sends_the_supplied_pdf_once_paid(client, db):
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+    await client.patch(
+        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
+    )
+    supplied = b"%PDF-1.4 receipt"
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_receipt",
+        new=AsyncMock(return_value=True),
+    ) as send:
+        r = await client.post(
+            f"/api/admin/quotations/{quotation_id}/receipt/email",
+            json={"pdfBase64": base64.b64encode(supplied).decode()},
+        )
+
+    assert r.status_code == 200
+    assert send.await_args.args[1] == supplied
+
+
+async def test_receipt_email_requires_a_pdf(client, db):
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+    await client.patch(
+        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
+    )
+    r = await client.post(f"/api/admin/quotations/{quotation_id}/receipt/email", json={})
+    assert r.status_code == 422
+
+
 async def test_challan_email_rejects_a_non_pdf(client, db):
     import base64
 
