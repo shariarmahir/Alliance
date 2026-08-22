@@ -480,10 +480,10 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: "All", count: initialQuotations.length },
             { value: "pending", label: "Pending", count: count("pending") },
             { value: "confirmed", label: "Confirmed", count: count("confirmed") },
             { value: "cancelled", label: "Cancelled", count: count("cancelled") },
+            { value: "all", label: "All", count: initialQuotations.length },
           ]}
         />
       </PageHeader>
