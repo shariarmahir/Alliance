@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
 import { useClientNow } from "@/app/lib/use-client-now";
-import { apiFetch } from "@/app/lib/api-browser";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
 // Advances what the customer sees on /track/[trackingId]. That page reads
@@ -458,6 +458,100 @@ function QuotationRow({
   );
 }
 
+// Bulk, permanent, and irreversible — so the dialog names what actually goes
+// rather than asking a vague "are you sure?".
+function ClearCancelledBanner({
+  count,
+  onCleared,
+}: {
+  count: number;
+  onCleared: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function clearAll() {
+    setBusy(true);
+    try {
+      const result = await apiFetch<{ removed: number }>(
+        "/api/admin/quotations/cancelled",
+        { method: "DELETE" }
+      );
+      toast.success(
+        `${result.removed} cancelled request${result.removed === 1 ? "" : "s"} deleted.`
+      );
+      setOpen(false);
+      onCleared();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not clear the cancelled requests."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#f0d0d0] bg-[#fef6f6] px-4 py-3">
+      <p className="text-[12.5px] text-[#7a2f2f]">
+        {count} cancelled request{count === 1 ? "" : "s"} stored. Clearing removes{" "}
+        {count === 1 ? "it" : "them"} permanently.
+      </p>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger
+          render={
+            <button
+              type="button"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e04545] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#c22] transition-colors hover:bg-[#c22] hover:text-white"
+            >
+              <Trash2 className="size-3.5" /> All Clear
+            </button>
+          }
+        />
+        <DialogContent className="w-full max-w-md sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[17px] font-bold text-ink">
+              Delete {count} cancelled request{count === 1 ? "" : "s"}?
+            </DialogTitle>
+            <DialogDescription className="text-[12.5px] leading-[1.65] text-ink-muted">
+              They are erased from the database, not hidden — there is no undo and
+              no archive to recover them from.
+              <br />
+              <span className="text-[#7a2f2f]">
+                Your Overview totals and trend charts count every request ever
+                submitted, so those numbers will drop by {count}.
+              </span>
+              <br />
+              Only cancelled requests are affected. Pending, viewed and confirmed
+              ones are left alone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 border-t border-hairline pt-4">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+              className="rounded-md border border-slate-line bg-white px-4 py-2 text-[12.5px] font-semibold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            >
+              Keep them
+            </button>
+            <button
+              type="button"
+              onClick={clearAll}
+              disabled={busy}
+              className="rounded-md border border-[#e04545] bg-[#c22] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#a11] disabled:opacity-60"
+            >
+              {busy ? "Deleting..." : `Yes, delete ${count}`}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | QuotationStatus>("pending");
@@ -517,6 +611,15 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
             promise. Oldest shown first.
           </p>
         </div>
+      )}
+
+      {/* Only on the Cancelled tab: elsewhere the button would be next to
+          records it does not touch, which invites a misread of what it clears. */}
+      {filter === "cancelled" && count("cancelled") > 0 && (
+        <ClearCancelledBanner
+          count={count("cancelled")}
+          onCleared={() => router.refresh()}
+        />
       )}
 
       {sorted.length === 0 ? (

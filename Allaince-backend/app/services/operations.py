@@ -175,6 +175,27 @@ async def list_quotations(db: AsyncSession, status: str | None = None) -> list[Q
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def delete_cancelled_quotations(db: AsyncSession) -> int:
+    """Permanently removes every cancelled quotation. Returns how many went.
+
+    Scoped to "cancelled" in the query itself rather than taking a list of ids
+    from the caller: a bulk delete driven by client-supplied ids would remove
+    whatever it was handed, so a stale page or a crafted request could destroy
+    live requests. Here the database decides what qualifies.
+
+    Their order confirmations cascade, but a cancelled quotation has already
+    had its confirmation retracted by update_quotation_status, so in practice
+    there is nothing left to cascade to.
+    """
+    rows = (
+        await db.execute(select(Quotation).where(Quotation.status == "cancelled"))
+    ).scalars().all()
+    for quotation in rows:
+        await db.delete(quotation)
+    await db.commit()
+    return len(rows)
+
+
 async def update_quotation_status(
     db: AsyncSession, quotation_id: str, status: str
 ) -> Quotation | None:

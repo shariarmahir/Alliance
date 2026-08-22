@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from app.core.deps import DbSession, require_area
+from app.core.deps import DbSession, SuperAdminDep, require_area
 from app.integrations import email as email_integration
 from app.integrations import pdf as pdf_integration
 from app.schemas.operations import (
@@ -68,6 +68,22 @@ async def get_quotation(
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
     return _out(quotation)
+
+
+@router.delete("/quotations/cancelled", status_code=status.HTTP_200_OK)
+async def clear_cancelled_quotations(db: DbSession, session: SuperAdminDep):
+    """Permanently deletes every cancelled quotation.
+
+    Super admin only, not the quotations area grant that covers the rest of
+    this router: the other routes act on one record and are reversible, while
+    this destroys many at once with nothing to undo it.
+
+    Declared before /quotations/{quotation_id} would otherwise be a concern,
+    but that route is a PATCH and this is a DELETE, so there is no collision.
+    """
+    removed = await svc.delete_cancelled_quotations(db)
+    logger.info("%s cleared %d cancelled quotation(s)", session.email, removed)
+    return {"removed": removed}
 
 
 @router.patch("/quotations/{quotation_id}/status", response_model=QuotationOut)

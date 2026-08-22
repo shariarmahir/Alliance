@@ -356,6 +356,43 @@ async def test_email_falls_back_to_server_rendering(client, db):
     assert r.json()["attached"] is True
 
 
+async def test_clear_cancelled_removes_only_cancelled(client, db):
+    """The route deletes by status from the database, not from a list of ids
+    the client supplies, so a pending request can never be swept up."""
+    _auth(client)
+    await _seed_catalogue(db)
+
+    keep = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    drop = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    await client.patch(
+        f"/api/admin/quotations/{drop}/status", json={"status": "cancelled"}
+    )
+
+    r = await client.delete("/api/admin/quotations/cancelled")
+    assert r.status_code == 200
+    assert r.json() == {"removed": 1}
+
+    remaining = (await client.get("/api/admin/quotations")).json()
+    ids = [q["id"] for q in remaining]
+    assert keep in ids
+    assert drop not in ids
+
+
+async def test_clear_cancelled_is_super_admin_only(client, db):
+    """A sub-admin with the quotations grant can cancel a single quotation,
+    but must not be able to destroy every cancelled record at once."""
+    await _seed_sub_admin(db)
+    _auth(client, role="sub", employee_id="emp-1", access_options=["quotations"])
+
+    assert (await client.delete("/api/admin/quotations/cancelled")).status_code == 403
+
+
+async def test_clear_cancelled_with_nothing_to_remove(client, db):
+    _auth(client)
+    r = await client.delete("/api/admin/quotations/cancelled")
+    assert r.status_code == 200 and r.json() == {"removed": 0}
+
+
 # --- orders -----------------------------------------------------------------
 
 
