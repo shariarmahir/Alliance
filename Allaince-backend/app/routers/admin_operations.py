@@ -14,6 +14,7 @@ from app.schemas.operations import (
     HandledUpdate,
     OrderOut,
     OrderStatusUpdate,
+    PaymentStatusUpdate,
     QuotationEmailRequest,
     QuotationOut,
     QuotationStatusUpdate,
@@ -174,6 +175,27 @@ async def update_delivery(
             # roll it back or surface as a failed action.
             logger.exception("Failed to send order-confirmed email for %s", quotation_id)
 
+    return _out(updated)
+
+
+@router.patch("/quotations/{quotation_id}/payment", response_model=QuotationOut)
+async def update_payment(
+    quotation_id: str,
+    payload: PaymentStatusUpdate,
+    db: DbSession,
+    session: AdminSession = OrdersArea,
+):
+    """Records payment against a confirmed order.
+
+    No customer email here, deliberately: the money receipt is the document
+    that acknowledges payment, and an admin sends it when they choose to.
+    """
+    updated = await svc.update_payment_status(db, quotation_id, payload.status)
+    if updated is None:
+        raise HTTPException(
+            status_code=404, detail="No issued confirmation for this quotation."
+        )
+    logger.info("%s marked payment %s for %s", session.email, payload.status, quotation_id)
     return _out(updated)
 
 

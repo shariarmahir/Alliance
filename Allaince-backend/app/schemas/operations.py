@@ -13,6 +13,7 @@ OrderStatus = Literal["pending", "confirmed", "cancelled"]
 # still an open request — it stays in the Pending queue — and only exists so
 # an admin can see at a glance which requests have already been quoted.
 QuotationStatus = Literal["pending", "quoted", "confirmed", "cancelled"]
+PaymentStatus = Literal["pending", "received"]
 
 
 class QuoteItem(CamelModel):
@@ -81,6 +82,8 @@ class OrderConfirmationOut(CamelModel):
     issued_at: datetime
     delivery_stage: int = 0
     delivery_updated_at: datetime | None = None
+    payment_status: PaymentStatus = "pending"
+    payment_received_at: datetime | None = None
 
 
 class ConfirmQuotationRequest(CamelModel):
@@ -127,6 +130,10 @@ class QuotationEmailRequest(CamelModel):
 
 class DeliveryStageUpdate(CamelModel):
     stage: int = Field(ge=0)
+
+
+class PaymentStatusUpdate(CamelModel):
+    status: PaymentStatus
 
 
 class DeliveryAddress(CamelModel):

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileText, Mail, ReceiptText } from "lucide-react";
+import { Download, FileText, Mail, ReceiptText, BadgeCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +31,14 @@ import {
   invoicePdfToBase64,
   invoiceRefNumber,
 } from "@/app/lib/quotation-pdf";
-import { downloadChallanPdf, challanPdfToBase64, quotationToChallan } from "@/app/lib/challan-pdf";
+import {
+  downloadChallanPdf,
+  challanPdfToBase64,
+  quotationToChallan,
+  downloadReceiptPdf,
+} from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
-import type { Quotation } from "@/app/lib/types";
+import type { Quotation, PaymentStatus } from "@/app/lib/types";
 
 // Every row is an accepted price request. Its order state (Pending or
 // Confirmed) is stored as the confirmation's stage index, which is what the
@@ -297,10 +302,12 @@ function OrderRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [receipting, setReceipting] = useState(false);
   const confirmation = quotation.confirmation;
   if (!confirmation) return null;
 
   const stage = clampStage(confirmation.deliveryStage ?? 0);
+  const paid = confirmation.paymentStatus === "received";
 
   async function setStage(next: number) {
     setBusy(true);
@@ -348,6 +355,35 @@ function OrderRow({
     }
   }
 
+  async function setPayment(next: PaymentStatus) {
+    setBusy(true);
+    try {
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/payment`,
+        { method: "PATCH", body: { status: next } }
+      );
+      toast.success(
+        next === "received" ? "Payment marked received." : "Payment marked pending."
+      );
+      onChanged();
+    } catch {
+      toast.error("Could not update the payment status.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadReceipt() {
+    setReceipting(true);
+    try {
+      await downloadReceiptPdf(quotation);
+    } catch {
+      toast.error("Could not generate the receipt.");
+    } finally {
+      setReceipting(false);
+    }
+  }
+
   return (
     <tr className={ROW}>
       <td className={`${TD} font-mono text-[12px] font-semibold text-ink`}>
@@ -372,6 +408,9 @@ function OrderRow({
         </Pill>
       </td>
       <td className={TD}>
+        <Pill tone={paid ? "ok" : "warn"}>{paid ? "RECEIVED" : "PENDING"}</Pill>
+      </td>
+      <td className={TD}>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={stage}
@@ -393,6 +432,29 @@ function OrderRow({
           >
             <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
           </button>
+          <select
+            value={confirmation.paymentStatus ?? "pending"}
+            disabled={busy}
+            onChange={(e) => setPayment(e.target.value as PaymentStatus)}
+            aria-label="Payment status"
+            className="rounded-md border border-[#dde3ea] bg-white px-2 py-1.5 text-[11.5px] font-semibold text-ink-soft outline-none transition-colors hover:border-primary focus:border-primary disabled:opacity-60"
+          >
+            <option value="pending">Payment: Pending</option>
+            <option value="received">Payment: Received</option>
+          </select>
+          {/* A receipt is proof money was taken, so it only exists once
+              payment is actually recorded as received. */}
+          {paid && (
+            <button
+              type="button"
+              onClick={downloadReceipt}
+              disabled={receipting}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            >
+              <BadgeCheck className="size-3.5" />
+              {receipting ? "..." : "Download Receipt"}
+            </button>
+          )}
           <CreateChallanDialog quotation={quotation} />
           <CreateInvoiceDialog quotation={quotation} />
           <RowButton tone="danger" disabled={busy} onClick={cancel}>
@@ -481,6 +543,7 @@ export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) 
                   <th className={TH}>TOTAL</th>
                   <th className={TH}>ISSUED</th>
                   <th className={TH}>STATUS</th>
+                  <th className={TH}>PAYMENT</th>
                   <th className={TH}>ACTIONS</th>
                 </tr>
               </thead>

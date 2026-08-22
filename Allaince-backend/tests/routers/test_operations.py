@@ -335,6 +335,40 @@ async def test_moving_an_order_back_to_pending_sends_no_email(client, db):
         assert send.await_count == 0
 
 
+async def test_payment_status_stamps_and_clears_the_received_time(client, db):
+    """The receipt prints when payment was recorded, so the timestamp is set
+    on the way into "received" and cleared if that is reversed — a receipt
+    must never carry a date for money that is no longer marked as received."""
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    before = await client.get(f"/api/admin/quotations/{quotation_id}")
+    assert before.json()["confirmation"]["paymentStatus"] == "pending"
+    assert before.json()["confirmation"]["paymentReceivedAt"] is None
+
+    paid = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
+    )
+    assert paid.status_code == 200
+    assert paid.json()["confirmation"]["paymentStatus"] == "received"
+    assert paid.json()["confirmation"]["paymentReceivedAt"] is not None
+
+    reversed_ = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "pending"}
+    )
+    assert reversed_.json()["confirmation"]["paymentStatus"] == "pending"
+    assert reversed_.json()["confirmation"]["paymentReceivedAt"] is None
+
+
+async def test_payment_status_rejects_an_unknown_value(client, db):
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+    r = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "partial"}
+    )
+    assert r.status_code == 422
+
+
 async def test_invoice_email_sends_the_supplied_pdf(client, db):
     """The invoice is rendered in the browser, so those bytes are what the
     customer must receive."""

@@ -13,6 +13,7 @@ import {
   formatDate,
   loadImage,
 } from "./quotation-pdf";
+import { amountInWords } from "./order-confirmation";
 import type { Quotation } from "./types";
 
 // The delivery Challan — the note that travels with the goods. Modelled on
@@ -264,4 +265,140 @@ export async function challanPdfToBase64(
   const doc = await buildChallanPdf(spec);
   const dataUri = doc.output("datauristring");
   return { base64: dataUri.slice(dataUri.indexOf(",") + 1), fileName: spec.fileName };
+}
+
+// --- Money receipt -------------------------------------------------------
+
+export type ReceiptDocument = {
+  refNumber: string;
+  date: string; // yyyy-mm-dd — when payment was recorded, not today
+  recipient: { company: string; address: string };
+  amount: number;
+  amountInWords: string;
+  againstRef: string;
+  signatoryName: string;
+  signatoryPhone: string;
+  fileName: string;
+};
+
+/**
+ * Acknowledges payment received. Shares the challan's letterhead, centred
+ * title box and sign-off; the body is a short block of facts rather than a
+ * table, because a receipt records one thing — that this amount was paid.
+ */
+export async function buildReceiptPdf(d: ReceiptDocument): Promise<jsPDF> {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const rawText = doc.text.bind(doc) as any;
+  doc.text = ((t: string | string[], ...rest: any[]) =>
+    rawText(Array.isArray(t) ? t.map(ascii) : ascii(String(t)), ...rest)) as typeof doc.text;
+  const rawSplit = doc.splitTextToSize.bind(doc) as any;
+  doc.splitTextToSize = ((t: string, ...rest: any[]) =>
+    rawSplit(ascii(String(t)), ...rest)) as typeof doc.splitTextToSize;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  const logo = await loadImage("/logo-mark.png");
+  drawHeader(doc, logo, null);
+
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  setColor(doc, INK);
+  doc.text("To", MARGIN, 42);
+  const address = doc.splitTextToSize(d.recipient.address, CONTENT_W - 70);
+  doc.text(d.recipient.company, MARGIN, 48);
+  doc.text(address, MARGIN, 54);
+  doc.text(`Ref: ${d.refNumber}`, PAGE_W - MARGIN, 42, { align: "right" });
+  doc.text(`Date: ${formatDate(d.date)}`, PAGE_W - MARGIN, 48, { align: "right" });
+
+  let y = 54 + address.length * 5.5 + 10;
+
+  // Centred outlined title, matching the challan.
+  const boxW = 70;
+  const boxH = 13;
+  doc.setDrawColor(INK[0], INK[1], INK[2]).setLineWidth(0.4);
+  doc.roundedRect((PAGE_W - boxW) / 2, y, boxW, boxH, 2.5, 2.5, "S");
+  doc.setLineWidth(0.2);
+  doc.setFont("helvetica", "normal").setFontSize(16);
+  doc.text("Money Receipt", PAGE_W / 2, y + 8.8, { align: "center" });
+  y += boxH + 14;
+
+  // The amount is the point of the document, so it is boxed and set large
+  // rather than being one row among several.
+  doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
+  doc.setFillColor(HEAD_BG[0], HEAD_BG[1], HEAD_BG[2]);
+  doc.rect(MARGIN, y, CONTENT_W, 16, "FD");
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  doc.text("Amount received", MARGIN + 5, y + 6.5);
+  doc.setFont("helvetica", "bold").setFontSize(15);
+  doc.text(
+    `BDT ${d.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    PAGE_W - MARGIN - 5,
+    y + 11,
+    { align: "right" }
+  );
+  y += 16 + 8;
+
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  doc.text("In words:", MARGIN, y);
+  const words = doc.splitTextToSize(d.amountInWords, CONTENT_W - 25);
+  doc.setFont("helvetica", "bold");
+  doc.text(words, MARGIN + 25, y);
+  y += words.length * 5.2 + 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Received against:", MARGIN, y);
+  doc.setFont("helvetica", "bold");
+  doc.text(d.againstRef, MARGIN + 35, y);
+  y += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Payment date:", MARGIN, y);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatDate(d.date), MARGIN + 35, y);
+  y += 16;
+
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  doc.text("Received with thanks.", MARGIN, y);
+  doc.setFont("helvetica", "bold");
+  doc.text(d.signatoryName, MARGIN, y + 30);
+  doc.setFont("helvetica", "normal");
+  doc.text(d.signatoryPhone, MARGIN, y + 35.5);
+
+  drawFooter(doc);
+  return doc;
+}
+
+export function quotationToReceipt(quotation: Quotation): ReceiptDocument {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  const d = quotation.details;
+
+  // Receipts carry their own reference series (R), as challans and invoices do.
+  const refNumber = c.refNumber.replace(/\/Q-?/i, "/R");
+  // The recorded payment date, not today: a receipt reprinted a week later
+  // must still say when the money actually came in.
+  const paidOn = c.paymentReceivedAt
+    ? new Date(c.paymentReceivedAt).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
+  return {
+    refNumber,
+    date: paidOn,
+    recipient: {
+      company: d.companyName || d.fullName,
+      address: [d.country].filter(Boolean).join(", "),
+    },
+    amount: c.grandTotal,
+    amountInWords: amountInWords(c.grandTotal),
+    againstRef: c.refNumber,
+    signatoryName: "Md. Nurul Islam",
+    signatoryPhone: "+8801713116019",
+    fileName: `Receipt-${refNumber.replace(/[/\\]/g, "-")}.pdf`,
+  };
+}
+
+export async function downloadReceiptPdf(quotation: Quotation): Promise<void> {
+  const spec = quotationToReceipt(quotation);
+  const doc = await buildReceiptPdf(spec);
+  doc.save(spec.fileName);
 }

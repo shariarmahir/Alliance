@@ -301,6 +301,31 @@ async def confirm_quotation(
     return quotation
 
 
+async def update_payment_status(
+    db: AsyncSession, quotation_id: str, status: str
+) -> Quotation | None:
+    """Records whether payment has been received against a confirmed order.
+
+    Stamps the time on the transition into "received" and clears it when
+    reversed, so the money receipt prints the date payment was actually
+    recorded rather than the day the PDF happened to be produced.
+    """
+    quotation = await get_quotation(db, quotation_id)
+    if quotation is None or quotation.confirmation is None:
+        return None
+
+    confirmation = quotation.confirmation
+    if status == "received" and confirmation.payment_status != "received":
+        confirmation.payment_received_at = datetime.now(timezone.utc)
+    elif status != "received":
+        confirmation.payment_received_at = None
+    confirmation.payment_status = status
+
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
 async def find_by_tracking_id(db: AsyncSession, tracking_id: str) -> Quotation | None:
     """Only confirmed quotations are reachable — tracking IDs are minted at
     confirmation time, so an unknown ID is a miss rather than an invented status."""

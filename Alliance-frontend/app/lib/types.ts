@@ -193,6 +193,7 @@ export type OrderStatus = "pending" | "confirmed" | "cancelled";
 // "quoted" = priced and the PDF produced, but not yet accepted. Still an open
 // request, so it stays in the Pending queue alongside "pending".
 export type QuotationStatus = "pending" | "quoted" | "confirmed" | "cancelled";
+export type PaymentStatus = "pending" | "received";
 
 // A confirmed order. Persisted client-side (localStorage, for the success/
 // invoice page) AND, as of Phase 3, mirrored server-side via POST /api/orders
@@ -255,6 +256,10 @@ export type OrderConfirmation = {
   // ("Confirmed"). Internal only — there is no customer-facing tracking page.
   deliveryStage?: number;
   deliveryUpdatedAt?: string; // ISO
+  // Payment is tracked separately from delivery: an order can be delivered
+  // before payment clears, or paid for before it ships.
+  paymentStatus?: PaymentStatus;
+  paymentReceivedAt?: string; // ISO — when payment was recorded
 };
 
 // A submitted quotation, persisted server-side (data/quotations.json) as of

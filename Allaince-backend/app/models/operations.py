@@ -54,7 +54,7 @@ class OrderConfirmation(Base):
     )
     ref_number: Mapped[str] = mapped_column(String(100), nullable=False)
     subject: Mapped[str] = mapped_column(Text, default="", nullable=False)
-    # yyyy-mm-dd, admin-editable free text on the PDF — kept as a string
+    # yyyy-mm-dd, admin-editable free text on the PDF ï¿½ kept as a string
     # because it is a printed label, not a date the backend computes with.
     issued_date: Mapped[str] = mapped_column(String(10), nullable=False)
     tracking_id: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)
@@ -67,6 +67,12 @@ class OrderConfirmation(Base):
     # Index into DELIVERY_STAGES; absent/0 means "Confirmed".
     delivery_stage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     delivery_updated_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    # "pending" | "received". Tracked separately from delivery: an order can
+    # be delivered before payment clears, or paid for before it ships.
+    payment_status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    # When payment was marked received â€” printed on the money receipt, so it
+    # is the recorded fact rather than the day the PDF happens to be made.
+    payment_received_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     quotation: Mapped["Quotation"] = relationship(back_populates="confirmation")
 
