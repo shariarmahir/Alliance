@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
-import { formatPrice } from "@/app/lib/utils";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
 import { CategoriesTab } from "./categories-tab";
@@ -95,7 +94,6 @@ export function ProductsClient({
                       <th className={TH}>PRODUCT</th>
                       <th className={TH}>CATEGORY</th>
                       <th className={TH}>BRAND</th>
-                      <th className={TH}>PRICE</th>
                       <th className={TH}>STOCK</th>
                     </tr>
                   </thead>
@@ -123,9 +121,6 @@ export function ProductsClient({
                         </td>
                         <td className={`${TD} text-ink-muted`}>{categoryName(p.categorySlug)}</td>
                         <td className={`${TD} text-ink-muted`}>{p.brand}</td>
-                        <td className={`${TD} font-mono font-semibold text-ink`}>
-                          {formatPrice(p.price)}
-                        </td>
                         <td className={TD}>
                           <div className="flex items-center gap-2">
                             <span className="w-8 shrink-0 font-mono font-bold text-ink">

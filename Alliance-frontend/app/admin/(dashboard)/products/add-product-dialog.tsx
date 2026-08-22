@@ -17,7 +17,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import type { Brand, Category } from "@/app/lib/types";
-import { apiUpload, ApiError } from "@/app/lib/api-browser";
+import { apiFetch, apiUpload, ApiError } from "@/app/lib/api-browser";
 
 type RepeatableListProps = {
   label: string;
@@ -79,7 +79,6 @@ export function AddProductDialog({
   const [partNumber, setPartNumber] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
-  const [price, setPrice] = useState("");
   const [warrantyYears, setWarrantyYears] = useState("2");
   const [stockQty, setStockQty] = useState("50");
   const [shortSpecs, setShortSpecs] = useState<string[]>(["", "", ""]);
@@ -87,14 +86,12 @@ export function AddProductDialog({
   const [alternatePartNumbers, setAlternatePartNumbers] = useState<string[]>([]);
   const [specs, setSpecs] = useState<SpecRow[]>([{ key: "", value: "" }]);
   const [image, setImage] = useState<File | null>(null);
-  const [gallery, setGallery] = useState<File[]>([]);
 
   function resetForm() {
     setName("");
     setPartNumber("");
     setCategorySlug("");
     setBrand("");
-    setPrice("");
     setWarrantyYears("2");
     setStockQty("50");
     setShortSpecs(["", "", ""]);
@@ -102,7 +99,6 @@ export function AddProductDialog({
     setAlternatePartNumbers([]);
     setSpecs([{ key: "", value: "" }]);
     setImage(null);
-    setGallery([]);
     setErrors({});
   }
 
@@ -111,28 +107,49 @@ export function AddProductDialog({
     setSubmitting(true);
     setErrors({});
 
-    const form = new FormData();
-    form.set("name", name);
-    form.set("partNumber", partNumber);
-    form.set("categorySlug", categorySlug);
-    form.set("brand", brand);
-    form.set("price", price);
-    form.set("warrantyYears", warrantyYears);
-    form.set("stockQty", stockQty);
-    shortSpecs.filter((s) => s.trim()).forEach((s) => form.append("shortSpecs", s));
-    description.filter((s) => s.trim()).forEach((s) => form.append("description", s));
-    alternatePartNumbers.filter((s) => s.trim()).forEach((s) => form.append("alternatePartNumbers", s));
+    // The endpoint takes a JSON body, not multipart. Sending FormData made
+    // Pydantic reject the whole request with "Input should be a valid
+    // dictionary or object to extract fields from", because there was no JSON
+    // object to read fields out of. Images are a separate upload below, since
+    // a file cannot travel inside a JSON body.
+    const specifications: Record<string, string> = {};
     specs.forEach((s) => {
-      form.append("specKeys", s.key);
-      form.append("specValues", s.value);
+      if (s.key.trim()) specifications[s.key.trim()] = s.value.trim();
     });
-    if (image) form.set("image", image);
-    gallery.forEach((f) => form.append("gallery", f));
 
     try {
-      // apiUpload, not fetch: a relative path resolves against this app's own
-      // origin, which serves no API — in production that is a 404.
-      await apiUpload("/api/admin/products", form);
+      const created = await apiFetch<{ slug: string }>("/api/admin/products", {
+        method: "POST",
+        body: {
+          name,
+          partNumber,
+          categorySlug,
+          brand,
+          warrantyYears: Number(warrantyYears) || 0,
+          stockQty: Number(stockQty) || 0,
+          shortSpecs: shortSpecs.filter((s) => s.trim()),
+          description: description.filter((s) => s.trim()),
+          alternatePartNumbers: alternatePartNumbers.filter((s) => s.trim()),
+          specifications,
+        },
+      });
+
+      // Keyed by the slug the API just assigned. A failure here leaves a real
+      // product with no picture rather than losing the whole submission, so it
+      // warns instead of throwing away everything typed above.
+      if (image) {
+        const imageForm = new FormData();
+        imageForm.set("file", image);
+        try {
+          await apiUpload(
+            `/api/admin/products/${encodeURIComponent(created.slug)}/image`,
+            imageForm
+          );
+        } catch {
+          toast.warning(`"${name}" was saved, but the image could not be uploaded.`);
+        }
+      }
+
       toast.success(`"${name}" added to the catalog.`);
       resetForm();
       setOpen(false);
@@ -217,12 +234,9 @@ export function AddProductDialog({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="price">Price (USD)</Label>
-              <Input id="price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
-              {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
-            </div>
+          {/* No price field: this is a quotation business, and the figure that
+              reaches a customer is the one set when a quote is accepted. */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="warrantyYears">Warranty (years)</Label>
               <Input id="warrantyYears" type="number" min="0" value={warrantyYears} onChange={(e) => setWarrantyYears(e.target.value)} />
@@ -289,22 +303,14 @@ export function AddProductDialog({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="image">Primary Image</Label>
-              <Input id="image" type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} required />
-              {errors.image && <p className="text-xs text-destructive">{errors.image}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="gallery">Gallery Images</Label>
-              <Input
-                id="gallery"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => setGallery(e.target.files ? Array.from(e.target.files) : [])}
-              />
-            </div>
+          {/* One image only. The API stores a single product image and uses it
+              as the gallery too, so the "Gallery Images" picker that used to
+              sit here had nowhere to send its files — they were silently
+              discarded on every save. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="image">Product Image</Label>
+            <Input id="image" type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} required />
+            {errors.image && <p className="text-xs text-destructive">{errors.image}</p>}
           </div>
 
           <DialogFooter>
