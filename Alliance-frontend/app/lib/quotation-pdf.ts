@@ -47,9 +47,9 @@ export type PdfDocument = {
   fileName: string;
 };
 
-const PAGE_W = 210;
-const MARGIN = 18;
-const CONTENT_W = PAGE_W - MARGIN * 2; // 174
+export const PAGE_W = 210;
+export const MARGIN = 18;
+export const CONTENT_W = PAGE_W - MARGIN * 2; // 174
 
 // Vertical budget. The footer rule sits at 275, so content must stop above it;
 // these drive the page-break decisions rather than hand-tuned magic numbers.
@@ -61,10 +61,10 @@ const TERMS_BLOCK_H = 96; // "Inword" + 7 terms + tracking + sign-off block
 
 const BLUE: [number, number, number] = [0, 125, 204];
 const GOLD: [number, number, number] = [255, 185, 0];
-const INK: [number, number, number] = [30, 41, 59];
-const MUTED: [number, number, number] = [100, 116, 139];
-const LINE: [number, number, number] = [140, 150, 165];
-const HEAD_BG: [number, number, number] = [238, 244, 250];
+export const INK: [number, number, number] = [30, 41, 59];
+export const MUTED: [number, number, number] = [100, 116, 139];
+export const LINE: [number, number, number] = [140, 150, 165];
+export const HEAD_BG: [number, number, number] = [238, 244, 250];
 
 // S/N, Item Name, Picture, Specifications, Qty, Unit, Unit price, Total.
 // Must sum to CONTENT_W or the header and body borders won't align.
@@ -79,7 +79,7 @@ function money(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-function setColor(doc: jsPDF, c: [number, number, number]) {
+export function setColor(doc: jsPDF, c: [number, number, number]) {
   doc.setTextColor(c[0], c[1], c[2]);
 }
 
@@ -102,11 +102,14 @@ const CHAR_FALLBACKS: [RegExp, string][] = [
   [/\u20b9/g, "INR "], // Rupee sign
 ];
 
-function ascii(text: string): string {
+export function ascii(text: string): string {
   return CHAR_FALLBACKS.reduce((s, [re, to]) => s.replace(re, to), text);
 }
 
-function drawHeader(doc: jsPDF, logo: string | null, title: string) {
+// title === null draws the letterhead with no heading block, which is what
+// the Challan needs: its title sits in a centred outlined box below the rule
+// rather than in the top-right corner.
+export function drawHeader(doc: jsPDF, logo: string | null, title: string | null) {
   if (logo) {
     try {
       // The alias makes jsPDF store the bitmap once and reference it on every
@@ -130,12 +133,14 @@ function drawHeader(doc: jsPDF, logo: string | null, title: string) {
 
   // Highlighted title block, mirroring the template's yellow-marked heading.
   // Sized to the text so a longer title ("Order Invoice") isn't clipped.
-  doc.setFont("helvetica", "bold").setFontSize(15);
-  const titleW = doc.getTextWidth(title) + 8;
-  doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
-  doc.rect(PAGE_W - MARGIN - titleW, 13, titleW, 9, "F");
-  setColor(doc, INK);
-  doc.text(title, PAGE_W - MARGIN - 4, 19.8, { align: "right" });
+  if (title !== null) {
+    doc.setFont("helvetica", "bold").setFontSize(15);
+    const titleW = doc.getTextWidth(title) + 8;
+    doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
+    doc.rect(PAGE_W - MARGIN - titleW, 13, titleW, 9, "F");
+    setColor(doc, INK);
+    doc.text(title, PAGE_W - MARGIN - 4, 19.8, { align: "right" });
+  }
 
   doc.setDrawColor(BLUE[0], BLUE[1], BLUE[2]).setLineWidth(0.9);
   doc.line(MARGIN, 31.5, PAGE_W - MARGIN, 31.5);
@@ -188,7 +193,7 @@ function drawParties(doc: jsPDF, d: PdfDocument): number {
   return y + intro.length * 4.6 + 4;
 }
 
-function formatDate(yyyyMmDd: string): string {
+export function formatDate(yyyyMmDd: string): string {
   const [y, m, d] = yyyyMmDd.split("-");
   return `${d}.${m}.${y}`;
 }
@@ -382,7 +387,7 @@ function drawSignOff(doc: jsPDF, y: number) {
   doc.text("+8801315770099", MARGIN, y + 25);
 }
 
-function drawFooter(doc: jsPDF) {
+export function drawFooter(doc: jsPDF) {
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
@@ -444,7 +449,7 @@ async function downscale(dataUrl: string): Promise<string> {
 
 // Product thumbnails are fetched as data URLs; a failure just leaves the
 // Picture cell blank rather than blocking the download.
-async function loadImage(src: string): Promise<string | null> {
+export async function loadImage(src: string): Promise<string | null> {
   try {
     const res = await fetch(src);
     if (!res.ok) return null;

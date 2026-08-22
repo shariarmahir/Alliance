@@ -37,6 +37,32 @@ OrdersArea = Depends(require_area("orders"))
 ContactArea = Depends(require_area("contact-requests"))
 
 
+def _decode_pdf(pdf_base64: str | None) -> bytes | None:
+    """Validates a browser-rendered PDF before it becomes a mail attachment.
+
+    Anything reaching here was posted by a client, so it is checked rather
+    than trusted: valid base64, actually a PDF, and within the size a mail
+    provider will accept.
+    """
+    if not pdf_base64:
+        return None
+    try:
+        pdf_bytes = base64.b64decode(pdf_base64, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(
+            status_code=422, detail="The attached PDF was not valid base64."
+        ) from exc
+    if not pdf_bytes.startswith(b"%PDF-"):
+        raise HTTPException(status_code=422, detail="The attached file is not a PDF.")
+    if len(pdf_bytes) > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"The PDF exceeds the "
+            f"{MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB attachment limit.",
+        )
+    return pdf_bytes
+
+
 def _out(quotation) -> QuotationOut:
     return QuotationOut.model_validate(
         {
@@ -174,24 +200,7 @@ async def email_quotation(
             status_code=400, detail="Issue the confirmation before emailing it."
         )
 
-    pdf_bytes = None
-    if payload is not None and payload.pdf_base64:
-        try:
-            pdf_bytes = base64.b64decode(payload.pdf_base64, validate=True)
-        except (ValueError, binascii.Error) as exc:
-            raise HTTPException(
-                status_code=422, detail="The attached PDF was not valid base64."
-            ) from exc
-        if not pdf_bytes.startswith(b"%PDF-"):
-            raise HTTPException(
-                status_code=422, detail="The attached file is not a PDF."
-            )
-        if len(pdf_bytes) > MAX_ATTACHMENT_BYTES:
-            raise HTTPException(
-                status_code=413,
-                detail=f"The PDF exceeds the "
-                f"{MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB attachment limit.",
-            )
+    pdf_bytes = _decode_pdf(payload.pdf_base64 if payload else None)
 
     if pdf_bytes is None:
         try:
@@ -206,6 +215,42 @@ async def email_quotation(
             status_code=502, detail="Email could not be sent. Check the mail configuration."
         )
     return {"sent": True, "attached": pdf_bytes is not None}
+
+
+@router.post("/quotations/{quotation_id}/challan/email")
+async def email_challan(
+    quotation_id: str,
+    db: DbSession,
+    payload: QuotationEmailRequest | None = None,
+    session: AdminSession = OrdersArea,
+):
+    """Emails the delivery challan the admin's browser rendered.
+
+    Guarded by the orders grant rather than quotations: a challan belongs to
+    fulfilling an accepted order, not to pricing a request. There is no
+    server-side fallback renderer — the challan layout exists only in the
+    browser builder, so a caller that sends nothing gets a clear error rather
+    than an email with a document that does not match what they saw.
+    """
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+    if quotation.confirmation is None:
+        raise HTTPException(
+            status_code=400, detail="Confirm the order before sending a challan."
+        )
+
+    pdf_bytes = _decode_pdf(payload.pdf_base64 if payload else None)
+    if pdf_bytes is None:
+        raise HTTPException(status_code=422, detail="No challan PDF was supplied.")
+
+    sent = await email_integration.send_challan(quotation, pdf_bytes)
+    if not sent:
+        raise HTTPException(
+            status_code=502, detail="Email could not be sent. Check the mail configuration."
+        )
+    logger.info("%s emailed challan for %s", session.email, quotation_id)
+    return {"sent": True, "attached": True}
 
 
 @router.get("/quotations/{quotation_id}/pdf")

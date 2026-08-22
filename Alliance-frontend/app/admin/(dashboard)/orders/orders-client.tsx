@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, FileText, Mail } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 import { formatPrice } from "@/app/lib/utils";
 import {
   PageHeader,
@@ -16,8 +24,9 @@ import {
   TD,
   ROW,
 } from "../admin-ui";
-import { apiFetch } from "@/app/lib/api-browser";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
+import { downloadChallanPdf, challanPdfToBase64, quotationToChallan } from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import type { Quotation } from "@/app/lib/types";
 
@@ -26,6 +35,129 @@ import type { Quotation } from "@/app/lib/types";
 // backend compares to decide whether to email the customer. Carried as a
 // string here because FilterBar is keyed on strings.
 type StageFilter = string;
+
+// The challan is produced from the confirmed order's own lines, so there is
+// nothing to fill in — the dialog exists to show what will be sent and to
+// separate the two actions, since emailing one is not undoable.
+function CreateChallanDialog({ quotation }: { quotation: Quotation }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<"download" | "email" | null>(null);
+
+  const spec = quotationToChallan(quotation);
+
+  async function download() {
+    setBusy("download");
+    try {
+      await downloadChallanPdf(quotation);
+    } catch {
+      toast.error("Could not generate the challan.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sendEmail() {
+    setBusy("email");
+    const toastId = toast.loading("Preparing the challan...");
+    try {
+      // Rendered here and posted, so the customer receives the same file the
+      // download button produces rather than a server-side approximation.
+      const { base64, fileName } = await challanPdfToBase64(quotation);
+      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
+      await apiFetch(
+        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/challan/email`,
+        { method: "POST", body: { pdfBase64: base64, fileName } }
+      );
+      toast.success("Challan sent", {
+        id: toastId,
+        description: `${spec.refNumber} delivered to ${quotation.details.email}.`,
+        duration: 7000,
+      });
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not send the challan.",
+        { id: toastId }
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <FileText className="size-3.5" /> Create Challan
+          </button>
+        }
+      />
+      <DialogContent className="max-h-[85vh] w-full max-w-lg overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-[17px] font-bold text-ink">Delivery challan</DialogTitle>
+          <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
+            {spec.refNumber} &middot; {spec.recipient.company}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-hidden rounded-[10px] border border-slate-line">
+          {spec.lines.map((line, i) => (
+            <div
+              key={`${line.name}-${i}`}
+              className="flex items-start justify-between gap-4 border-b border-[#f2f4f7] px-3.5 py-3 last:border-b-0"
+            >
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-semibold text-ink">{line.name}</p>
+                {line.bullets.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {line.bullets.map((b) => (
+                      <li key={b} className="text-[11.5px] leading-[1.5] text-ink-muted">
+                        &bull; {b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <span className="shrink-0 font-mono text-[12.5px] font-semibold text-ink">
+                {line.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
+          No prices appear on a challan. Emailing sends this document to{" "}
+          <strong className="text-ink">{quotation.details.email}</strong>.
+        </p>
+
+        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
+          <button
+            type="button"
+            onClick={download}
+            disabled={busy !== null}
+            className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+          >
+            <Download className="size-4" />
+            {busy === "download" ? "Preparing..." : "Download PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={sendEmail}
+            disabled={busy !== null}
+            className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-4 py-2.5 text-[13px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
+          >
+            <Mail className="size-4" />
+            {busy === "email" ? "Sending..." : "Send Email"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function OrderRow({
   quotation,
@@ -132,6 +264,7 @@ function OrderRow({
           >
             <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
           </button>
+          <CreateChallanDialog quotation={quotation} />
           <RowButton tone="danger" disabled={busy} onClick={cancel}>
             Cancel
           </RowButton>

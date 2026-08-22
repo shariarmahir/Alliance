@@ -327,3 +327,51 @@ async def send_order_confirmed(quotation) -> bool:
         f"Order confirmed — {confirmation.ref_number}",
         _shell(f"Order confirmed — {confirmation.ref_number}", body),
     )
+
+
+async def send_challan(quotation, pdf_bytes: bytes | None = None) -> bool:
+    """Sends the delivery challan to the customer with the PDF attached.
+
+    The challan accompanies the goods, so this is a short covering note: the
+    document itself carries the detail, and unlike the quotation there are no
+    prices to restate here.
+    """
+    details = quotation.details or {}
+    confirmation = quotation.confirmation
+    to = details.get("email")
+    if not to:
+        logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
+        return False
+    if confirmation is None:
+        logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
+        return False
+
+    body = (
+        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
+        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached the '
+        f"delivery challan for your order against reference "
+        f"<strong>{escape(confirmation.ref_number)}</strong>.</p>"
+        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Kindly check the items on '
+        "receipt and let us know straight away if anything does not match.</p>"
+        '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">Any questions? Reply to this email, or message us on '
+        "WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    )
+
+    attachments = None
+    if pdf_bytes:
+        import base64
+
+        attachments = [
+            {
+                "filename": f"Challan-{confirmation.ref_number.replace('/', '-')}.pdf",
+                "content": base64.b64encode(pdf_bytes).decode(),
+            }
+        ]
+
+    return await send_email(
+        to,
+        f"Delivery challan — {confirmation.ref_number}",
+        _shell(f"Delivery challan — {confirmation.ref_number}", body),
+        attachments,
+    )
