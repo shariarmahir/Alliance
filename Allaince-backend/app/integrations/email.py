@@ -221,7 +221,11 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
         return False
 
-    tracking_url = f"{settings.public_site_url.rstrip('/')}/track/{confirmation.tracking_id}"
+    # Points at the customer's own request page, not a tracking ID: there is
+    # no self-service tracking surface, and acceptance happens by the
+    # customer replying to this email — an admin then confirms it from the
+    # dashboard. This link is informational, not an "accept" action.
+    request_url = f"{settings.public_site_url.rstrip('/')}/quote/thank-you/{quotation.id}"
     terms = confirmation.terms or {}
 
     body = (
@@ -243,14 +247,14 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         + _line_items_table(confirmation)
         + _terms_block(terms)
         + '<p style="margin:22px 0 6px"><a href="'
-        + escape(tracking_url)
+        + escape(request_url)
         + '" style="display:inline-block;background:#007DCC;color:#fff;padding:11px 20px;'
         'border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold">'
-        "View &amp; accept this quotation</a></p>"
+        "View this request</a></p>"
         '<p style="font-size:12.5px;color:#667085;line-height:1.6;margin:10px 0 0">'
-        "Accepting from that page confirms your order and starts delivery. "
-        "To adjust quantities or specifications, simply reply to this email — "
-        "an engineer will re-issue a revised offer.</p>"
+        "Reply to this email to accept the offer. To adjust quantities or "
+        "specifications, reply with the changes and an engineer will re-issue "
+        "a revised offer.</p>"
         '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
         'border-top:1px solid #e3e8ef">Questions about compatibility or lead time? '
         "Reply here, or message us on WhatsApp at "

@@ -13,11 +13,11 @@ import Link from "next/link";
 // FastAPI/Python backend), so this does not fake a live AI conversation.
 // Instead it gives the "chatbot" shape — a greeting plus quick replies —
 // routed to the real channels the business already uses: WhatsApp and the
-// Ask Price / tracking flows.
+// Ask Price flow. There is no self-service order lookup — status on a
+// submitted request is handled directly by an engineer over WhatsApp/email.
 const QUICK_REPLIES = [
   { label: "Ask a price on a part", href: "/products", external: false },
-  { label: "Track an existing order", href: "/products?q=track", external: false },
-  { label: "Talk to a person on WhatsApp", href: "https://wa.me/8801315770099", external: true },
+  { label: "Check on a request I sent", href: "https://wa.me/8801315770099", external: true },
 ] as const;
 
 export function WhatsAppButton() {

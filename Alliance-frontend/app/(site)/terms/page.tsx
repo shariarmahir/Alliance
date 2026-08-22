@@ -49,12 +49,8 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
         Stated delivery timelines (e.g. &ldquo;from ready stock&rdquo;) are estimates based on
         current inventory and are confirmed at the time of order. Freight, duty, and final delivery
         arrangements are agreed with you directly by our team after your order is confirmed — this
-        site does not process shipping bookings itself. A tracking ID is issued once delivery is
-        arranged; use it on the{" "}
-        <Link href="/track" className="font-semibold text-primary hover:underline">
-          tracking page
-        </Link>{" "}
-        to check status.
+        site does not process shipping bookings itself. Our team will keep you updated on delivery
+        status directly by email or WhatsApp.
       </p>
     ),
   },

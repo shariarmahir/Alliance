@@ -51,9 +51,9 @@ export default function QuotePage() {
       // storage unavailable — proceed anyway, confirm page just won't prefill
     }
 
-    // The admin's own confirmation of this request becomes the order — there
-    // is no separate order-confirm step, so the customer is sent straight to
-    // a status page keyed by the quotation's own ID.
+    // Pricing and confirmation happen off-platform (an engineer emails the
+    // quotation, the customer accepts by reply), so submitting just sends the
+    // customer to a thank-you page keyed by the quotation's own ID.
     try {
       // The backend computes the total itself from its own catalogue prices,
       // so only the lines and the customer's details are sent.
@@ -63,7 +63,7 @@ export default function QuotePage() {
       });
       clear();
       toast.success("Request sent — an engineer will price it shortly.");
-      router.push(`/track/quote/${created.id}`);
+      router.push(`/quote/thank-you/${created.id}`);
     } catch {
       toast.error("We couldn't send your request. Please try again or WhatsApp us.");
       setSubmitting(false);
@@ -116,7 +116,7 @@ export default function QuotePage() {
       </p>
 
       <ol className="mb-6.5 flex flex-col overflow-hidden rounded-[9px] border border-slate-line bg-surface sm:flex-row">
-        {["Ask Price", "Pricing & delivery", "Track delivery"].map((step, i) => (
+        {["Ask Price", "Pricing & delivery", "Confirmation"].map((step, i) => (
           <li
             key={step}
             className={`flex flex-1 items-center gap-2.5 px-4.5 py-3.5 text-[13px] ${

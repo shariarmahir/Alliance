@@ -170,7 +170,7 @@ async def test_super_admin_can_read_quotations(client):
 # --- confirmation and tracking flow ----------------------------------------
 
 
-async def test_confirm_then_track_end_to_end(client):
+async def test_confirm_then_advance_delivery_end_to_end(client):
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
     _auth(client)
 
@@ -195,63 +195,28 @@ async def test_confirm_then_track_end_to_end(client):
     confirmation = r.json()["confirmation"]
     assert r.json()["status"] == "confirmed"
     assert confirmation["grandTotal"] == 300.0
-    tracking_id = confirmation["trackingId"]
 
-    # Advance delivery, then read it back from the public tracking endpoint.
+    # Advance delivery, then read it back from the admin's own view of the
+    # quotation — there is no public tracking endpoint any more.
     patch = await client.patch(
         f"/api/admin/quotations/{quotation_id}/delivery", json={"stage": 2}
     )
     assert patch.status_code == 200
-
-    client.cookies.clear()
-    track = await client.get(f"/api/track/{tracking_id}")
-    assert track.status_code == 200
-    body = track.json()
-    assert body["stage"] == 2 and body["stageLabel"] == "In Transit"
-    assert len(body["stages"]) == 4
+    assert patch.json()["confirmation"]["deliveryStage"] == 2
 
 
-async def test_tracking_response_excludes_pricing_and_contact_details(client):
+async def test_cancelling_retracts_the_confirmation(client):
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
     _auth(client)
-    confirmation = (
-        await client.post(
-            f"/api/admin/quotations/{quotation_id}/confirm",
-            json={"lines": [{"name": "D", "quantity": 1, "unitPrice": 500.0}]},
-        )
-    ).json()["confirmation"]
-    client.cookies.clear()
-
-    text = (await client.get(f"/api/track/{confirmation['trackingId']}")).text
-    # A tracking ID may be forwarded to anyone, so it must not leak these.
-    assert "ada@example.com" not in text
-    assert "500" not in text
-    assert "Mahir Fabrics" not in text
-
-
-async def test_unknown_tracking_id_is_404(client):
-    assert (await client.get("/api/track/AIT-TRK-NOTREAL")).status_code == 404
-
-
-async def test_cancelling_retracts_the_confirmation_over_http(client):
-    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
-    _auth(client)
-    confirmation = (
-        await client.post(
-            f"/api/admin/quotations/{quotation_id}/confirm",
-            json={"lines": [{"name": "D", "quantity": 1, "unitPrice": 5.0}]},
-        )
-    ).json()["confirmation"]
-    tracking_id = confirmation["trackingId"]
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"lines": [{"name": "D", "quantity": 1, "unitPrice": 5.0}]},
+    )
 
     r = await client.patch(
         f"/api/admin/quotations/{quotation_id}/status", json={"status": "cancelled"}
     )
     assert r.json()["confirmation"] is None
-
-    # The retracted document must no longer be reachable by tracking ID.
-    client.cookies.clear()
-    assert (await client.get(f"/api/track/{tracking_id}")).status_code == 404
 
 
 async def test_quotation_can_be_marked_viewed(client, db):

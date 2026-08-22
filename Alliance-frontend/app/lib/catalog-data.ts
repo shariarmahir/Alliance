@@ -93,20 +93,3 @@ export async function submitQuotation(payload: {
 export async function getQuotation(id: string) {
   return getOrNull(`/api/quotations/${encodeURIComponent(id)}`);
 }
-
-export type TrackingStage = { label: string; hint: string };
-
-export type TrackingInfo = {
-  trackingId: string;
-  refNumber: string;
-  status: string;
-  stage: number;
-  stageLabel: string;
-  stages: TrackingStage[];
-  updatedAt: string | null;
-  issuedAt: string;
-};
-
-export async function getTracking(trackingId: string): Promise<TrackingInfo | null> {
-  return getOrNull<TrackingInfo>(`/api/track/${encodeURIComponent(trackingId)}`);
-}

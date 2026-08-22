@@ -12,8 +12,6 @@ from app.schemas.operations import (
     OrderOut,
     QuotationCreate,
     QuotationOut,
-    TrackingOut,
-    TrackingStage,
 )
 from app.services import operations as svc
 
@@ -97,23 +95,3 @@ async def submit_contact(payload: ContactRequestCreate, request: Request, db: Db
     return ContactRequestOut.model_validate(contact)
 
 
-@router.get("/track/{tracking_id}", response_model=TrackingOut)
-async def track(tracking_id: str, db: DbSession):
-    """Public delivery tracking. Deliberately returns progress only — no
-    pricing or contact details, since a tracking ID may be shared onward."""
-    quotation = await svc.find_by_tracking_id(db, tracking_id)
-    if quotation is None or quotation.confirmation is None:
-        raise HTTPException(status_code=404, detail="Tracking ID not found.")
-
-    confirmation = quotation.confirmation
-    stage = svc.clamp_stage(confirmation.delivery_stage)
-    return TrackingOut(
-        tracking_id=confirmation.tracking_id,
-        ref_number=confirmation.ref_number,
-        status=quotation.status,
-        stage=stage,
-        stage_label=svc.stage_label(stage),
-        stages=[TrackingStage(**s) for s in svc.DELIVERY_STAGES],
-        updated_at=confirmation.delivery_updated_at,
-        issued_at=confirmation.issued_at,
-    )

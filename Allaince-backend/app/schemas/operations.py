@@ -185,22 +185,3 @@ class ContactRequestOut(CamelModel):
 
 class HandledUpdate(CamelModel):
     handled: bool
-
-
-class TrackingStage(CamelModel):
-    label: str
-    hint: str
-
-
-class TrackingOut(CamelModel):
-    """Public tracking view — deliberately excludes pricing and contact
-    details, since anyone holding a tracking ID can read it."""
-
-    tracking_id: str
-    ref_number: str
-    status: QuotationStatus
-    stage: int
-    stage_label: str
-    stages: list[TrackingStage]
-    updated_at: datetime | None = None
-    issued_at: datetime

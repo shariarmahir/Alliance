@@ -190,7 +190,7 @@ def render_quotation_pdf(quotation) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("QUOTATION", [("Ref", confirmation.ref_number), ("Date", confirmation.issued_date), ("Tracking", confirmation.tracking_id)])}
+    {_header("QUOTATION", [("Ref", confirmation.ref_number), ("Date", confirmation.issued_date)])}
     {_customer_block(details)}
     <div class="subject"><strong>Subject:</strong> {escape(confirmation.subject or "")}</div>
     <table class="items">
@@ -261,7 +261,7 @@ def render_invoice_pdf(order) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("INVOICE", [("Order", order.order_number), ("Tracking", order.tracking_id), ("Date", str(order.placed_at)[:10])])}
+    {_header("INVOICE", [("Order", order.order_number), ("Date", str(order.placed_at)[:10])])}
     <div style="font-size:9.5px;margin-bottom:10px"><span style="color:#667085">Ship to:</span><br>{ship_to}</div>
     <table class="items">
       <thead><tr><th style="width:6%">SL</th><th style="width:46%">Description</th>

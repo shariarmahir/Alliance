@@ -252,8 +252,7 @@ export type OrderConfirmation = {
   issuedAt: string; // ISO
   // Real delivery progress, advanced by an admin from the Orders screen.
   // Index into DELIVERY_STAGES (app/lib/delivery.ts); absent means stage 0
-  // ("Confirmed"). The customer tracking page reads this instead of the
-  // arithmetic-on-the-tracking-ID simulation it used to display.
+  // ("Confirmed"). Internal only — there is no customer-facing tracking page.
   deliveryStage?: number;
   deliveryUpdatedAt?: string; // ISO
 };

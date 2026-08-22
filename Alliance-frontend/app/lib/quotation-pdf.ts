@@ -44,7 +44,6 @@ export type PdfDocument = {
   grandTotal: number;
   summaryRows: PdfSummaryRow[];
   terms: QuotationTerms;
-  trackingId: string;
   fileName: string;
 };
 
@@ -365,13 +364,6 @@ function drawTerms(doc: jsPDF, y: number, c: PdfDocument): number {
   doc.text(c.terms.warranty, MARGIN + 40, y);
   y += 5.6;
 
-  if (c.trackingId) {
-    doc.setFont("helvetica", "bold").setFontSize(8.5);
-    doc.text("Tracking No:", MARGIN, y);
-    doc.setFont("courier", "bold");
-    doc.text(c.trackingId, MARGIN + 40, y);
-    y += 8;
-  }
   return y;
 }
 
@@ -541,7 +533,6 @@ function quotationToPdf(quotation: Quotation, c: OrderConfirmation): PdfDocument
     grandTotal: c.grandTotal,
     summaryRows: [],
     terms: c.terms,
-    trackingId: c.trackingId,
     fileName: `Order-Confirmation-${c.refNumber.replace(/[/\\]/g, "-")}.pdf`,
   };
 }
@@ -580,7 +571,6 @@ function requestToPdf(quotation: Quotation): PdfDocument {
     grandTotal: 0,
     summaryRows: [],
     terms: DEFAULT_TERMS,
-    trackingId: quotation.id,
     fileName: `Price-Request-${quotation.id.slice(0, 8)}.pdf`,
   };
 }
@@ -627,7 +617,6 @@ function orderToPdf(order: Order): PdfDocument {
       delivery: `${order.deliveryOptionName} (${order.deliveryEta})`,
       offerValidity: `Preferred delivery date: ${order.preferredDate}`,
     },
-    trackingId: order.trackingId,
     fileName: `Invoice-${order.orderNumber}.pdf`,
   };
 }

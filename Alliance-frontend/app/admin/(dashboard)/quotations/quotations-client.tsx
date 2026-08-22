@@ -31,9 +31,9 @@ import { useClientNow } from "@/app/lib/use-client-now";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationStatus } from "@/app/lib/types";
 
-// Advances what the customer sees on /track/[trackingId]. That page reads
-// this value directly — before it existed, the page simulated a status from
-// the tracking ID's characters, so nothing an admin did here was reflected.
+// Internal delivery-stage tracker (pending/confirmed/shipped/delivered). This
+// is not customer-facing — there is no public tracking page — it exists so
+// staff can see and update where an order actually is.
 function DeliveryStageSelect({
   quotation,
   onChanged,
