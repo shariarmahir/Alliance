@@ -440,7 +440,7 @@ function QuotationRow({
 
 export function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
   const router = useRouter();
-  const [filter, setFilter] = useState<"all" | QuotationStatus>("all");
+  const [filter, setFilter] = useState<"all" | QuotationStatus>("pending");
 
   // null until mounted — see ageLabel's own comment. The breach count is a
   // one-line summary, so a beat of "0" while it fills in is unnoticeable.
