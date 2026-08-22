@@ -100,6 +100,25 @@ export async function readOrderRatio(): Promise<OrderRatioSlice[]> {
   return getOrDefault<OrderRatioSlice[]>("/api/admin/analytics/order-ratio", [], { auth: true });
 }
 
+export type CountryBreakdown = { country: string; orders: number };
+
+export async function readTopDestinations(): Promise<CountryBreakdown[]> {
+  return getOrDefault<CountryBreakdown[]>("/api/admin/analytics/destinations", [], {
+    auth: true,
+  });
+}
+
+export type StockAlert = {
+  partNumber: string;
+  name: string;
+  slug: string;
+  quantity: number;
+};
+
+export async function readLowStock(): Promise<StockAlert[]> {
+  return getOrDefault<StockAlert[]>("/api/admin/analytics/low-stock", [], { auth: true });
+}
+
 // Each of these returns [] when the caller lacks the grant, so a sub-admin's
 // dashboard renders empty sections instead of failing the whole page.
 export async function readProducts(): Promise<Product[]> {

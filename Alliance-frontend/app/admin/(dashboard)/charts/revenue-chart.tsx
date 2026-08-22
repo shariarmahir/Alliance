@@ -2,19 +2,10 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { formatPrice } from "@/app/lib/utils";
-import { revenueMonthly, orderCountMonthly } from "@/app/lib/mock-analytics";
 
 // Design bundle pairs revenue and confirmed orders as twin bars per bucket,
 // with a legend rather than a range switcher.
 export type RevenuePoint = { label: string; revenue: number; orders: number };
-
-// Fallback only for callers that predate the real-analytics wiring; the
-// Overview passes actual figures derived from the order records.
-const FALLBACK: RevenuePoint[] = revenueMonthly.map((point, i) => ({
-  label: point.label,
-  revenue: point.value,
-  orders: orderCountMonthly[i]?.value ?? 0,
-}));
 
 function ChartTooltip({
   active,
@@ -44,7 +35,7 @@ export function RevenueChart({
   data?: RevenuePoint[];
   caption?: string;
 }) {
-  const points = data?.length ? data : FALLBACK;
+  const points = data ?? [];
   const hasData = points.some((p) => p.revenue > 0 || p.orders > 0);
 
   return (

@@ -10,11 +10,9 @@ import { formatPrice } from "@/app/lib/utils";
 import { RangeToggle } from "./range-toggle";
 import { StatCard } from "./stat-card";
 import { RevenueChart } from "./charts/revenue-chart";
-import { TrafficChart } from "./charts/traffic-chart";
 import { BestSellersCard } from "./best-sellers-card";
 import { SubAdminDashboard } from "./sub-admin-dashboard";
 import {
-  OrderSourcesPanel,
   TopDestinationsPanel,
   OrderRatioPanel,
   WarehouseAlertsPanel,
@@ -132,14 +130,11 @@ export default async function AdminOverviewPage({
         <OrderRatioPanel />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <OrderSourcesPanel />
-        <TopDestinationsPanel />
-        <TrafficChart />
-      </div>
-
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <PendingQuotationsPanel />
+        <div className="flex flex-col gap-4">
+          <PendingQuotationsPanel />
+          <TopDestinationsPanel />
+        </div>
         <div className="flex flex-col gap-4">
           <BestSellersCard />
           <WarehouseAlertsPanel />

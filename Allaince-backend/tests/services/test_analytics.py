@@ -6,8 +6,11 @@ from app.models import Category, OrderConfirmation, Product, Quotation
 from app.services.analytics import (
     bucket_starts,
     delta_pct,
+    low_stock,
+    order_status_ratio,
     read_payment_analytics,
     read_range_analytics,
+    top_destinations,
     top_sellers,
 )
 
@@ -24,6 +27,7 @@ async def _order(
     email="ada@example.com",
     payment_status="pending",
     paid_days_ago: float | None = None,
+    country="Bangladesh",
 ):
     """A confirmed order: a quotation plus the confirmation carrying its money.
 
@@ -35,7 +39,7 @@ async def _order(
     quotation = Quotation(
         items=[],
         total=total,
-        details={"email": email},
+        details={"email": email, "country": country},
         customer_email=email,
         status=status,
         submitted_at=NOW - timedelta(days=days_ago),
@@ -338,6 +342,92 @@ async def test_payments_and_revenue_agree_on_the_same_orders(db):
     payments = await read_payment_analytics(db, "week")
     assert revenue == 500.0
     assert payments.received + payments.pending == revenue
+
+
+# --- order ratio, destinations, stock ---------------------------------------
+
+
+async def test_order_ratio_counts_quotations_by_outcome(db):
+    await _order(db, 1, 10.0)  # confirmed
+    await _order(db, 1, 10.0, status="cancelled")
+    db.add(
+        Quotation(
+            items=[], total=0, details={"email": "a@x.com"}, customer_email="a@x.com",
+            status="pending", submitted_at=NOW,
+        )
+    )
+    await db.commit()
+
+    ratio = {s.status: s.count for s in await order_status_ratio(db)}
+    assert ratio == {"confirmed": 1, "pending": 1, "cancelled": 1}
+
+
+async def test_order_ratio_folds_quoted_into_pending(db):
+    """A priced offer the customer has not accepted is still an open request,
+    which is how the Price requests screen queues it."""
+    await _order(db, 1, 10.0, status="quoted")
+    await db.commit()
+
+    ratio = {s.status: s.count for s in await order_status_ratio(db)}
+    assert ratio["pending"] == 1
+    assert ratio["confirmed"] == 0
+
+
+async def test_top_destinations_ranks_confirmed_orders_by_country(db):
+    for _ in range(3):
+        await _order(db, 1, 10.0, country="Bangladesh")
+    await _order(db, 1, 10.0, country="India")
+    await db.commit()
+
+    ranked = await top_destinations(db)
+    assert [(c.country, c.orders) for c in ranked] == [("Bangladesh", 3), ("India", 1)]
+
+
+async def test_top_destinations_groups_case_variants(db):
+    await _order(db, 1, 10.0, country="bangladesh")
+    await _order(db, 1, 10.0, country="Bangladesh")
+    await db.commit()
+
+    ranked = await top_destinations(db)
+    assert [(c.country, c.orders) for c in ranked] == [("Bangladesh", 2)]
+
+
+async def test_top_destinations_excludes_unconfirmed_and_blank(db):
+    await _order(db, 1, 10.0, status="quoted", country="India")
+    await _order(db, 1, 10.0, country="")
+    await db.commit()
+
+    assert await top_destinations(db) == []
+
+
+async def test_low_stock_returns_scarcest_first(db):
+    db.add(Category(slug="plc", name="PLC"))
+    await db.flush()
+    for slug, qty in (("alpha", 4), ("beta", 1), ("gamma", 50)):
+        db.add(
+            Product(
+                slug=slug, part_number=f"PN-{slug}", name=slug.title(),
+                brand="b", category_slug="plc", stock_qty=qty,
+            )
+        )
+    await db.commit()
+
+    alerts = await low_stock(db, threshold=5)
+    assert [(a.part_number, a.quantity) for a in alerts] == [("PN-beta", 1), ("PN-alpha", 4)]
+
+
+async def test_low_stock_is_empty_when_everything_is_stocked(db):
+    db.add(Category(slug="plc", name="PLC"))
+    await db.flush()
+    db.add(
+        Product(
+            slug="alpha", part_number="PN-alpha", name="Alpha",
+            brand="b", category_slug="plc", stock_qty=99,
+        )
+    )
+    await db.commit()
+
+    assert await low_stock(db, threshold=5) == []
 
 
 # --- top sellers ------------------------------------------------------------

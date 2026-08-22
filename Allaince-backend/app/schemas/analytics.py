@@ -49,6 +49,18 @@ class OrderRatioSlice(CamelModel):
     count: int
 
 
+class CountryBreakdown(CamelModel):
+    country: str
+    orders: int
+
+
+class StockAlert(CamelModel):
+    part_number: str
+    name: str
+    slug: str
+    quantity: int
+
+
 class SearchResult(CamelModel):
     type: SearchResultType
     id: str

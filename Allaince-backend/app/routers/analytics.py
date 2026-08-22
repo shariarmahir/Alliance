@@ -3,15 +3,19 @@ from fastapi import APIRouter, Depends, Query
 from app.core.deps import AdminDep, DbSession, SuperAdminDep, require_area
 from app.schemas.analytics import (
     AnalyticsRange,
+    CountryBreakdown,
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
     SearchResult,
+    StockAlert,
 )
 from app.services.analytics import (
+    low_stock,
     order_status_ratio,
     read_payment_analytics,
     read_range_analytics,
+    top_destinations,
 )
 from app.services.search import search_admin
 
@@ -47,6 +51,19 @@ async def payment_analytics(
 @router.get("/analytics/order-ratio", response_model=list[OrderRatioSlice])
 async def order_ratio(session: SuperAdminDep, db: DbSession):
     return await order_status_ratio(db)
+
+
+@router.get("/analytics/destinations", response_model=list[CountryBreakdown])
+async def destinations(session: SuperAdminDep, db: DbSession):
+    return await top_destinations(db)
+
+
+@router.get("/analytics/low-stock", response_model=list[StockAlert])
+async def stock_alerts(session: AdminDep, db: DbSession, threshold: int = Query(5, ge=0)):
+    """Open to any admin: stock is already visible to every sub-admin on the
+    stock screen, so gating the same numbers here would only hide them from
+    the staff who act on them."""
+    return await low_stock(db, threshold=threshold)
 
 
 @router.get("/search", response_model=list[SearchResult])

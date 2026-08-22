@@ -4,12 +4,14 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Order, OrderConfirmation, Product, Quotation
+from app.models import OrderConfirmation, Product, Quotation
 from app.schemas.analytics import (
     AnalyticsRange,
+    CountryBreakdown,
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
+    StockAlert,
     TrendPoint,
 )
 from app.schemas.catalog import ProductOut, TopSellerOut
@@ -264,12 +266,63 @@ async def read_payment_analytics(db: AsyncSession, range_: AnalyticsRange) -> Pa
 
 
 async def order_status_ratio(db: AsyncSession) -> list[OrderRatioSlice]:
-    orders = list((await db.execute(select(Order))).scalars().all())
+    """How every price request has resolved, for the conversion donut.
+
+    Counts quotations rather than the `orders` table, which no longer has a
+    writer. "quoted" folds into pending: a priced offer the customer has not
+    accepted is still an open request, which is also how the Price requests
+    screen queues it.
+    """
+    quotations = list((await db.execute(select(Quotation))).scalars().all())
     counts: dict[str, int] = {"confirmed": 0, "pending": 0, "cancelled": 0}
-    for order in orders:
-        if order.status in counts:
-            counts[order.status] += 1
+    for quotation in quotations:
+        if quotation.status in ("pending", "quoted"):
+            counts["pending"] += 1
+        elif quotation.status in counts:
+            counts[quotation.status] += 1
     return [OrderRatioSlice(status=s, count=c) for s, c in counts.items()]  # type: ignore[arg-type]
+
+
+async def top_destinations(db: AsyncSession, limit: int = 6) -> list[CountryBreakdown]:
+    """Where confirmed orders ship, from the country on each request.
+
+    Confirmed only, matching the Orders screen: an unaccepted quote is not a
+    destination the business has shipped to.
+    """
+    quotations = list((await db.execute(select(Quotation))).scalars().all())
+
+    counts: dict[str, int] = defaultdict(int)
+    for quotation in quotations:
+        if quotation.status != "confirmed":
+            continue
+        country = ((quotation.details or {}).get("country") or "").strip()
+        if country:
+            # Group case and spacing variants so "bangladesh" and "Bangladesh"
+            # are one destination rather than two.
+            counts[country.title()] += 1
+
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
+    return [CountryBreakdown(country=c, orders=n) for c, n in ranked]
+
+
+async def low_stock(db: AsyncSession, threshold: int = 5, limit: int = 6) -> list[StockAlert]:
+    """Products at or below the reorder threshold, scarcest first."""
+    products = list(
+        (
+            await db.execute(
+                select(Product)
+                .where(Product.stock_qty <= threshold)
+                .order_by(Product.stock_qty)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [
+        StockAlert(part_number=p.part_number, name=p.name, slug=p.slug, quantity=p.stock_qty)
+        for p in products
+    ]
 
 
 async def top_sellers(
