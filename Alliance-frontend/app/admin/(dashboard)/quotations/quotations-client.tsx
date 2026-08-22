@@ -300,15 +300,18 @@ function CancelConfirmDialog({
 function QuotationRow({
   quotation,
   sequence,
+  panelOpen,
+  onPanelOpenChange,
   onChanged,
 }: {
   quotation: Quotation;
   sequence: number;
+  panelOpen: boolean;
+  onPanelOpenChange: (open: boolean) => void;
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function download() {
     setDownloading(true);
@@ -390,13 +393,13 @@ function QuotationRow({
           {quotation.status !== "cancelled" && (
             <ConfirmQuotationTrigger
               quotation={quotation}
-              open={confirmOpen}
+              open={panelOpen}
               onToggle={() => {
                 // Closing (not opening) is when the list needs to catch up —
                 // the panel may have issued a confirmation while it was open,
                 // which the row hasn't reflected yet.
-                if (confirmOpen) onChanged();
-                setConfirmOpen((v) => !v);
+                if (panelOpen) onChanged();
+                onPanelOpenChange(!panelOpen);
               }}
             />
           )}
@@ -432,13 +435,13 @@ function QuotationRow({
         </div>
       </td>
     </tr>
-    {confirmOpen && quotation.status !== "cancelled" && (
+    {panelOpen && quotation.status !== "cancelled" && (
       <ConfirmQuotationPanel
         quotation={quotation}
         sequence={sequence}
         onClose={() => {
           onChanged();
-          setConfirmOpen(false);
+          onPanelOpenChange(false);
         }}
       />
     )}
@@ -543,6 +546,12 @@ function ClearCancelledBanner({
 export function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | QuotationStatus>("pending");
+  // The row whose confirmation panel is open, if any. Tracked up here rather
+  // than inside the row because issuing a confirmation moves the quotation out
+  // of the Pending filter: without pinning it, the row — and the open panel
+  // with it — would be filtered away mid-edit, which reads as the form
+  // crashing. See `visible` in the list below.
+  const [openPanelId, setOpenPanelId] = useState<string | null>(null);
 
   // null until mounted — see ageLabel's own comment. The breach count is a
   // one-line summary, so a beat of "0" while it fills in is unnoticeable.
@@ -561,9 +570,17 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
 
   // Oldest first while pending — the ones closest to breaching the SLA need
   // answering first; everything else reads newest first.
-  const sorted = [
-    ...(filter === "all" ? initialQuotations : initialQuotations.filter((q) => q.status === filter)),
-  ].sort((a, b) => {
+  const visible =
+    filter === "all"
+      ? initialQuotations
+      : initialQuotations.filter(
+          // A quotation with its panel open stays listed even once its new
+          // status no longer matches the tab, so finishing the paperwork —
+          // download, then email — never yanks the form off the screen.
+          (q) => q.status === filter || q.id === openPanelId
+        );
+
+  const sorted = [...visible].sort((a, b) => {
     const at = new Date(a.details.submittedAt).getTime();
     const bt = new Date(b.details.submittedAt).getTime();
     if (a.status === "pending" && b.status === "pending") return at - bt;
@@ -632,6 +649,10 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
                     key={quotation.id}
                     quotation={quotation}
                     sequence={nextSequence}
+                    panelOpen={openPanelId === quotation.id}
+                    onPanelOpenChange={(open) =>
+                      setOpenPanelId(open ? quotation.id : null)
+                    }
                     onChanged={() => router.refresh()}
                   />
                 ))}
