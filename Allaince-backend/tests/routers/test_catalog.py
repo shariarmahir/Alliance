@@ -195,6 +195,28 @@ async def test_product_image_upload(client, db, tmp_path, monkeypatch):
     assert r.json()["image"].endswith(".png")
 
 
+async def test_uploaded_product_image_is_actually_servable(client, db, tmp_path, monkeypatch):
+    """The upload endpoint returning 200 with a plausible-looking URL is not
+    proof the image is visible anywhere — this is exactly the gap that let a
+    real dashboard upload 404 in production while every test still passed.
+    /media was never mounted, so save_image() wrote the file to disk and
+    handed back a URL nothing served. Fetch the URL back through this app's
+    own router, the way a browser img tag would, rather than trusting the
+    response shape."""
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+    upload = await client.post(
+        "/api/admin/products/widget/image",
+        files={"file": ("photo.png", io.BytesIO(PNG), "image/png")},
+    )
+    image_url = upload.json()["image"]
+    path = "/" + image_url.split("/", 3)[-1] if "://" in image_url else image_url
+    served = await client.get(path)
+    assert served.status_code == 200
+    assert served.content == PNG
+
+
 async def test_upload_rejects_non_image(client, db, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     await _seed(db)

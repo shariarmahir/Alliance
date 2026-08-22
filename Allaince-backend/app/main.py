@@ -5,8 +5,10 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.integrations.object_storage import LOCAL_MEDIA_ROOT
 from app.routers import (
     admin_catalog,
     admin_operations,
@@ -78,6 +80,19 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# save_image() in object_storage.py builds URLs like {public_api_url}/media/{key}
+# whenever S3 is not configured, but nothing served that path — every
+# dashboard-uploaded image (products, category icons, hero slots) 404'd
+# regardless of whether the file was actually written to disk. This mount is
+# what makes the local-disk fallback usable at all; it is a no-op once S3 is
+# configured, since save_image never builds a /media URL in that case.
+#
+# mkdir before mounting: StaticFiles raises at import time if the directory
+# does not exist yet, which is the state on a brand new deploy before any
+# upload has happened.
+LOCAL_MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(LOCAL_MEDIA_ROOT)), name="media")
 
 
 @app.exception_handler(RequestValidationError)
