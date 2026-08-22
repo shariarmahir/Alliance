@@ -190,9 +190,7 @@ export type CountryBreakdown = { country: string; orders: number };
 export type TrafficSource = { source: string; orders: number };
 
 export type OrderStatus = "pending" | "confirmed" | "cancelled";
-// "viewed" is a triage state: read but not yet priced. It sits between
-// pending and confirmed and carries no confirmation document.
-export type QuotationStatus = "pending" | "viewed" | "confirmed" | "cancelled";
+export type QuotationStatus = "pending" | "confirmed" | "cancelled";
 
 // A confirmed order. Persisted client-side (localStorage, for the success/
 // invoice page) AND, as of Phase 3, mirrored server-side via POST /api/orders

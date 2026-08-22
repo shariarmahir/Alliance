@@ -219,13 +219,9 @@ async def test_cancelling_retracts_the_confirmation(client):
     assert r.json()["confirmation"] is None
 
 
-async def test_quotation_can_be_marked_viewed(client, db):
-    """"viewed" is a triage state: read but not yet priced.
-
-    It must be accepted by the same status endpoint as the others, and it
-    must not fabricate a confirmation document — that is the whole thing
-    separating it from "confirmed".
-    """
+async def test_viewed_is_no_longer_a_valid_status(client, db):
+    """"viewed" was removed as a triage state; the status endpoint must
+    reject it rather than silently accept an unrecognised value."""
     _auth(client)
     await _seed_catalogue(db)
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
@@ -233,9 +229,7 @@ async def test_quotation_can_be_marked_viewed(client, db):
     r = await client.patch(
         f"/api/admin/quotations/{quotation_id}/status", json={"status": "viewed"}
     )
-    assert r.status_code == 200
-    assert r.json()["status"] == "viewed"
-    assert r.json()["confirmation"] is None
+    assert r.status_code == 422
 
 
 async def _issued_quotation(client, db):
