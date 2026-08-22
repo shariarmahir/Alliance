@@ -121,7 +121,10 @@ async def read_range_analytics(db: AsyncSession, range_: AnalyticsRange) -> Rang
     # both screens now agree on what was sold.
     for quotation in quotations:
         confirmation = quotation.confirmation
-        if confirmation is None or quotation.status == "cancelled":
+        # Confirmed only: a "quoted" request carries a priced confirmation the
+        # customer has not accepted, and booking that as revenue would report
+        # sales the business has not made.
+        if confirmation is None or quotation.status != "confirmed":
             continue
         ts = _as_utc(confirmation.issued_at)
         if ts is None:
@@ -212,9 +215,12 @@ async def read_payment_analytics(db: AsyncSession, range_: AnalyticsRange) -> Pa
 
     for quotation in quotations:
         confirmation = quotation.confirmation
-        # A cancelled order is not owed and will not be collected, so counting
-        # it would overstate both figures.
-        if confirmation is None or quotation.status == "cancelled":
+        # Confirmed only, which is exactly what the Orders table lists. A
+        # "quoted" request also has a confirmation attached — the priced offer
+        # whose PDF was produced — but the customer has not accepted it, so it
+        # is a proposal rather than money owed. Counting those made the panel
+        # total exceed the sum of the rows on screen.
+        if confirmation is None or quotation.status != "confirmed":
             continue
 
         if confirmation.payment_status == "received":

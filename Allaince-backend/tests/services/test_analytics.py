@@ -245,6 +245,48 @@ async def test_paid_orders_are_not_also_counted_as_pending(db):
     assert result.pending_count == 0
 
 
+async def test_a_quoted_offer_is_not_money_owed(db):
+    """A "quoted" request has a priced confirmation attached — the offer whose
+    PDF was produced — but the customer has not accepted it. Counting it made
+    the panel's pending total exceed the sum of the rows the Orders table
+    shows, which lists confirmed orders only."""
+    await _order(db, 1, 22.0)  # confirmed, unpaid
+    await _order(db, 1, 4.0, status="quoted")
+    await db.commit()
+
+    result = await read_payment_analytics(db, "month")
+    assert result.pending == 22.0
+    assert result.pending_count == 1
+
+
+async def test_a_quoted_offer_is_not_revenue(db):
+    """Same rule on the Overview: booking an unaccepted offer as revenue
+    reports sales the business has not made."""
+    await _order(db, 1, 22.0)
+    await _order(db, 1, 4.0, status="quoted")
+    await db.commit()
+
+    result = await read_range_analytics(db, "month")
+    assert result.revenue == 22.0
+    assert result.order_count == 1
+
+
+async def test_pending_total_matches_the_sum_of_confirmed_unpaid_orders(db):
+    """The panel and the table are two views of one set of rows, so their
+    money must agree exactly."""
+    await _order(db, 1, 22.0)
+    await _order(db, 2, 15.0)
+    await _order(db, 3, 9.0, payment_status="received", paid_days_ago=1)
+    await _order(db, 1, 4.0, status="quoted")
+    await _order(db, 1, 100.0, status="cancelled")
+    await db.commit()
+
+    result = await read_payment_analytics(db, "month")
+    assert result.pending == 37.0
+    assert result.pending_count == 2
+    assert result.received == 9.0
+
+
 async def test_cancelled_orders_count_as_neither_received_nor_owed(db):
     await _order(db, 1, 900.0, status="cancelled")
     await db.commit()
