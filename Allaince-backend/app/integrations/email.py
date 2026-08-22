@@ -68,6 +68,117 @@ def _rows(pairs: list[tuple[str, str]]) -> str:
     )
 
 
+def _company_clause(details: dict) -> str:
+    company = (details.get("companyName") or "").strip()
+    return f" on behalf of {escape(company)}" if company else ""
+
+
+def _subject_block(confirmation) -> str:
+    """The admin-written subject line, when there is one.
+
+    Free text typed per quotation, so it is escaped like any other untrusted
+    input even though it originates internally.
+    """
+    subject = (confirmation.subject or "").strip()
+    if not subject:
+        return ""
+    return (
+        '<div style="margin:14px 0 0;padding:12px 14px;background:#f4faff;'
+        'border-left:3px solid #007DCC;font-size:13.5px;line-height:1.6">'
+        f"{escape(subject)}</div>"
+    )
+
+
+def _line_items_table(confirmation) -> str:
+    """Itemised offer lines.
+
+    The PDF is the contractual document, but an attachment many customers read
+    on a phone should not be the only way to see what was actually quoted.
+    """
+    lines = confirmation.lines or []
+    if not lines:
+        return ""
+
+    header = (
+        '<tr style="background:#f8fafc">'
+        '<th align="left" style="padding:8px 10px;font-size:11.5px;color:#667085;'
+        'text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e3e8ef">Item</th>'
+        '<th align="right" style="padding:8px 10px;font-size:11.5px;color:#667085;'
+        'text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e3e8ef">Qty</th>'
+        '<th align="right" style="padding:8px 10px;font-size:11.5px;color:#667085;'
+        'text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e3e8ef">'
+        "Unit price</th>"
+        '<th align="right" style="padding:8px 10px;font-size:11.5px;color:#667085;'
+        'text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e3e8ef">Amount</th>'
+        "</tr>"
+    )
+
+    rows = []
+    for line in lines:
+        name = escape(str(line.get("name", "—")))
+        part = str(line.get("partNumber") or line.get("part_number") or "").strip()
+        part_html = (
+            f'<div style="font-size:11.5px;color:#8a94a6;margin-top:2px">'
+            f"{escape(part)}</div>"
+            if part
+            else ""
+        )
+        quantity = line.get("quantity", 0)
+        unit = escape(str(line.get("unit") or "Pcs"))
+        unit_price = float(line.get("unitPrice") or line.get("unit_price") or 0)
+        total = float(line.get("total") or unit_price * float(quantity or 0))
+        rows.append(
+            '<tr><td style="padding:10px;font-size:13px;border-bottom:1px solid #eef1f5">'
+            f"{name}{part_html}</td>"
+            '<td align="right" style="padding:10px;font-size:13px;white-space:nowrap;'
+            f'border-bottom:1px solid #eef1f5">{quantity} {unit}</td>'
+            '<td align="right" style="padding:10px;font-size:13px;white-space:nowrap;'
+            f'border-bottom:1px solid #eef1f5">{unit_price:,.2f}</td>'
+            '<td align="right" style="padding:10px;font-size:13px;white-space:nowrap;'
+            f'border-bottom:1px solid #eef1f5"><strong>{total:,.2f}</strong></td></tr>'
+        )
+
+    grand = (
+        '<tr><td colspan="3" align="right" style="padding:12px 10px;font-size:13.5px">'
+        "<strong>Grand total</strong></td>"
+        '<td align="right" style="padding:12px 10px;font-size:15px;white-space:nowrap">'
+        f"<strong>BDT {confirmation.grand_total:,.2f}</strong></td></tr>"
+    )
+
+    return (
+        '<table style="width:100%;border-collapse:collapse;margin:16px 0 0;'
+        'border:1px solid #e3e8ef;border-radius:6px">'
+        f"{header}{''.join(rows)}{grand}</table>"
+    )
+
+
+# Printed in this order because it is the order the PDF and the admin form use;
+# a customer comparing the two should not have to hunt.
+_TERM_LABELS = (
+    ("payment", "Payment"),
+    ("delivery", "Delivery"),
+    ("offerValidity", "Offer validity"),
+    ("vatAit", "VAT / AIT"),
+    ("stock", "Stock"),
+    ("installationCharge", "Installation"),
+    ("warranty", "Warranty"),
+)
+
+
+def _terms_block(terms: dict) -> str:
+    present = [(label, terms.get(key)) for key, label in _TERM_LABELS if terms.get(key)]
+    if not present:
+        return ""
+    return (
+        '<div style="margin:20px 0 0"><div style="font-size:11.5px;color:#667085;'
+        'text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'
+        "Terms of this offer</div>"
+        '<table style="width:100%;border-collapse:collapse">'
+        + _rows([(label, value) for label, value in present])
+        + "</table></div>"
+    )
+
+
 async def notify_new_quotation(quotation) -> bool:
     """Internal notification that a price request arrived."""
     details = quotation.details or {}
@@ -111,16 +222,40 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         return False
 
     tracking_url = f"{settings.public_site_url.rstrip('/')}/track/{confirmation.tracking_id}"
+    terms = confirmation.terms or {}
+
     body = (
-        f"<p style=\"font-size:14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px">Thank you for your enquiry. Our offer is attached, '
-        f"and the details are summarised below.</p>"
-        f'<table style="width:100%;border-collapse:collapse;margin-top:12px">'
-        f"{_rows([('Reference', confirmation.ref_number), ('Issued', str(confirmation.issued_date)), ('Grand total', f'BDT {confirmation.grand_total:,.2f}')])}"
-        f"</table>"
-        f'<p style="margin-top:20px"><a href="{escape(tracking_url)}" '
-        f'style="display:inline-block;background:#007DCC;color:#fff;padding:10px 18px;'
-        f'border-radius:6px;text-decoration:none;font-size:14px">Track your order</a></p>'
+        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
+        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Thank you for your enquiry'
+        f"{_company_clause(details)}. We are pleased to offer the following, "
+        f"quoted against reference <strong>{escape(confirmation.ref_number)}</strong>. "
+        f"The full quotation is attached as a PDF.</p>"
+        + _subject_block(confirmation)
+        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
+        + _rows(
+            [
+                ("Reference", confirmation.ref_number),
+                ("Offer date", str(confirmation.issued_date)),
+                ("Prepared for", details.get("companyName") or details.get("fullName") or "—"),
+            ]
+        )
+        + "</table>"
+        + _line_items_table(confirmation)
+        + _terms_block(terms)
+        + '<p style="margin:22px 0 6px"><a href="'
+        + escape(tracking_url)
+        + '" style="display:inline-block;background:#007DCC;color:#fff;padding:11px 20px;'
+        'border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold">'
+        "View &amp; accept this quotation</a></p>"
+        '<p style="font-size:12.5px;color:#667085;line-height:1.6;margin:10px 0 0">'
+        "Accepting from that page confirms your order and starts delivery. "
+        "To adjust quantities or specifications, simply reply to this email — "
+        "an engineer will re-issue a revised offer.</p>"
+        '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">Questions about compatibility or lead time? '
+        "Reply here, or message us on WhatsApp at "
+        '<strong>+8801315-770099</strong> — sending a photo of the equipment '
+        "nameplate is usually the fastest way for us to confirm the exact part.</p>"
     )
 
     attachments = None
@@ -135,5 +270,10 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         ]
 
     return await send_email(
-        to, f"Your quotation {confirmation.ref_number}", _shell("Your quotation", body), attachments
+        to,
+        # Reference in the subject so a reply thread stays findable, and the
+        # total so the recipient can triage without opening the attachment.
+        f"Quotation {confirmation.ref_number} — BDT {confirmation.grand_total:,.2f}",
+        _shell(f"Quotation {confirmation.ref_number}", body),
+        attachments,
     )

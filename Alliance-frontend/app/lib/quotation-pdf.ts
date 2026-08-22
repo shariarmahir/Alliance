@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import type { Quotation, OrderConfirmation, Order, QuotationTerms } from "./types";
 import { amountInWords, DEFAULT_TERMS, defaultSubject } from "./order-confirmation";
+import { apiDownload } from "./api-browser";
 
 // Draws the company's Price Quotation document to match their existing Word
 // template. Runs in the browser (admin download, customer download and the
@@ -638,12 +639,25 @@ export async function buildQuotationPdf(quotation: Quotation): Promise<jsPDF> {
   return buildPdf(quotationToPdf(quotation, c));
 }
 
+/**
+ * Downloads the quotation PDF the server renders.
+ *
+ * Deliberately not built here. Two independent generators existed — this
+ * module's jsPDF drawing for the download button, and WeasyPrint on the
+ * backend for the email attachment — so the customer's emailed copy and the
+ * admin's saved copy were different documents claiming to be the same
+ * quotation. Nothing kept them in step, and every edit to one widened the gap.
+ *
+ * Fetching the server's copy makes them the same file by construction rather
+ * than by careful duplication.
+ */
 export async function downloadQuotationPdf(quotation: Quotation): Promise<void> {
   const c = quotation.confirmation;
   if (!c) throw new Error("Quotation has no issued order confirmation.");
-  const spec = quotationToPdf(quotation, c);
-  const doc = await buildPdf(spec);
-  doc.save(spec.fileName);
+  await apiDownload(
+    `/api/admin/quotations/${encodeURIComponent(quotation.id)}/pdf`,
+    `${c.refNumber.replace(/\//g, "-")}.pdf`
+  );
 }
 
 // Base64 (no data: URI prefix) + the same file name the download button
