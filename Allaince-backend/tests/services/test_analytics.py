@@ -2,29 +2,63 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.models import Category, Order, OrderConfirmation, Product, Quotation
+from app.models import Category, OrderConfirmation, Product, Quotation
 from app.services.analytics import (
     bucket_starts,
     delta_pct,
+    read_payment_analytics,
     read_range_analytics,
     top_sellers,
 )
 
 NOW = datetime.now(timezone.utc)
 
+_seq = 0
 
-def _order(days_ago: float, total: float, status="confirmed", name="Ada"):
-    return Order(
-        order_number=f"AIT-ORD-{days_ago}-{total}-{status}",
-        tracking_id="T",
+
+async def _order(
+    db,
+    days_ago: float,
+    total: float,
+    status="confirmed",
+    email="ada@example.com",
+    payment_status="pending",
+    paid_days_ago: float | None = None,
+):
+    """A confirmed order: a quotation plus the confirmation carrying its money.
+
+    Revenue and payments both read confirmations rather than the `orders`
+    table, so the fixtures build what the services actually aggregate.
+    """
+    global _seq
+    _seq += 1
+    quotation = Quotation(
         items=[],
-        subtotal=total,
-        grand_total=total,
-        address={"name": name},
-        customer_name=name,
+        total=total,
+        details={"email": email},
+        customer_email=email,
         status=status,
-        placed_at=NOW - timedelta(days=days_ago),
+        submitted_at=NOW - timedelta(days=days_ago),
     )
+    db.add(quotation)
+    await db.flush()
+    db.add(
+        OrderConfirmation(
+            quotation_id=quotation.id,
+            ref_number=f"AIT/M/Q-{_seq:04d}/2026",
+            issued_date="2026-08-01",
+            tracking_id=f"TRK-{_seq}",
+            lines=[],
+            grand_total=total,
+            terms={},
+            issued_at=NOW - timedelta(days=days_ago),
+            payment_status=payment_status,
+            payment_received_at=(
+                None if paid_days_ago is None else NOW - timedelta(days=paid_days_ago)
+            ),
+        )
+    )
+    return quotation
 
 
 # --- pure helpers -----------------------------------------------------------
@@ -60,7 +94,9 @@ def test_buckets_are_ordered_oldest_first_and_end_today():
 
 
 async def test_revenue_counts_only_the_current_window(db):
-    db.add_all([_order(1, 100.0), _order(3, 200.0), _order(30, 999.0)])
+    await _order(db, 1, 100.0)
+    await _order(db, 3, 200.0)
+    await _order(db, 30, 999.0)
     await db.commit()
 
     result = await read_range_analytics(db, "week")
@@ -69,7 +105,8 @@ async def test_revenue_counts_only_the_current_window(db):
 
 
 async def test_cancelled_orders_are_excluded_from_revenue(db):
-    db.add_all([_order(1, 100.0), _order(1, 500.0, status="cancelled")])
+    await _order(db, 1, 100.0)
+    await _order(db, 1, 500.0, status="cancelled")
     await db.commit()
 
     result = await read_range_analytics(db, "week")
@@ -78,8 +115,35 @@ async def test_cancelled_orders_are_excluded_from_revenue(db):
     assert result.order_count == 1
 
 
+async def test_revenue_reads_confirmed_orders_not_the_dead_orders_table(db):
+    """The `orders` table was fed by a customer checkout flow that no longer
+    exists, so revenue read from it was always zero while the business was
+    taking orders. A confirmed quotation is the real sale, and is what the
+    Orders screen and payment tracking both work from."""
+    await _order(db, 1, 750.0)
+    await db.commit()
+
+    assert (await read_range_analytics(db, "week")).revenue == 750.0
+
+
+async def test_a_quotation_without_a_confirmation_is_not_revenue(db):
+    """An unpriced request is not a sale."""
+    db.add(
+        Quotation(
+            items=[], total=500.0, details={"email": "x@x.com"},
+            customer_email="x@x.com", submitted_at=NOW - timedelta(days=1),
+        )
+    )
+    await db.commit()
+
+    result = await read_range_analytics(db, "week")
+    assert result.revenue == 0.0
+    assert result.order_count == 0
+
+
 async def test_delta_compares_against_the_preceding_window(db):
-    db.add_all([_order(1, 200.0), _order(9, 100.0)])  # 9 days ago = previous week
+    await _order(db, 1, 200.0)
+    await _order(db, 9, 100.0)  # 9 days ago = previous week
     await db.commit()
 
     result = await read_range_analytics(db, "week")
@@ -88,13 +152,13 @@ async def test_delta_compares_against_the_preceding_window(db):
 
 
 async def test_delta_is_none_without_a_baseline(db):
-    db.add(_order(1, 200.0))
+    await _order(db, 1, 200.0)
     await db.commit()
     assert (await read_range_analytics(db, "week")).revenue_delta_pct is None
 
 
 async def test_trend_buckets_align_with_the_window(db):
-    db.add(_order(0, 100.0))
+    await _order(db, 0, 100.0)
     await db.commit()
 
     result = await read_range_analytics(db, "week")
@@ -105,17 +169,19 @@ async def test_trend_buckets_align_with_the_window(db):
 
 
 async def test_active_clients_dedupes_across_orders_and_quotations(db):
-    db.add_all([_order(1, 10.0, name="Ada"), _order(2, 10.0, name="ada")])
+    await _order(db, 1, 10.0, email="Ada@example.com")
+    await _order(db, 2, 10.0, email="ada@example.com")
     db.add(
         Quotation(
-            items=[], total=0, details={"email": "ADA@example.com"},
-            customer_email="ada@example.com", submitted_at=NOW - timedelta(days=1),
+            items=[], total=0, details={"email": "other@example.com"},
+            customer_email="other@example.com", submitted_at=NOW - timedelta(days=1),
         )
     )
     await db.commit()
 
     result = await read_range_analytics(db, "week")
-    # "Ada"/"ada" and the quotation email are one client each, case-insensitively.
+    # The two orders are one client (same address, different case); the
+    # standalone request is a second.
     assert result.active_clients == 2
 
 
@@ -131,6 +197,105 @@ async def test_quotations_are_counted_and_bucketed(db):
 
     result = await read_range_analytics(db, "week")
     assert result.quotation_count == 2
+
+
+# --- payments ---------------------------------------------------------------
+
+
+async def test_received_is_bucketed_by_when_payment_arrived(db):
+    """An order issued long ago but paid today counts as today's money, so the
+    totals reconcile against a bank statement rather than against invoices."""
+    await _order(db, 90, 500.0, payment_status="received", paid_days_ago=0)
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.received == 500.0
+    assert result.received_count == 1
+    assert result.received_trend[-1].value == 500.0
+
+
+async def test_received_outside_the_window_is_excluded(db):
+    await _order(db, 40, 300.0, payment_status="received", paid_days_ago=40)
+    await db.commit()
+
+    assert (await read_payment_analytics(db, "week")).received == 0.0
+
+
+async def test_pending_is_the_full_outstanding_balance_not_a_window(db):
+    """An invoice issued last year is still owed today, so the pending total
+    counts every unpaid order even though its chart is windowed."""
+    await _order(db, 400, 250.0)
+    await _order(db, 1, 100.0)
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.pending == 350.0
+    assert result.pending_count == 2
+    # Only the recent one can be placed in a 7-day chart.
+    assert sum(p.value for p in result.pending_trend) == 100.0
+
+
+async def test_paid_orders_are_not_also_counted_as_pending(db):
+    await _order(db, 1, 100.0, payment_status="received", paid_days_ago=1)
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.received == 100.0
+    assert result.pending == 0.0
+    assert result.pending_count == 0
+
+
+async def test_cancelled_orders_count_as_neither_received_nor_owed(db):
+    await _order(db, 1, 900.0, status="cancelled")
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.pending == 0.0
+    assert result.received == 0.0
+
+
+async def test_payment_marked_received_without_a_timestamp_still_counts(db):
+    """Rows marked paid before the timestamp column existed carry real money;
+    dropping them from the total would understate what was collected, even
+    though they cannot be placed in a bucket."""
+    await _order(db, 1, 400.0, payment_status="received", paid_days_ago=None)
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.received == 400.0
+    assert result.received_count == 1
+    assert sum(p.value for p in result.received_trend) == 0.0
+
+
+async def test_received_delta_compares_against_the_previous_window(db):
+    await _order(db, 1, 200.0, payment_status="received", paid_days_ago=1)
+    await _order(db, 9, 100.0, payment_status="received", paid_days_ago=9)
+    await db.commit()
+
+    result = await read_payment_analytics(db, "week")
+    assert result.received == 200.0
+    assert result.received_delta_pct == 100.0
+
+
+@pytest.mark.parametrize("range_,count", [("week", 7), ("month", 30), ("year", 12)])
+async def test_payment_trends_have_a_bucket_per_range(db, range_, count):
+    result = await read_payment_analytics(db, range_)
+    assert len(result.received_trend) == count
+    assert len(result.pending_trend) == count
+
+
+async def test_payments_and_revenue_agree_on_the_same_orders(db):
+    """The Orders screen and the Overview must not disagree about money: what
+    revenue reports as sold is exactly what payments splits into collected
+    and owed."""
+    await _order(db, 1, 300.0, payment_status="received", paid_days_ago=1)
+    await _order(db, 2, 200.0)
+    await db.commit()
+
+    revenue = (await read_range_analytics(db, "week")).revenue
+    payments = await read_payment_analytics(db, "week")
+    assert revenue == 500.0
+    assert payments.received + payments.pending == revenue
 
 
 # --- top sellers ------------------------------------------------------------

@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.core.deps import AdminDep, DbSession, SuperAdminDep
+from app.core.deps import AdminDep, DbSession, SuperAdminDep, require_area
 from app.schemas.analytics import (
     AnalyticsRange,
     OrderRatioSlice,
+    PaymentAnalytics,
     RangeAnalytics,
     SearchResult,
 )
-from app.services.analytics import order_status_ratio, read_range_analytics
+from app.services.analytics import (
+    order_status_ratio,
+    read_payment_analytics,
+    read_range_analytics,
+)
 from app.services.search import search_admin
 
 router = APIRouter(prefix="/api/admin", tags=["analytics"])
@@ -21,6 +26,22 @@ async def analytics(
 ):
     """Business-wide figures — super admin only."""
     return await read_range_analytics(db, range)
+
+
+@router.get("/analytics/payments", response_model=PaymentAnalytics)
+async def payment_analytics(
+    db: DbSession,
+    session=Depends(require_area("orders")),
+    range: AnalyticsRange = Query("month"),
+):
+    """Payments received and outstanding, for the Orders screen.
+
+    Gated on the orders grant rather than super-admin: this is the same money
+    already visible as a per-row payment status to anyone who can work that
+    screen, so requiring super here would hide totals from the staff who
+    record them.
+    """
+    return await read_payment_analytics(db, range)
 
 
 @router.get("/analytics/order-ratio", response_model=list[OrderRatioSlice])

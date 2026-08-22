@@ -55,6 +55,42 @@ export async function readRangeAnalytics(range: AnalyticsRange): Promise<RangeAn
   });
 }
 
+// Money in and money owed. `received` is what was actually collected in the
+// range; `pending` is the full outstanding balance across every unpaid
+// confirmed order, which is deliberately not windowed — an invoice issued
+// last year is still owed today.
+export type PaymentAnalytics = {
+  range: AnalyticsRange;
+  received: number;
+  receivedDeltaPct: number | null;
+  receivedCount: number;
+  pending: number;
+  pendingCount: number;
+  receivedTrend: TrendPoint[];
+  pendingTrend: TrendPoint[];
+};
+
+const EMPTY_PAYMENTS = (range: AnalyticsRange): PaymentAnalytics => ({
+  range,
+  received: 0,
+  receivedDeltaPct: null,
+  receivedCount: 0,
+  pending: 0,
+  pendingCount: 0,
+  receivedTrend: [],
+  pendingTrend: [],
+});
+
+export async function readPaymentAnalytics(
+  range: AnalyticsRange
+): Promise<PaymentAnalytics> {
+  return getOrDefault<PaymentAnalytics>(
+    `/api/admin/analytics/payments?range=${range}`,
+    EMPTY_PAYMENTS(range),
+    { auth: true }
+  );
+}
+
 export type OrderRatioSlice = {
   status: "confirmed" | "pending" | "cancelled";
   count: number;

@@ -1,4 +1,4 @@
-import { readQuotations } from "@/app/lib/admin-data";
+import { readQuotations, readPaymentAnalytics } from "@/app/lib/admin-data";
 import { OrdersClient } from "./orders-client";
 
 // Orders are confirmed quotations, not a separate record. The standalone
@@ -8,10 +8,14 @@ import { OrdersClient } from "./orders-client";
 // priced lines, reference number and totals an order needs, so there is
 // nothing to copy into a second table that could then drift out of sync.
 export default async function AdminOrdersPage() {
-  const quotations = await readQuotations();
+  const [quotations, payments] = await Promise.all([
+    readQuotations(),
+    readPaymentAnalytics("month"),
+  ]);
   return (
     <OrdersClient
       initialOrders={quotations.filter((q) => q.status === "confirmed")}
+      payments={payments}
     />
   );
 }

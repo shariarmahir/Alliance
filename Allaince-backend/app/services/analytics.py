@@ -5,7 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Order, OrderConfirmation, Product, Quotation
-from app.schemas.analytics import AnalyticsRange, OrderRatioSlice, RangeAnalytics, TrendPoint
+from app.schemas.analytics import (
+    AnalyticsRange,
+    OrderRatioSlice,
+    PaymentAnalytics,
+    RangeAnalytics,
+    TrendPoint,
+)
 from app.schemas.catalog import ProductOut, TopSellerOut
 
 # Buckets per range, and how far back each window reaches. Rolling rather than
@@ -87,7 +93,6 @@ def _as_utc(value: datetime | None) -> datetime | None:
 
 
 async def read_range_analytics(db: AsyncSession, range_: AnalyticsRange) -> RangeAnalytics:
-    orders = list((await db.execute(select(Order))).scalars().all())
     quotations = list((await db.execute(select(Quotation))).scalars().all())
 
     now = datetime.now(timezone.utc)
@@ -108,29 +113,35 @@ async def read_range_analytics(db: AsyncSession, range_: AnalyticsRange) -> Rang
     clients: set[str] = set()
     prev_clients: set[str] = set()
 
-    for order in orders:
-        # Cancelled orders were never collected; counting them would overstate
-        # every figure on the Overview.
-        if order.status == "cancelled":
+    # Revenue and order counts come from confirmed quotations, not the `orders`
+    # table: that table was fed by the customer checkout flow, which no longer
+    # exists, so nothing has written to it since and reading it reported zero
+    # revenue against a business that was taking orders. A confirmed quotation
+    # is what the Orders screen shows and what payment is recorded against, so
+    # both screens now agree on what was sold.
+    for quotation in quotations:
+        confirmation = quotation.confirmation
+        if confirmation is None or quotation.status == "cancelled":
             continue
-        ts = _as_utc(order.placed_at)
+        ts = _as_utc(confirmation.issued_at)
         if ts is None:
             continue
+        client = (quotation.customer_email or "").lower()
 
         if ts >= window_from:
             i = _bucket_index_for(ts, starts)
             if i >= 0:
-                revenue_trend[i].value += order.grand_total
+                revenue_trend[i].value += confirmation.grand_total
                 order_trend[i].value += 1
-            revenue += order.grand_total
+            revenue += confirmation.grand_total
             order_count += 1
-            if order.customer_name:
-                clients.add(order.customer_name.lower())
+            if client:
+                clients.add(client)
         elif prev_from <= ts < prev_to:
-            prev_revenue += order.grand_total
+            prev_revenue += confirmation.grand_total
             prev_order_count += 1
-            if order.customer_name:
-                prev_clients.add(order.customer_name.lower())
+            if client:
+                prev_clients.add(client)
 
     quotation_count = 0
     prev_quotation_count = 0
@@ -165,6 +176,84 @@ async def read_range_analytics(db: AsyncSession, range_: AnalyticsRange) -> Rang
         revenue_trend=revenue_trend,
         order_trend=order_trend,
         quotation_trend=quotation_trend,
+    )
+
+
+async def read_payment_analytics(db: AsyncSession, range_: AnalyticsRange) -> PaymentAnalytics:
+    """Money received and money still owed, across confirmed orders.
+
+    Reads confirmations rather than the `orders` table, because a confirmed
+    quotation is what the Orders screen shows and what payment is recorded
+    against — the two screens must not disagree about what was collected.
+
+    Received is bucketed by `payment_received_at`; an order paid today counts
+    today even if it was issued months ago, which is what makes the totals
+    match a bank statement. Pending is bucketed by `issued_at` instead, since
+    unpaid money has no payment date — that turns the second series into a
+    read on how long invoices have been outstanding.
+    """
+    quotations = list((await db.execute(select(Quotation))).scalars().all())
+
+    now = datetime.now(timezone.utc)
+    starts = bucket_starts(range_, now)
+    _, unit = RANGE_CONFIG[range_]
+    window_from = starts[0]
+    prev_from, prev_to = _previous_window(range_, now)
+
+    labels = [_bucket_label(d, unit) for d in starts]
+    received_trend = [TrendPoint(label=label, value=0) for label in labels]
+    pending_trend = [TrendPoint(label=label, value=0) for label in labels]
+
+    received = 0.0
+    received_count = 0
+    prev_received = 0.0
+    pending = 0.0
+    pending_count = 0
+
+    for quotation in quotations:
+        confirmation = quotation.confirmation
+        # A cancelled order is not owed and will not be collected, so counting
+        # it would overstate both figures.
+        if confirmation is None or quotation.status == "cancelled":
+            continue
+
+        if confirmation.payment_status == "received":
+            ts = _as_utc(confirmation.payment_received_at)
+            # Marked paid before this column existed: the money is real, so it
+            # belongs in the total even though it cannot be placed in a bucket.
+            if ts is None:
+                received += confirmation.grand_total
+                received_count += 1
+                continue
+            if ts >= window_from:
+                i = _bucket_index_for(ts, starts)
+                if i >= 0:
+                    received_trend[i].value += confirmation.grand_total
+                received += confirmation.grand_total
+                received_count += 1
+            elif prev_from <= ts < prev_to:
+                prev_received += confirmation.grand_total
+        else:
+            # Outstanding money is a running balance, not a windowed figure:
+            # an invoice issued last year is still owed today, so the total
+            # counts every unpaid order while only the chart is windowed.
+            pending += confirmation.grand_total
+            pending_count += 1
+            issued = _as_utc(confirmation.issued_at)
+            if issued is not None and issued >= window_from:
+                i = _bucket_index_for(issued, starts)
+                if i >= 0:
+                    pending_trend[i].value += confirmation.grand_total
+
+    return PaymentAnalytics(
+        range=range_,
+        received=received,
+        received_delta_pct=delta_pct(received, prev_received),
+        received_count=received_count,
+        pending=pending,
+        pending_count=pending_count,
+        received_trend=received_trend,
+        pending_trend=pending_trend,
     )
 
 

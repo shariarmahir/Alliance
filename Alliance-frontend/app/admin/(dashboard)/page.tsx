@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
-import { readRangeAnalytics, type AnalyticsRange } from "@/app/lib/admin-data";
+import {
+  readRangeAnalytics,
+  readPaymentAnalytics,
+  type AnalyticsRange,
+} from "@/app/lib/admin-data";
 import { formatPrice } from "@/app/lib/utils";
 import { RangeToggle } from "./range-toggle";
 import { StatCard } from "./stat-card";
@@ -16,6 +20,7 @@ import {
   WarehouseAlertsPanel,
 } from "./overview-panels";
 import { PendingQuotationsPanel } from "./pending-quotations-panel";
+import { PaymentSplit } from "./payment-split";
 
 // /admin is role-branching as of Phase 4: super admin keeps the analytics
 // Overview below, sub-admin sees their personal dashboard instead of being
@@ -52,7 +57,10 @@ export default async function AdminOverviewPage({
   }
 
   const range = parseRange((await searchParams).range);
-  const analytics = await readRangeAnalytics(range);
+  const [analytics, payments] = await Promise.all([
+    readRangeAnalytics(range),
+    readPaymentAnalytics(range),
+  ]);
   const rangeLabel = RANGE_LABEL[range];
   const revenueChartData = analytics.revenueTrend.map((point, i) => ({
     label: point.label,
@@ -104,10 +112,23 @@ export default async function AdminOverviewPage({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.55fr_1fr]">
-        <RevenueChart
-          data={revenueChartData}
-          caption={`${RANGE_LABEL[range][0].toUpperCase()}${RANGE_LABEL[range].slice(1)} · BDT`}
-        />
+        <div className="space-y-4">
+          <RevenueChart
+            data={revenueChartData}
+            caption={`${RANGE_LABEL[range][0].toUpperCase()}${RANGE_LABEL[range].slice(1)} · BDT`}
+          />
+          {/* Revenue is what was sold; this splits the same money into what
+              has actually been collected and what is still owed. Sits under
+              the chart because it reads as a breakdown of that figure, and
+              links to Orders, where payment is recorded. */}
+          <PaymentSplit
+            received={payments.received}
+            receivedCount={payments.receivedCount}
+            pending={payments.pending}
+            pendingCount={payments.pendingCount}
+            rangeLabel={rangeLabel}
+          />
+        </div>
         <OrderRatioPanel />
       </div>
 

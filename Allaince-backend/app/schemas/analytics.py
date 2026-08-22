@@ -26,6 +26,24 @@ class RangeAnalytics(CamelModel):
     quotation_trend: list[TrendPoint]
 
 
+class PaymentAnalytics(CamelModel):
+    """Money in and money owed, over one range.
+
+    Received is bucketed by when payment was recorded; pending is bucketed by
+    when the unpaid order was issued, which is what makes the outstanding
+    figure readable as aging rather than as a second income line.
+    """
+
+    range: AnalyticsRange
+    received: float
+    received_delta_pct: float | None
+    received_count: int
+    pending: float
+    pending_count: int
+    received_trend: list[TrendPoint]
+    pending_trend: list[TrendPoint]
+
+
 class OrderRatioSlice(CamelModel):
     status: Literal["confirmed", "pending", "cancelled"]
     count: int

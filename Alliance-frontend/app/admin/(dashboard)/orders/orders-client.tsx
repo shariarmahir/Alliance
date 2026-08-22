@@ -39,6 +39,8 @@ import {
   receiptPdfToBase64,
 } from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
+import { PaymentsPanel } from "./payments-panel";
+import type { PaymentAnalytics } from "@/app/lib/admin-data";
 import type { Quotation, PaymentStatus } from "@/app/lib/types";
 
 // Every row is an accepted price request. Its order state (Pending or
@@ -506,7 +508,13 @@ function OrderRow({
   );
 }
 
-export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) {
+export function OrdersClient({
+  initialOrders,
+  payments,
+}: {
+  initialOrders: Quotation[];
+  payments: PaymentAnalytics;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<StageFilter>("all");
 
@@ -566,6 +574,8 @@ export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) 
           ))}
         </div>
       )}
+
+      {initialOrders.length > 0 && <PaymentsPanel initial={payments} />}
 
       {sorted.length === 0 ? (
         <EmptyState>
