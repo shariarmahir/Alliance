@@ -253,6 +253,40 @@ async def email_challan(
     return {"sent": True, "attached": True}
 
 
+@router.post("/quotations/{quotation_id}/invoice/email")
+async def email_invoice(
+    quotation_id: str,
+    db: DbSession,
+    payload: QuotationEmailRequest | None = None,
+    session: AdminSession = OrdersArea,
+):
+    """Emails the invoice the admin's browser rendered.
+
+    Same reasoning as the challan route: the invoice is the quotation layout
+    retitled, and only the browser builder produces it, so a caller that
+    supplies no PDF is an error rather than a cue to render something else.
+    """
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+    if quotation.confirmation is None:
+        raise HTTPException(
+            status_code=400, detail="Confirm the order before sending an invoice."
+        )
+
+    pdf_bytes = _decode_pdf(payload.pdf_base64 if payload else None)
+    if pdf_bytes is None:
+        raise HTTPException(status_code=422, detail="No invoice PDF was supplied.")
+
+    sent = await email_integration.send_invoice(quotation, pdf_bytes)
+    if not sent:
+        raise HTTPException(
+            status_code=502, detail="Email could not be sent. Check the mail configuration."
+        )
+    logger.info("%s emailed invoice for %s", session.email, quotation_id)
+    return {"sent": True, "attached": True}
+
+
 @router.get("/quotations/{quotation_id}/pdf")
 async def quotation_pdf(
     quotation_id: str, db: DbSession, session: AdminSession = QuotationsArea

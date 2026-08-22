@@ -542,6 +542,25 @@ function quotationToPdf(quotation: Quotation, c: OrderConfirmation): PdfDocument
   };
 }
 
+// The same document as the quotation — same table, terms and sign-off — but
+// issued against a confirmed order rather than offered against an enquiry.
+// It reuses quotationToPdf rather than restating the layout so the two cannot
+// drift apart; only the heading, reference series and intro differ.
+function confirmedOrderToInvoice(quotation: Quotation, c: OrderConfirmation): PdfDocument {
+  // Invoices carry their own reference series, as challans do: the same order
+  // can be invoiced separately from the offer it was quoted against.
+  const refNumber = c.refNumber.replace(/\/Q-?/i, "/I");
+  return {
+    ...quotationToPdf(quotation, c),
+    title: "Invoice",
+    refLabel: "Invoice",
+    refNumber,
+    intro:
+      "Thank you for your order. Please find below the details of the items supplied against your confirmed order.",
+    fileName: `Invoice-${refNumber.replace(/[/\\]/g, "-")}.pdf`,
+  };
+}
+
 // The customer's un-priced "Ask Price" submission, before an admin has
 // quoted it — no ref number or grand total exist yet, so this reuses the
 // same drawing code with the request's own id standing in as the reference
@@ -696,4 +715,37 @@ export async function printInvoicePdf(order: Order): Promise<void> {
   const url = doc.output("bloburl");
   const w = window.open(url, "_blank");
   if (!w) throw new Error("Popup blocked");
+}
+
+export async function buildConfirmedOrderInvoice(quotation: Quotation): Promise<jsPDF> {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  return buildPdf(confirmedOrderToInvoice(quotation, c));
+}
+
+export async function downloadConfirmedOrderInvoice(quotation: Quotation): Promise<void> {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  const spec = confirmedOrderToInvoice(quotation, c);
+  const doc = await buildPdf(spec);
+  doc.save(spec.fileName);
+}
+
+/** Base64 (no data: URI prefix) + file name, for the email attachment. */
+export async function invoicePdfToBase64(
+  quotation: Quotation
+): Promise<{ base64: string; fileName: string }> {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  const spec = confirmedOrderToInvoice(quotation, c);
+  const doc = await buildPdf(spec);
+  const dataUri = doc.output("datauristring");
+  return { base64: dataUri.slice(dataUri.indexOf(",") + 1), fileName: spec.fileName };
+}
+
+/** The invoice reference for a confirmed order, for display before rendering. */
+export function invoiceRefNumber(quotation: Quotation): string {
+  const c = quotation.confirmation;
+  if (!c) throw new Error("Quotation has no issued order confirmation.");
+  return c.refNumber.replace(/\/Q-?/i, "/I");
 }

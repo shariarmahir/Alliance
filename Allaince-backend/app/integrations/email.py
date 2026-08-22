@@ -1,4 +1,5 @@
 import logging
+import re
 from html import escape
 
 from app.config import settings
@@ -373,5 +374,58 @@ async def send_challan(quotation, pdf_bytes: bytes | None = None) -> bool:
         to,
         f"Delivery challan — {confirmation.ref_number}",
         _shell(f"Delivery challan — {confirmation.ref_number}", body),
+        attachments,
+    )
+
+
+async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
+    """Sends the invoice for a confirmed order with the PDF attached."""
+    details = quotation.details or {}
+    confirmation = quotation.confirmation
+    to = details.get("email")
+    if not to:
+        logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
+        return False
+    if confirmation is None:
+        logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
+        return False
+
+    invoice_ref = re.sub(r"/Q-?", "/I", confirmation.ref_number, flags=re.IGNORECASE)
+
+    body = (
+        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
+        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached the '
+        f"invoice for your confirmed order, reference "
+        f"<strong>{escape(invoice_ref)}</strong>.</p>"
+        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
+        + _rows(
+            [
+                ("Invoice", invoice_ref),
+                ("Amount", f"BDT {confirmation.grand_total:,.2f}"),
+                ("Billed to", details.get("companyName") or details.get("fullName") or "—"),
+            ]
+        )
+        + "</table>"
+        + _terms_block(confirmation.terms or {})
+        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">Any questions about this invoice? Reply to this '
+        "email, or message us on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    )
+
+    attachments = None
+    if pdf_bytes:
+        import base64
+
+        attachments = [
+            {
+                "filename": f"Invoice-{invoice_ref.replace('/', '-')}.pdf",
+                "content": base64.b64encode(pdf_bytes).decode(),
+            }
+        ]
+
+    return await send_email(
+        to,
+        f"Invoice {invoice_ref} — BDT {confirmation.grand_total:,.2f}",
+        _shell(f"Invoice {invoice_ref}", body),
         attachments,
     )
