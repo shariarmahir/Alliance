@@ -213,8 +213,10 @@ export function ConfirmQuotationPanel({
       const saved = await issueConfirmation();
       if (!saved) return;
       toast.success(`Order confirmation ${refNumber} issued.`);
-      onClose();
       onConfirmed();
+      // Panel stays open — closing immediately (the previous behaviour)
+      // dismissed it before the admin could see or interact with the
+      // browser's save/download prompt for the PDF.
       try {
         await downloadQuotationPdf(saved);
       } catch {
