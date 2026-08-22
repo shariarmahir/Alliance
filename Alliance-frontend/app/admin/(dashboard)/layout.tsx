@@ -4,7 +4,8 @@ import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token
 import { navGroupsForRole } from "@/app/admin/nav-config";
 import { AdminShell } from "@/app/admin/admin-shell";
 
-import { readContactRequests, readOrders, readQuotations, readProducts } from "@/app/lib/admin-data";
+import { readContactRequests, readQuotations, readProducts } from "@/app/lib/admin-data";
+import { MAX_STAGE } from "@/app/lib/delivery";
 import type { AdminNavCounts } from "@/app/admin/nav-config";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -22,17 +23,20 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   const accessOptions = session.accessOptions ?? [];
   const canSee = (area: (typeof accessOptions)[number]) =>
     session.role === "super" || accessOptions.includes(area);
-  const [products, orders, quotations, contactRequests] = await Promise.all([
+  const [products, quotations, contactRequests] = await Promise.all([
     readProducts(),
-    canSee("orders") ? readOrders() : [],
-    canSee("quotations") ? readQuotations() : [],
+    canSee("quotations") || canSee("orders") ? readQuotations() : [],
     canSee("contact-requests") ? readContactRequests() : [],
   ]);
 
   const counts: AdminNavCounts = {
     products: products.length,
     lowStock: products.filter((p) => p.stock !== "in-stock").length,
-    pendingOrders: orders.filter((o) => o.status === "pending").length,
+    // Orders are confirmed quotations, so both badges come from the same
+    // read. "Pending" for an order means it has not been delivered yet.
+    pendingOrders: quotations.filter(
+      (q) => q.status === "confirmed" && (q.confirmation?.deliveryStage ?? 0) < MAX_STAGE
+    ).length,
     pendingQuotations: quotations.filter((q) => q.status === "pending").length,
     openContactRequests: contactRequests.filter((r) => !r.handled).length,
   };

@@ -114,6 +114,7 @@ async def confirm_quotation(
         ref_number=payload.ref_number,
         subject=payload.subject,
         issued_date=payload.issued_date,
+        confirm=payload.confirm,
     )
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")

@@ -151,13 +151,21 @@ export function ConfirmQuotationPanel({
   }
 
   const [emailing, setEmailing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  // Every footer action writes the same record, so one running action locks
+  // them all rather than letting two overlapping saves race each other.
+  const busyAny = submitting || emailing || confirming;
   // Set once the email actually lands, so the panel keeps a visible record of
   // the send rather than relying on a toast the admin may have missed.
   const [sentTo, setSentTo] = useState<string | null>(null);
 
+  // Saves the priced offer. `confirm` decides whether that also accepts the
+  // quotation: producing the PDF or emailing it leaves the request pending,
+  // because sending someone a quotation is not the same as agreeing to it.
+  // Only the Confirm button passes true.
   // toastId lets the caller fold validation failures into an in-progress
   // loading toast instead of stacking a second one beside it.
-  async function issueConfirmation(toastId?: string | number) {
+  async function issueConfirmation(confirm: boolean, toastId?: string | number) {
     const fail = (message: string) => {
       toast.error(message, toastId ? { id: toastId } : undefined);
       return null;
@@ -182,6 +190,7 @@ export function ConfirmQuotationPanel({
             subject,
             issuedDate,
             terms,
+            confirm,
             lines: priced.map((l) => ({
               slug: l.slug,
               // name is required by the API: the confirmation snapshots what
@@ -208,9 +217,11 @@ export function ConfirmQuotationPanel({
   async function saveOnly() {
     setSubmitting(true);
     try {
-      const saved = await issueConfirmation();
+      const saved = await issueConfirmation(false);
       if (!saved) return;
-      toast.success(`Order confirmation ${refNumber} issued.`);
+      toast.success(`Quotation ${refNumber} saved.`, {
+        description: "Still pending — use Confirm to accept it as an order.",
+      });
       // Deliberately not refreshing the Quotations list here: this
       // quotation no longer matches the Pending tab once issued, so an
       // immediate refresh would drop its row (and this open panel with it)
@@ -235,7 +246,7 @@ export function ConfirmQuotationPanel({
     // and the panel stays open until the send actually resolves.
     const toastId = toast.loading("Issuing confirmation...");
     try {
-      const saved = await issueConfirmation(toastId);
+      const saved = await issueConfirmation(false, toastId);
       if (!saved) {
         toast.dismiss(toastId);
         return;
@@ -283,6 +294,25 @@ export function ConfirmQuotationPanel({
       toast.error("Could not issue the order confirmation.", { id: toastId });
     } finally {
       setEmailing(false);
+    }
+  }
+
+  // Accepting the quotation: saves whatever is on screen and flips it to
+  // confirmed, which is what moves it onto the Orders screen. Closes the
+  // panel, since there is nothing left to do here afterwards.
+  async function confirmOffer() {
+    setConfirming(true);
+    try {
+      const saved = await issueConfirmation(true);
+      if (!saved) return;
+      toast.success(`Quotation ${refNumber} confirmed.`, {
+        description: "It now appears under Orders.",
+      });
+      onClose();
+    } catch {
+      toast.error("Could not confirm this quotation.");
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -458,14 +488,14 @@ export function ConfirmQuotationPanel({
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
               <p className="text-[11.5px] text-[#8a94a6]">
                 {allPriced
-                  ? "Issues this confirmation and unlocks the customer's order step."
-                  : "Enter a price for every line to issue this confirmation."}
+                  ? "Download or email the quotation while it stays pending. Confirm accepts it as an order."
+                  : "Enter a price for every line to issue this quotation."}
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={saveOnly}
-                  disabled={submitting || emailing || !allPriced}
+                  disabled={busyAny || !allPriced}
                   className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <FileCheck2 className="size-4" />
@@ -474,11 +504,20 @@ export function ConfirmQuotationPanel({
                 <button
                   type="button"
                   onClick={saveAndEmail}
-                  disabled={submitting || emailing || !allPriced}
-                  className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
+                  disabled={busyAny || !allPriced}
+                  className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <Mail className="size-4" />
                   {emailing ? "Sending..." : sentTo ? "Send again" : "Send Email"}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmOffer}
+                  disabled={busyAny || !allPriced}
+                  className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
+                >
+                  <CheckCircle2 className="size-4" />
+                  {confirming ? "Confirming..." : "Confirm"}
                 </button>
                 {sentTo && (
                   <button

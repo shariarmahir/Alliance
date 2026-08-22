@@ -86,6 +86,9 @@ class ConfirmQuotationRequest(CamelModel):
     issued_date: str | None = None
     lines: list[ConfirmedLine] = Field(min_length=1)
     terms: QuotationTerms = Field(default_factory=QuotationTerms)
+    # False saves the priced offer but leaves the quotation pending, so an
+    # admin can produce and send the PDF before deciding to accept it.
+    confirm: bool = True
 
 
 class QuotationCreate(CamelModel):

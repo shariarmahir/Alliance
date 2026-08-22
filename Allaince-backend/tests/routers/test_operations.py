@@ -170,6 +170,40 @@ async def test_super_admin_can_read_quotations(client):
 # --- confirmation and tracking flow ----------------------------------------
 
 
+async def test_pricing_without_confirm_leaves_the_quotation_pending(client):
+    """Producing the quotation document is not the same as accepting it.
+
+    An admin prices a request so they can download or email the PDF; the
+    request must stay pending until they explicitly confirm, otherwise it
+    would leave the Pending queue the moment a PDF was generated.
+    """
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={
+            "confirm": False,
+            "lines": [{"name": "D", "quantity": 2, "unitPrice": 150.0}],
+        },
+    )
+    assert r.status_code == 200
+    # The priced offer is saved...
+    assert r.json()["confirmation"]["grandTotal"] == 300.0
+    # ...but the request has not been accepted.
+    assert r.json()["status"] == "pending"
+
+    # Confirming afterwards keeps the same reference rather than minting a new
+    # one, so the customer's copy stays valid.
+    ref = r.json()["confirmation"]["refNumber"]
+    confirmed = await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"lines": [{"name": "D", "quantity": 2, "unitPrice": 150.0}]},
+    )
+    assert confirmed.json()["status"] == "confirmed"
+    assert confirmed.json()["confirmation"]["refNumber"] == ref
+
+
 async def test_confirm_then_advance_delivery_end_to_end(client):
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
     _auth(client)

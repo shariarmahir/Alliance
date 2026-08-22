@@ -228,9 +228,15 @@ async def confirm_quotation(
     ref_number: str | None = None,
     subject: str = "",
     issued_date: str | None = None,
+    confirm: bool = True,
 ) -> Quotation | None:
-    """Issues the priced offer and flips the quotation to confirmed in one
-    commit, so the two can never disagree."""
+    """Saves the priced offer, and by default flips the quotation to confirmed
+    in the same commit so the two can never disagree.
+
+    With confirm=False the offer document is written but the status is left
+    alone. That is what lets an admin price a request, download or email the
+    PDF, and still have it sitting in Pending until they explicitly accept it —
+    confirming is a separate decision from producing the quotation."""
     quotation = await get_quotation(db, quotation_id)
     if quotation is None:
         return None
@@ -282,7 +288,8 @@ async def confirm_quotation(
         )
         db.add(confirmation)
 
-    quotation.status = "confirmed"
+    if confirm:
+        quotation.status = "confirmed"
     await db.commit()
     await db.refresh(quotation)
     return quotation
