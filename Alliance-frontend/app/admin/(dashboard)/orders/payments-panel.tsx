@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -149,25 +149,48 @@ function MoneyCard({
   );
 }
 
-export function PaymentsPanel({ initial }: { initial: PaymentAnalytics }) {
+export function PaymentsPanel({
+  initial,
+  version,
+}: {
+  initial: PaymentAnalytics;
+  /** Bumped by the Orders screen after any change that moves money. */
+  version: number;
+}) {
   const [range, setRange] = useState<AnalyticsRange>(initial.range);
   const [data, setData] = useState<PaymentAnalytics>(initial);
   const [loading, setLoading] = useState(false);
 
-  async function pick(next: AnalyticsRange) {
-    if (next === range) return;
-    setRange(next);
+  const load = useCallback(async (next: AnalyticsRange) => {
     setLoading(true);
     try {
       setData(
         await apiFetch<PaymentAnalytics>(`/api/admin/analytics/payments?range=${next}`)
       );
     } catch {
-      // Keeping the previous range's figures on screen is better than
-      // blanking the panel: they were true, just for a different window.
+      // Keeping the figures already on screen beats blanking the panel:
+      // they were true, just for a different moment.
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Refetch when a row records a payment, cancels an order, or otherwise
+  // changes what is owed. The server component re-renders on those too, but
+  // this panel keeps its own copy in state, so new props alone would not
+  // reach it — and the totals must never lag the rows they summarise.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return; // `initial` is already this data; refetching it would only flicker.
+    }
+    load(range);
+  }, [version, range, load]);
+
+  function pick(next: AnalyticsRange) {
+    if (next === range) return;
+    setRange(next); // The effect above fetches it.
   }
 
   const delta = data.receivedDeltaPct;
@@ -178,7 +201,7 @@ export function PaymentsPanel({ initial }: { initial: PaymentAnalytics }) {
         <div>
           <p className="text-[15px] font-bold text-ink">Payments</p>
           <p className="text-[11.5px] text-[#8a94a6]">
-            {CAPTION[range]} &middot; BDT{loading ? " · updating..." : ""}
+            {CAPTION[range]} &middot; BDT
           </p>
         </div>
         <div className="flex gap-1 rounded-lg bg-surface p-1">
@@ -199,7 +222,13 @@ export function PaymentsPanel({ initial }: { initial: PaymentAnalytics }) {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Fading rather than blanking: the figures on screen were true a moment
+          ago, so dimming them reads as "updating" instead of "gone". */}
+      <div
+        className={`grid gap-4 transition-opacity duration-200 lg:grid-cols-2 ${
+          loading ? "opacity-60" : "opacity-100"
+        }`}
+      >
         <MoneyCard
           label="Received payments"
           value={data.received}

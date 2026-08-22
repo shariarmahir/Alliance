@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, FileText, Mail, ReceiptText, BadgeCheck, Wallet } from "lucide-react";
@@ -639,6 +639,19 @@ export function OrdersClient({
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<StageFilter>("all");
+  // Bumped on every row change. router.refresh() re-renders the rows from the
+  // server, but the payments panel holds its own fetched copy, so it needs an
+  // explicit signal or its totals would sit stale until a manual reload.
+  const [version, setVersion] = useState(0);
+  // router.refresh() is a server round-trip. Marking it a transition keeps the
+  // current rows interactive while it lands, instead of blanking them, and
+  // gives us `pending` to show that figures are being brought up to date.
+  const [pending, startTransition] = useTransition();
+
+  function handleChanged() {
+    startTransition(() => router.refresh());
+    setVersion((v) => v + 1);
+  }
 
   const stageOf = (q: Quotation) => clampStage(q.confirmation?.deliveryStage ?? 0);
   const count = (s: number) => initialOrders.filter((q) => stageOf(q) === s).length;
@@ -680,7 +693,11 @@ export function OrdersClient({
       </PageHeader>
 
       {initialOrders.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div
+          className={`grid gap-4 transition-opacity duration-200 sm:grid-cols-3 ${
+            pending ? "opacity-60" : "opacity-100"
+          }`}
+        >
           {[
             { label: "Awaiting confirmation", value: String(initialOrders.length - confirmed), tone: "bg-accent" },
             { label: "Confirmed", value: String(confirmed), tone: "bg-ok-dot" },
@@ -697,7 +714,9 @@ export function OrdersClient({
         </div>
       )}
 
-      {initialOrders.length > 0 && <PaymentsPanel initial={payments} />}
+      {initialOrders.length > 0 && (
+        <PaymentsPanel initial={payments} version={version} />
+      )}
 
       {sorted.length === 0 ? (
         <EmptyState>
@@ -724,7 +743,7 @@ export function OrdersClient({
                   <OrderRow
                     key={quotation.id}
                     quotation={quotation}
-                    onChanged={() => router.refresh()}
+                    onChanged={handleChanged}
                   />
                 ))}
               </tbody>
