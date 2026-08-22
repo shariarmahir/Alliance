@@ -125,12 +125,12 @@ export default async function TrackingPage({
         {DELIVERY_STAGES[stage].hint} Freight and delivery are arranged with you directly — reply to
         your quotation email or WhatsApp{" "}
         <a
-          href="https://wa.me/8801713116019"
+          href="https://wa.me/8801315770099"
           target="_blank"
           rel="noopener noreferrer"
           className="font-mono font-semibold hover:underline"
         >
-          +8801713-116019
+          +8801315-770099
         </a>{" "}
         for anything urgent.
       </p>

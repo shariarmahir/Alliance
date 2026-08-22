@@ -87,12 +87,12 @@ export default async function ProductDetailPage({
               <span className="text-[12.5px] leading-[1.6] text-ink-muted">
                 Send a photo of the nameplate on WhatsApp —{" "}
                 <a
-                  href="https://wa.me/8801713116019"
+                  href="https://wa.me/8801315770099"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono font-semibold text-primary"
                 >
-                  +8801713-116019
+                  +8801315-770099
                 </a>
               </span>
             </span>

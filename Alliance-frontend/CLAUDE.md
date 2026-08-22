@@ -241,7 +241,7 @@ npm run lint
 Reused across the footer, WhatsApp popup widget, and the homepage contact panel:
 - Address: House: 104, Road: 15, Sector: 11, Uttara, Dhaka-1230, Bangladesh
 - Email: `info@auto-bd.com`
-- Phone / WhatsApp: `+8801713-116019`
+- Phone / WhatsApp: `+8801315-770099`
 - Copyright: "© AutoLink Integrated Technologies 2026–2028. All rights reserved.
   Developed by Mahir Shariar Mahin."
 

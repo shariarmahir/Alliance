@@ -59,7 +59,7 @@ const services = [
     title: "Ask an engineer",
     text: "Send a photo of the nameplate on WhatsApp and get the right part number back, not a catalogue link.",
     cta: "Start a chat",
-    href: "https://wa.me/8801713116019",
+    href: "https://wa.me/8801315770099",
   },
   {
     icon: PackageCheck,
@@ -292,8 +292,8 @@ export default function Home() {
             </h2>
             <p className="mb-5 text-[13.5px] leading-[1.7] text-[#64748b]">
               Still unsure? WhatsApp an engineer on{" "}
-              <a href="tel:+8801713116019" className="font-mono font-semibold text-primary">
-                +8801713-116019
+              <a href="tel:+8801315770099" className="font-mono font-semibold text-primary">
+                +8801315-770099
               </a>
               .
             </p>

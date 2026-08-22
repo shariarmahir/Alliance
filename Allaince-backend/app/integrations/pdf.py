@@ -119,7 +119,7 @@ def _header(doc_title: str, meta_rows: list[tuple[str, str]]) -> str:
         <div class="brand">AutoLink<span>.</span></div>
         <div class="tag">INTEGRATED TECHNOLOGIES</div>
         <div class="tag">{escape(ADDRESS)}</div>
-        <div class="tag">{escape(settings.resend_from_email)} &middot; +8801713-116019</div>
+        <div class="tag">{escape(settings.resend_from_email)} &middot; +8801315-770099</div>
       </div>
       <div class="meta"><div style="font-size:13px;font-weight:700;color:#1a1a1a;
            margin-bottom:4px">{escape(doc_title)}</div>{meta}</div>

@@ -212,7 +212,7 @@ export function buildQuotationEmailHtml(args: {
                   House: 104, Road: 15, Sector: 11, Uttara, Dhaka-1230, Bangladesh<br/>
                   <a href="mailto:info@auto-bd.com" style="color:#007DCC;text-decoration:none;">info@auto-bd.com</a>
                   &nbsp;·&nbsp;
-                  <a href="https://wa.me/8801713116019" style="color:#007DCC;text-decoration:none;">+8801713-116019</a>
+                  <a href="https://wa.me/8801315770099" style="color:#007DCC;text-decoration:none;">+8801315-770099</a>
                 </p>
               </td>
             </tr>

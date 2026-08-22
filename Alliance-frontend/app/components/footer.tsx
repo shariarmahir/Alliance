@@ -32,8 +32,8 @@ export async function Footer() {
                 info@auto-bd.com
               </a>
               <br />
-              <a href="tel:+8801713116019" className="hover:text-accent">
-                +8801713-116019
+              <a href="tel:+8801315770099" className="hover:text-accent">
+                +8801315-770099
               </a>
             </p>
           </div>

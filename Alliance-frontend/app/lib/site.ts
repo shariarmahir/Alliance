@@ -27,7 +27,7 @@ export const BUSINESS = {
   postalCode: "1230",
   country: "BD",
   email: "info@auto-bd.com",
-  telephone: "+8801713116019",
+  telephone: "+8801315770099",
   // Centre of Uttara Sector 11, Dhaka (OpenStreetMap). Coordinates let Google
   // place the pin without geocoding the address itself, which is unreliable
   // for Dhaka sector addresses. Approximate to the sector, not the building —

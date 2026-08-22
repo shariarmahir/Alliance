@@ -90,12 +90,12 @@ export default function QuotePage() {
         <p className="mt-5 text-xs text-[#8a94a6]">
           Know the part number already? WhatsApp{" "}
           <a
-            href="https://wa.me/8801713116019"
+            href="https://wa.me/8801315770099"
             target="_blank"
             rel="noopener noreferrer"
             className="font-mono font-semibold text-primary hover:underline"
           >
-            +8801713-116019
+            +8801315-770099
           </a>
         </p>
       </div>

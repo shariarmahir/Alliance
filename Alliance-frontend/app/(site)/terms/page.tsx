@@ -155,12 +155,12 @@ export default function TermsPage() {
           </a>{" "}
           or WhatsApp{" "}
           <a
-            href="https://wa.me/8801713116019"
+            href="https://wa.me/8801315770099"
             target="_blank"
             rel="noopener noreferrer"
             className="font-mono font-semibold text-primary hover:underline"
           >
-            +8801713-116019
+            +8801315-770099
           </a>
           .
         </p>

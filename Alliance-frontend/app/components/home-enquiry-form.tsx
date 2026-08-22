@@ -50,7 +50,7 @@ export function HomeEnquiryForm() {
       toast.success("Enquiry sent. An engineer replies within four working hours.");
       setValues(EMPTY);
     } catch {
-      toast.error("Could not send your enquiry. Please WhatsApp +8801713-116019 instead.");
+      toast.error("Could not send your enquiry. Please WhatsApp +8801315-770099 instead.");
     } finally {
       setSubmitting(false);
     }
@@ -129,7 +129,7 @@ export function HomeEnquiryForm() {
           {submitting ? "Sending…" : "Send my enquiry"}
         </button>
         <span className="text-xs leading-[1.5] text-[#8a94a6]">
-          Or WhatsApp <strong className="font-mono text-ink">+8801713-116019</strong>
+          Or WhatsApp <strong className="font-mono text-ink">+8801315-770099</strong>
           <br />
           Sun–Thu 09:00–19:00 GMT+6
         </span>

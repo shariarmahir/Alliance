@@ -8,7 +8,7 @@ import { BUSINESS, SITE_NAME, SITE_URL } from "@/app/lib/site";
 export const metadata: Metadata = {
   title: "Contact AutoLink — Uttara, Dhaka",
   description:
-    "Contact AutoLink Integrated Technologies: House 104, Road 15, Sector 11, Uttara, Dhaka-1230, Bangladesh. Phone +8801713-116019, email info@auto-bd.com. Quotations answered within 4 working hours.",
+    "Contact AutoLink Integrated Technologies: House 104, Road 15, Sector 11, Uttara, Dhaka-1230, Bangladesh. Phone +8801315-770099, email info@auto-bd.com. Quotations answered within 4 working hours.",
   alternates: { canonical: "/contact" },
 };
 

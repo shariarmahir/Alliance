@@ -68,7 +68,7 @@ export function ProductDetailTabs({
           <p className="mb-3.5 text-[13px] leading-[1.7] text-white/[0.72]">{repairRoute}</p>
           <div className="flex flex-wrap gap-2.5">
             <a
-              href="https://wa.me/8801713116019"
+              href="https://wa.me/8801315770099"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-md border border-white/[0.28] bg-white/[0.13] px-4.5 py-2.5 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/[0.22]"

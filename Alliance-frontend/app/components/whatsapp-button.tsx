@@ -17,7 +17,7 @@ import Link from "next/link";
 const QUICK_REPLIES = [
   { label: "Ask a price on a part", href: "/products", external: false },
   { label: "Track an existing order", href: "/products?q=track", external: false },
-  { label: "Talk to a person on WhatsApp", href: "https://wa.me/8801713116019", external: true },
+  { label: "Talk to a person on WhatsApp", href: "https://wa.me/8801315770099", external: true },
 ] as const;
 
 export function WhatsAppButton() {
@@ -111,7 +111,7 @@ export function WhatsAppButton() {
 
           <div className="border-t border-hairline bg-surface px-4 py-2.5 text-center text-[11px] text-ink-muted">
             Or WhatsApp us directly at{" "}
-            <span className="font-mono font-semibold text-ink">+8801713-116019</span>
+            <span className="font-mono font-semibold text-ink">+8801315-770099</span>
           </div>
         </div>
       )}

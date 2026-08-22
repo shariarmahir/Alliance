@@ -54,7 +54,7 @@ def _shell(title: str, body: str) -> str:
     </div>
     <div style="padding:16px 24px;background:#fafbfc;border-top:1px solid #e3e8ef;font-size:12px;color:#667085">
       House: 104, Road: 15, Sector: 11, Uttara, Dhaka-1230, Bangladesh<br>
-      {escape(settings.resend_from_email)} &middot; +8801713-116019
+      {escape(settings.resend_from_email)} &middot; +8801315-770099
     </div>
   </div>
 </body></html>"""

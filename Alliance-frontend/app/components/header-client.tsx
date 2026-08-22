@@ -34,8 +34,8 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
       <div className="border-b border-slate-line bg-surface-blue text-[#4c5a72]">
         <div className="mx-auto flex h-[34px] max-w-[1360px] items-center justify-between px-7 text-[11.5px]">
           <div className="flex items-center gap-5">
-            <a href="tel:+8801713116019" className="credit-shine font-mono font-bold">
-              +8801713-116019
+            <a href="tel:+8801315770099" className="credit-shine font-mono font-bold">
+              +8801315-770099
             </a>
             <a href="mailto:info@auto-bd.com" className="hidden hover:text-primary sm:block">
               info@auto-bd.com
@@ -200,8 +200,8 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             </Link>
 
             <div className="mt-3 flex flex-col gap-2 border-t border-slate-200 pt-3 text-sm">
-              <a href="tel:+8801713116019" className="flex items-center gap-2 text-slate-700">
-                <Phone className="size-4" /> +8801713-116019
+              <a href="tel:+8801315770099" className="flex items-center gap-2 text-slate-700">
+                <Phone className="size-4" /> +8801315-770099
               </a>
               <a href="mailto:info@auto-bd.com" className="flex items-center gap-2 text-slate-700">
                 <Mail className="size-4" /> info@auto-bd.com
@@ -249,7 +249,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             </Link>
           </div>
           <a
-            href="https://wa.me/8801713116019"
+            href="https://wa.me/8801315770099"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden items-center gap-2.5 text-[11.5px] leading-tight text-[#64748b] lg:flex"
@@ -259,7 +259,7 @@ export function HeaderClient({ categories }: { categories: Category[] }) {
             </span>
             <span>
               <strong className="block font-mono text-[13px] font-semibold text-primary">
-                +8801713-116019
+                +8801315-770099
               </strong>
               Engineers on WhatsApp, 24/7
             </span>
