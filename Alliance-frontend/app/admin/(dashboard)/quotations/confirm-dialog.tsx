@@ -467,7 +467,7 @@ export function ConfirmQuotationPanel({
                   className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <FileCheck2 className="size-4" />
-                  {submitting ? "Saving..." : "Save"}
+                  {submitting ? "Saving..." : "Download PDF"}
                 </button>
                 <button
                   type="button"
