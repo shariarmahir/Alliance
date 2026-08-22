@@ -129,7 +129,11 @@ body {
   width: 38%;
   height: 100%;
   background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  /* --sheen-delay lets a row of buttons stagger the sweep instead of firing
+     in unison; it defaults to 0s so every existing single button is
+     unaffected. */
   animation: sheen 3.4s ease-in-out infinite;
+  animation-delay: var(--sheen-delay, 0s);
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {

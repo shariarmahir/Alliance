@@ -36,3 +36,17 @@ export const BUSINESS = {
   latitude: 23.8774,
   longitude: 90.3905,
 } as const;
+
+// Public social profiles, in the order they appear in the header strip.
+//
+// WhatsApp is the number the business already publishes everywhere else, so it
+// is authoritative. LinkedIn and Facebook are best-guess vanity URLs derived
+// from the brand name: point them at the real pages when those exist, because
+// a link to a page that isn't ours is worse than no link at all. These are
+// also what Google reads as `sameAs` for entity resolution, so a wrong handle
+// here teaches the knowledge panel the wrong account.
+export const SOCIAL = {
+  linkedin: "https://www.linkedin.com/company/autolink-integrated-technologies",
+  facebook: "https://www.facebook.com/autolinkbd",
+  whatsapp: `https://wa.me/${BUSINESS.telephone.replace(/\D/g, "")}`,
+} as const;
