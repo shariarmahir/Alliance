@@ -66,6 +66,11 @@ export async function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/track" className="hover:text-accent">
+                    Track an order
+                  </Link>
+                </li>
+                <li>
                   <Link href="/#services" className="hover:text-accent">
                     Repair &amp; exchange
                   </Link>
