@@ -1,3 +1,5 @@
+import base64
+import binascii
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -12,6 +14,7 @@ from app.schemas.operations import (
     HandledUpdate,
     OrderOut,
     OrderStatusUpdate,
+    QuotationEmailRequest,
     QuotationOut,
     QuotationStatusUpdate,
 )
@@ -19,6 +22,11 @@ from app.schemas.session import AdminSession
 from app.services import operations as svc
 
 logger = logging.getLogger("app.admin_operations")
+
+# Resend's own ceiling is 40MB across the whole message; a quotation PDF is
+# tens of kilobytes, so anything approaching this is a bug or an abuse attempt
+# rather than a real offer.
+MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 
 router = APIRouter(prefix="/api/admin", tags=["admin-operations"])
 
@@ -114,9 +122,19 @@ async def update_delivery(
 
 @router.post("/quotations/{quotation_id}/email")
 async def email_quotation(
-    quotation_id: str, db: DbSession, session: AdminSession = QuotationsArea
+    quotation_id: str,
+    db: DbSession,
+    payload: QuotationEmailRequest | None = None,
+    session: AdminSession = QuotationsArea,
 ):
-    """Sends the issued offer to the customer with the PDF attached."""
+    """Sends the issued offer to the customer with the PDF attached.
+
+    The attachment is normally the PDF the admin's browser rendered and posted
+    here, so the customer receives byte-for-byte the document the admin saw and
+    could have downloaded. The server can render its own, but that generator
+    produces a plainer layout, so it is only a fallback for a caller that sends
+    nothing.
+    """
     quotation = await svc.get_quotation(db, quotation_id)
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
@@ -126,11 +144,30 @@ async def email_quotation(
         )
 
     pdf_bytes = None
-    try:
-        pdf_bytes = pdf_integration.render_quotation_pdf(quotation)
-    except pdf_integration.PdfUnavailable:
-        # Send without the attachment rather than failing the whole action.
-        logger.warning("PDF rendering unavailable; emailing without attachment.")
+    if payload is not None and payload.pdf_base64:
+        try:
+            pdf_bytes = base64.b64decode(payload.pdf_base64, validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(
+                status_code=422, detail="The attached PDF was not valid base64."
+            ) from exc
+        if not pdf_bytes.startswith(b"%PDF-"):
+            raise HTTPException(
+                status_code=422, detail="The attached file is not a PDF."
+            )
+        if len(pdf_bytes) > MAX_ATTACHMENT_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"The PDF exceeds the "
+                f"{MAX_ATTACHMENT_BYTES // (1024 * 1024)}MB attachment limit.",
+            )
+
+    if pdf_bytes is None:
+        try:
+            pdf_bytes = pdf_integration.render_quotation_pdf(quotation)
+        except pdf_integration.PdfUnavailable:
+            # Send without the attachment rather than failing the whole action.
+            logger.warning("PDF rendering unavailable; emailing without attachment.")
 
     sent = await email_integration.send_quotation_issued(quotation, pdf_bytes)
     if not sent:

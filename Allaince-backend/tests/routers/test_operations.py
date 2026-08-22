@@ -273,6 +273,89 @@ async def test_quotation_can_be_marked_viewed(client, db):
     assert r.json()["confirmation"] is None
 
 
+async def _issued_quotation(client, db):
+    """A confirmed quotation, ready to email."""
+    await _seed_catalogue(db)
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"lines": [{"name": "D", "quantity": 1, "unitPrice": 5.0}]},
+    )
+    return quotation_id
+
+
+async def test_email_uses_the_pdf_the_browser_supplies(client, db):
+    """The admin's browser renders the document that the download button
+    produces and posts it here, so the customer receives exactly that file
+    rather than the server's plainer fallback rendering."""
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+    supplied = b"%PDF-1.4 browser rendered"
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_quotation_issued",
+        new=AsyncMock(return_value=True),
+    ) as send:
+        r = await client.post(
+            f"/api/admin/quotations/{quotation_id}/email",
+            json={"pdfBase64": base64.b64encode(supplied).decode()},
+        )
+
+    assert r.status_code == 200
+    assert r.json() == {"sent": True, "attached": True}
+    # The bytes that reached the mailer are the ones posted, untouched.
+    assert send.await_args.args[1] == supplied
+
+
+async def test_email_rejects_a_non_pdf_attachment(client, db):
+    """base64 of arbitrary bytes must not become an email attachment."""
+    import base64
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/email",
+        json={"pdfBase64": base64.b64encode(b"<html>not a pdf").decode()},
+    )
+    assert r.status_code == 422
+
+
+async def test_email_rejects_malformed_base64(client, db):
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/email",
+        json={"pdfBase64": "not-base64!!"},
+    )
+    assert r.status_code == 422
+
+
+async def test_email_falls_back_to_server_rendering(client, db):
+    """A caller that sends no PDF still gets an attachment, so the endpoint
+    keeps working for anything that is not the admin dialog."""
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_quotation_issued",
+        new=AsyncMock(return_value=True),
+    ), patch(
+        "app.routers.admin_operations.pdf_integration.render_quotation_pdf",
+        return_value=b"%PDF-server",
+    ):
+        r = await client.post(f"/api/admin/quotations/{quotation_id}/email", json={})
+
+    assert r.status_code == 200
+    assert r.json()["attached"] is True
+
+
 # --- orders -----------------------------------------------------------------
 
 

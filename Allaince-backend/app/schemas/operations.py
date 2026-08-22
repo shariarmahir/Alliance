@@ -109,6 +109,19 @@ class QuotationStatusUpdate(CamelModel):
     status: QuotationStatus
 
 
+class QuotationEmailRequest(CamelModel):
+    """The PDF the admin's browser rendered, base64-encoded.
+
+    Optional: a caller that omits it falls back to the server's own renderer,
+    which produces a plainer document. The browser's copy is preferred because
+    it is the same file the download button produces, so the customer receives
+    exactly what the admin saw.
+    """
+
+    pdf_base64: str | None = None
+    file_name: str | None = None
+
+
 class DeliveryStageUpdate(CamelModel):
     stage: int = Field(ge=0)
 

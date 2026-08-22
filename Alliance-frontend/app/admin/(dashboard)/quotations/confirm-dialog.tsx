@@ -19,7 +19,7 @@ import {
   defaultSubject,
   generateRefNumber,
 } from "@/app/lib/order-confirmation";
-import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
+import { downloadQuotationPdf, quotationPdfToBase64 } from "@/app/lib/quotation-pdf";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationTerms } from "@/app/lib/types";
 
@@ -241,12 +241,17 @@ export function ConfirmQuotationPanel({
       }
 
       try {
+        toast.loading("Preparing the quotation PDF...", { id: toastId });
+        // Rendered here, from the same builder the download button uses, and
+        // posted with the send. The server can render its own but produces a
+        // plainer layout, so letting it do that would mean the customer
+        // received a different document from the one the admin saved.
+        const { base64, fileName } = await quotationPdfToBase64(saved);
+
         toast.loading(`Sending to ${saved.details.email}...`, { id: toastId });
-        // The API renders the PDF from the confirmation it just stored and
-        // attaches it server-side, so nothing is uploaded from here.
         const result = await apiFetch<{ sent: boolean; attached: boolean }>(
           `/api/admin/quotations/${encodeURIComponent(quotation.id)}/email`,
-          { method: "POST" }
+          { method: "POST", body: { pdfBase64: base64, fileName } }
         );
         toast.success("Email sent", {
           id: toastId,
