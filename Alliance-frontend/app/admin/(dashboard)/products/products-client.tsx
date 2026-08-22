@@ -3,11 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/app/components/ui/dialog";
+import { Button } from "@/app/components/ui/button";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
 import { CategoriesTab } from "./categories-tab";
 import { PageHeader, Panel, EmptyState, Pill, TH, TD, ROW, type PillTone } from "../admin-ui";
+import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Brand, Category, Product, StockStatus } from "@/app/lib/types";
 
 const STOCK_PILL: Record<StockStatus, { label: string; tone: PillTone }> = {
@@ -95,6 +107,7 @@ export function ProductsClient({
                       <th className={TH}>CATEGORY</th>
                       <th className={TH}>BRAND</th>
                       <th className={TH}>STOCK</th>
+                      <th className={TH} />
                     </tr>
                   </thead>
                   <tbody>
@@ -129,6 +142,9 @@ export function ProductsClient({
                             <Pill tone={STOCK_PILL[p.stock].tone}>{STOCK_PILL[p.stock].label}</Pill>
                           </div>
                         </td>
+                        <td className={TD}>
+                          <DeleteProductButton product={p} onDeleted={refresh} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -147,5 +163,68 @@ export function ProductsClient({
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function DeleteProductButton({
+  product,
+  onDeleted,
+}: {
+  product: Product;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await apiFetch(`/api/admin/products/${encodeURIComponent(product.slug)}`, {
+        method: "DELETE",
+      });
+      toast.success(`${product.partNumber} removed from the catalog.`);
+      setOpen(false);
+      onDeleted();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not remove this product."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`Remove ${product.partNumber}`}
+        onClick={() => setOpen(true)}
+        className="flex size-7 items-center justify-center rounded-md border border-[#f0d0d0] bg-white text-[#c22] transition-colors hover:border-[#c22] hover:bg-[#c22] hover:text-white"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {product.partNumber}?</DialogTitle>
+            <DialogDescription>
+              {product.name} will no longer appear in the storefront or catalog search.
+              Any quotation or order that already includes it keeps its own copy of the
+              details, so past records are unaffected. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={remove} disabled={busy}>
+              {busy ? "Removing..." : "Remove Product"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
