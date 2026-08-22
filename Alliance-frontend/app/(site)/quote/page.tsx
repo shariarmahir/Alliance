@@ -184,10 +184,10 @@ export default function QuotePage() {
                 disabled={submitting}
                 className="btn-sheen flex w-full items-center justify-center rounded-[9px] border border-white/40 bg-accent/90 px-5 py-3.5 text-[15px] font-bold text-ink shadow-[0_12px_26px_rgba(255,185,0,.3)] transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
               >
-                {submitting ? "Sending..." : "Send Quotation"}
+                {submitting ? "Sending..." : "Request for Quotation"}
               </button>
               <p className="mt-3 text-center text-[11.5px] leading-[1.6] text-[#8a94a6]">
-                By sending you accept our terms of trade. No payment is taken at this step.
+                By requesting you accept our terms of trade. No payment is taken at this step.
               </p>
             </div>
           </div>
