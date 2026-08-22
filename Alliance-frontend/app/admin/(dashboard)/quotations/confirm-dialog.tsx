@@ -89,7 +89,7 @@ export function ConfirmQuotationTrigger({
       onClick={onToggle}
       className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-ok bg-ok-bg px-2.5 py-1.5 text-[11.5px] font-semibold text-ok transition-colors hover:bg-ok hover:text-white"
     >
-      <FileCheck2 className="size-3.5" /> {quotation.confirmation ? "Re-issue" : "Confirm"}
+      <FileCheck2 className="size-3.5" /> {quotation.confirmation ? "Re-issue" : "Accept"}
     </button>
   );
 }

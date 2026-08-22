@@ -3,8 +3,8 @@
 // and a client component need the labels.
 
 export const DELIVERY_STAGES = [
-  { label: "Confirmed", hint: "Your order is confirmed and being prepared." },
-  { label: "Packed", hint: "Items are packed and awaiting collection." },
+  { label: "Pending", hint: "Your order is confirmed and being prepared." },
+  { label: "Submitted", hint: "Items are packed and awaiting collection." },
   { label: "In Transit", hint: "On the way to your delivery address." },
   { label: "Delivered", hint: "Delivered. Thank you for your business." },
 ] as const;

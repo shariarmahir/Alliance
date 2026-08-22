@@ -401,7 +401,7 @@ function QuotationRow({
               disabled={downloading}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
             >
-              <Download className="size-3.5" /> {downloading ? "..." : "PDF"}
+              <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
             </button>
           )}
           {pending && (

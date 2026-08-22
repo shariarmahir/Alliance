@@ -60,7 +60,11 @@ export default async function TrackingPage({
       day: "numeric",
       month: "short",
       year: "numeric",
-    }) : i < stage ? "Completed" : "Pending",
+    // "Pending" is now also a stage name (stage 0), so a not-yet-reached step
+    // used that same word for both its label and its status — e.g. a
+    // "Delivered" row reading "Delivered — Pending" was fine, but the
+    // "Pending" row itself would have read "Pending — Pending".
+    }) : i < stage ? "Completed" : "Upcoming",
   }));
 
   return (
