@@ -9,7 +9,10 @@ ContactMethod = Literal["email", "phone", "whatsapp"]
 LeadTime = Literal["standard", "urgent", "flexible"]
 DeliveryOptionId = Literal["standard", "express", "air"]
 OrderStatus = Literal["pending", "confirmed", "cancelled"]
-QuotationStatus = Literal["pending", "confirmed", "cancelled"]
+# "viewed" is a triage state between pending and confirmed: an admin has read
+# the request but has not priced it yet. It carries no confirmation document
+# and requires no prices, which is what separates it from "confirmed".
+QuotationStatus = Literal["pending", "viewed", "confirmed", "cancelled"]
 
 
 class QuoteItem(CamelModel):

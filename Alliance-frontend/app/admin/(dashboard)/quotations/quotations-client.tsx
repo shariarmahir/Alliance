@@ -83,6 +83,9 @@ const SLA_HOURS = 4;
 
 const STATUS_PILL: Record<QuotationStatus, { label: string; tone: PillTone }> = {
   pending: { label: "PENDING", tone: "warn" },
+  // Read but not yet priced — informational rather than a warning, since it
+  // is a step forward from pending, not something needing attention.
+  viewed: { label: "VIEWED", tone: "info" },
   confirmed: { label: "CONFIRMED", tone: "ok" },
   cancelled: { label: "CANCELLED", tone: "danger" },
 };
@@ -338,6 +341,10 @@ function QuotationRow({
   }
 
   const pending = quotation.status === "pending";
+  // Reviewed but not yet priced. Still fully actionable — it can be priced or
+  // cancelled exactly like a pending one; only the SLA clock and the "Save
+  // Viewed" button treat it differently.
+  const openForWork = pending || quotation.status === "viewed";
   // null until mounted, so the server and the first client render agree (both
   // show the placeholder); the real elapsed time then fills in a moment
   // later, which is invisible in practice.
@@ -404,7 +411,20 @@ function QuotationRow({
               <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
             </button>
           )}
+          {/* Triage only, so it needs no prices and sends nothing — that is
+              why it sits here rather than in the pricing dialog, whose
+              buttons are all gated on every line being priced. */}
           {pending && (
+            <button
+              type="button"
+              onClick={() => setStatus("viewed")}
+              disabled={busy}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            >
+              <Eye className="size-3.5" /> Save Viewed
+            </button>
+          )}
+          {openForWork && (
             <CancelConfirmDialog
               quotation={quotation}
               label="Cancel"
@@ -482,6 +502,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
           options={[
             { value: "pending", label: "Pending", count: count("pending") },
             { value: "confirmed", label: "Confirmed", count: count("confirmed") },
+            { value: "viewed", label: "Viewed", count: count("viewed") },
             { value: "cancelled", label: "Cancelled", count: count("cancelled") },
             { value: "all", label: "All", count: initialQuotations.length },
           ]}

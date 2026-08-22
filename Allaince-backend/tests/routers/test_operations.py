@@ -254,6 +254,25 @@ async def test_cancelling_retracts_the_confirmation_over_http(client):
     assert (await client.get(f"/api/track/{tracking_id}")).status_code == 404
 
 
+async def test_quotation_can_be_marked_viewed(client, db):
+    """"viewed" is a triage state: read but not yet priced.
+
+    It must be accepted by the same status endpoint as the others, and it
+    must not fabricate a confirmation document — that is the whole thing
+    separating it from "confirmed".
+    """
+    _auth(client)
+    await _seed_catalogue(db)
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+
+    r = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/status", json={"status": "viewed"}
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "viewed"
+    assert r.json()["confirmation"] is None
+
+
 # --- orders -----------------------------------------------------------------
 
 
