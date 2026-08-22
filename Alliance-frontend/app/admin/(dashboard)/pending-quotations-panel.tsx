@@ -16,8 +16,11 @@ function ageLabel(submittedAt: string) {
 
 export async function PendingQuotationsPanel() {
   const quotations = await readQuotations();
+  // Matches the Quotations screen's Pending tab: a quoted request is still
+  // open until it is confirmed or cancelled, so it belongs in this queue.
+  const isOpen = (status: string) => status === "pending" || status === "quoted";
   const pending = quotations
-    .filter((q) => q.status === "pending")
+    .filter((q) => isOpen(q.status))
     .sort(
       (a, b) =>
         new Date(a.details.submittedAt).getTime() - new Date(b.details.submittedAt).getTime()
@@ -29,7 +32,7 @@ export async function PendingQuotationsPanel() {
       <div className="flex items-center justify-between border-b border-slate-line px-5 py-4">
         <p className="text-[15px] font-bold text-ink">Price requests needing an answer</p>
         <Link href="/admin/quotations" className="text-xs font-semibold text-primary hover:underline">
-          Open all {quotations.filter((q) => q.status === "pending").length} →
+          Open all {quotations.filter((q) => isOpen(q.status)).length} →
         </Link>
       </div>
 

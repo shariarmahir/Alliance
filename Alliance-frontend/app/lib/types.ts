@@ -190,7 +190,9 @@ export type CountryBreakdown = { country: string; orders: number };
 export type TrafficSource = { source: string; orders: number };
 
 export type OrderStatus = "pending" | "confirmed" | "cancelled";
-export type QuotationStatus = "pending" | "confirmed" | "cancelled";
+// "quoted" = priced and the PDF produced, but not yet accepted. Still an open
+// request, so it stays in the Pending queue alongside "pending".
+export type QuotationStatus = "pending" | "quoted" | "confirmed" | "cancelled";
 
 // A confirmed order. Persisted client-side (localStorage, for the success/
 // invoice page) AND, as of Phase 3, mirrored server-side via POST /api/orders

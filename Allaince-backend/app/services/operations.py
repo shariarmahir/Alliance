@@ -233,10 +233,11 @@ async def confirm_quotation(
     """Saves the priced offer, and by default flips the quotation to confirmed
     in the same commit so the two can never disagree.
 
-    With confirm=False the offer document is written but the status is left
-    alone. That is what lets an admin price a request, download or email the
-    PDF, and still have it sitting in Pending until they explicitly accept it —
-    confirming is a separate decision from producing the quotation."""
+    With confirm=False the offer is written and the request is marked
+    "quoted" — still open, still in the Pending queue, but visibly priced.
+    That is what lets an admin quote a request, download or email the PDF,
+    and still decide separately whether to accept it. A request that has
+    already been confirmed is never walked backwards to "quoted"."""
     quotation = await get_quotation(db, quotation_id)
     if quotation is None:
         return None
@@ -290,6 +291,10 @@ async def confirm_quotation(
 
     if confirm:
         quotation.status = "confirmed"
+    elif quotation.status == "pending":
+        # Only from pending: re-quoting an already confirmed or cancelled
+        # request must not reopen it.
+        quotation.status = "quoted"
     await db.commit()
     await db.refresh(quotation)
     return quotation

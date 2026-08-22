@@ -170,12 +170,12 @@ async def test_super_admin_can_read_quotations(client):
 # --- confirmation and tracking flow ----------------------------------------
 
 
-async def test_pricing_without_confirm_leaves_the_quotation_pending(client):
+async def test_pricing_without_confirm_marks_quoted_not_confirmed(client):
     """Producing the quotation document is not the same as accepting it.
 
-    An admin prices a request so they can download or email the PDF; the
-    request must stay pending until they explicitly confirm, otherwise it
-    would leave the Pending queue the moment a PDF was generated.
+    An admin prices a request so they can download or email the PDF. That
+    marks it "quoted" — visibly priced, but still an open request — and it
+    must not become "confirmed" until they explicitly say so.
     """
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
     _auth(client)
@@ -191,7 +191,7 @@ async def test_pricing_without_confirm_leaves_the_quotation_pending(client):
     # The priced offer is saved...
     assert r.json()["confirmation"]["grandTotal"] == 300.0
     # ...but the request has not been accepted.
-    assert r.json()["status"] == "pending"
+    assert r.json()["status"] == "quoted"
 
     # Confirming afterwards keeps the same reference rather than minting a new
     # one, so the customer's copy stays valid.
@@ -202,6 +202,14 @@ async def test_pricing_without_confirm_leaves_the_quotation_pending(client):
     )
     assert confirmed.json()["status"] == "confirmed"
     assert confirmed.json()["confirmation"]["refNumber"] == ref
+
+    # Re-downloading the PDF afterwards must not walk an accepted order back
+    # into the open queue.
+    again = await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": False, "lines": [{"name": "D", "quantity": 2, "unitPrice": 150.0}]},
+    )
+    assert again.json()["status"] == "confirmed"
 
 
 async def test_confirm_then_advance_delivery_end_to_end(client):

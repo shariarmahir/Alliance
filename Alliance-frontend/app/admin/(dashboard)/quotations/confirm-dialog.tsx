@@ -220,7 +220,7 @@ export function ConfirmQuotationPanel({
       const saved = await issueConfirmation(false);
       if (!saved) return;
       toast.success(`Quotation ${refNumber} saved.`, {
-        description: "Still pending — use Confirm to accept it as an order.",
+        description: "Marked PDF downloaded — use Confirm to accept it as an order.",
       });
       // Deliberately not refreshing the Quotations list here: this
       // quotation no longer matches the Pending tab once issued, so an
@@ -499,7 +499,7 @@ export function ConfirmQuotationPanel({
                   className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <FileCheck2 className="size-4" />
-                  {submitting ? "Saving..." : "Download PDF"}
+                  {submitting ? "Saving..." : "Save & Download PDF"}
                 </button>
                 <button
                   type="button"

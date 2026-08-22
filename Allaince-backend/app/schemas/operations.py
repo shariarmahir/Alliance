@@ -9,7 +9,10 @@ ContactMethod = Literal["email", "phone", "whatsapp"]
 LeadTime = Literal["standard", "urgent", "flexible"]
 DeliveryOptionId = Literal["standard", "express", "air"]
 OrderStatus = Literal["pending", "confirmed", "cancelled"]
-QuotationStatus = Literal["pending", "confirmed", "cancelled"]
+# "quoted" means priced and the PDF produced, but not yet accepted. It is
+# still an open request — it stays in the Pending queue — and only exists so
+# an admin can see at a glance which requests have already been quoted.
+QuotationStatus = Literal["pending", "quoted", "confirmed", "cancelled"]
 
 
 class QuoteItem(CamelModel):

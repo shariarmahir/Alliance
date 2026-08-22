@@ -83,9 +83,16 @@ const SLA_HOURS = 4;
 
 const STATUS_PILL: Record<QuotationStatus, { label: string; tone: PillTone }> = {
   pending: { label: "PENDING", tone: "warn" },
+  // Informational rather than a warning: the request has been quoted, so it
+  // is a step further along than pending even though it is still open.
+  quoted: { label: "PDF DOWNLOADED", tone: "info" },
   confirmed: { label: "CONFIRMED", tone: "ok" },
   cancelled: { label: "CANCELLED", tone: "danger" },
 };
+
+// Both are open requests awaiting a decision, so the Pending tab shows them
+// together — quoting one must not make it vanish from the queue.
+const OPEN_STATUSES: QuotationStatus[] = ["pending", "quoted"];
 
 const LEAD_TIME_LABEL: Record<string, string> = {
   standard: "Standard",
@@ -340,7 +347,10 @@ function QuotationRow({
     }
   }
 
-  const pending = quotation.status === "pending";
+  // Open = awaiting a decision, whether or not it has been quoted yet. Drives
+  // the SLA clock and the Cancel action: quoting a request does not close it,
+  // so the promise to answer it still stands.
+  const open = OPEN_STATUSES.includes(quotation.status);
   // null until mounted, so the server and the first client render agree (both
   // show the placeholder); the real elapsed time then fills in a moment
   // later, which is invisible in practice.
@@ -375,13 +385,13 @@ function QuotationRow({
       </td>
       <td
         className={`${TD} font-mono text-[11.5px] ${
-          pending && age.breached ? "font-semibold text-[#c22]" : "text-ink-muted"
+          open && age.breached ? "font-semibold text-[#c22]" : "text-ink-muted"
         }`}
       >
-        {pending ? age.label : formatSubmittedDate(quotation.details.submittedAt)}
+        {open ? age.label : formatSubmittedDate(quotation.details.submittedAt)}
       </td>
       <td className={TD}>
-        {pending && age.breached ? (
+        {open && age.breached ? (
           <Pill tone="danger">SLA BREACH</Pill>
         ) : (
           <Pill tone={pill.tone}>{pill.label}</Pill>
@@ -413,7 +423,7 @@ function QuotationRow({
               <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
             </button>
           )}
-          {pending && (
+          {open && (
             <CancelConfirmDialog
               quotation={quotation}
               label="Cancel"
@@ -558,6 +568,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
   const now = useClientNow();
 
   const count = (s: QuotationStatus) => initialQuotations.filter((q) => q.status === s).length;
+  const openCount = initialQuotations.filter((q) => OPEN_STATUSES.includes(q.status)).length;
   // Next ref sequence, so a freshly opened confirm form pre-fills a number
   // that doesn't clash with the ones already issued.
   const nextSequence = initialQuotations.filter((q) => q.confirmation).length + 1;
@@ -565,11 +576,18 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
     now === null
       ? 0
       : initialQuotations.filter(
-          (q) => q.status === "pending" && ageLabel(q.details.submittedAt, now).breached
+          (q) =>
+            OPEN_STATUSES.includes(q.status) &&
+            ageLabel(q.details.submittedAt, now).breached
         ).length;
 
   // Oldest first while pending — the ones closest to breaching the SLA need
   // answering first; everything else reads newest first.
+  const matchesFilter = (q: Quotation) =>
+    // The Pending tab is the open-requests queue: a quoted request is still
+    // awaiting a decision, so it belongs there next to the unquoted ones.
+    filter === "pending" ? OPEN_STATUSES.includes(q.status) : q.status === filter;
+
   const visible =
     filter === "all"
       ? initialQuotations
@@ -577,15 +595,17 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
           // A quotation with its panel open stays listed even once its new
           // status no longer matches the tab, so finishing the paperwork —
           // download, then email — never yanks the form off the screen.
-          (q) => q.status === filter || q.id === openPanelId
+          (q) => matchesFilter(q) || q.id === openPanelId
         );
 
   const sorted = [...visible].sort((a, b) => {
     const at = new Date(a.details.submittedAt).getTime();
     const bt = new Date(b.details.submittedAt).getTime();
-    if (a.status === "pending" && b.status === "pending") return at - bt;
-    if (a.status === "pending") return -1;
-    if (b.status === "pending") return 1;
+    const aOpen = OPEN_STATUSES.includes(a.status);
+    const bOpen = OPEN_STATUSES.includes(b.status);
+    if (aOpen && bOpen) return at - bt;
+    if (aOpen) return -1;
+    if (bOpen) return 1;
     return bt - at;
   });
 
@@ -599,7 +619,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "pending", label: "Pending", count: count("pending") },
+            { value: "pending", label: "Pending", count: openCount },
             { value: "confirmed", label: "Confirmed", count: count("confirmed") },
             { value: "cancelled", label: "Cancelled", count: count("cancelled") },
             { value: "all", label: "All", count: initialQuotations.length },

@@ -37,7 +37,11 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     pendingOrders: quotations.filter(
       (q) => q.status === "confirmed" && (q.confirmation?.deliveryStage ?? 0) < MAX_STAGE
     ).length,
-    pendingQuotations: quotations.filter((q) => q.status === "pending").length,
+    // "quoted" is still an open request — priced, but not yet accepted — so
+    // it counts toward the badge the same as an untouched one.
+    pendingQuotations: quotations.filter(
+      (q) => q.status === "pending" || q.status === "quoted"
+    ).length,
     openContactRequests: contactRequests.filter((r) => !r.handled).length,
   };
 
