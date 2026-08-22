@@ -391,7 +391,13 @@ function QuotationRow({
             <ConfirmQuotationTrigger
               quotation={quotation}
               open={confirmOpen}
-              onToggle={() => setConfirmOpen((v) => !v)}
+              onToggle={() => {
+                // Closing (not opening) is when the list needs to catch up —
+                // the panel may have issued a confirmation while it was open,
+                // which the row hasn't reflected yet.
+                if (confirmOpen) onChanged();
+                setConfirmOpen((v) => !v);
+              }}
             />
           )}
           {quotation.confirmation && (
@@ -430,8 +436,10 @@ function QuotationRow({
       <ConfirmQuotationPanel
         quotation={quotation}
         sequence={sequence}
-        onConfirmed={onChanged}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => {
+          onChanged();
+          setConfirmOpen(false);
+        }}
       />
     )}
     </>

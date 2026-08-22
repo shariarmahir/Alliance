@@ -101,12 +101,10 @@ export function ConfirmQuotationTrigger({
 export function ConfirmQuotationPanel({
   quotation,
   sequence,
-  onConfirmed,
   onClose,
 }: {
   quotation: Quotation;
   sequence: number;
-  onConfirmed: () => void;
   onClose: () => void;
 }) {
   const existing = quotation.confirmation;
@@ -213,10 +211,11 @@ export function ConfirmQuotationPanel({
       const saved = await issueConfirmation();
       if (!saved) return;
       toast.success(`Order confirmation ${refNumber} issued.`);
-      onConfirmed();
-      // Panel stays open — closing immediately (the previous behaviour)
-      // dismissed it before the admin could see or interact with the
-      // browser's save/download prompt for the PDF.
+      // Deliberately not refreshing the Quotations list here: this
+      // quotation no longer matches the Pending tab once issued, so an
+      // immediate refresh would drop its row (and this open panel with it)
+      // out from under the admin. The list re-syncs when onClose fires —
+      // see quotations-client.tsx, where onClose also calls onChanged.
       try {
         await downloadQuotationPdf(saved);
       } catch {
@@ -263,7 +262,8 @@ export function ConfirmQuotationPanel({
           duration: 8000,
         });
         setSentTo(saved.details.email);
-        onConfirmed();
+        // Not refreshing the list here either — see the comment in saveOnly.
+        // The list re-syncs when the admin closes the panel.
         return;
       } catch (error) {
         // The confirmation is saved either way — say so explicitly, so the
