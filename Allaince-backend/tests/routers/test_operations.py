@@ -4,6 +4,7 @@ from app.core.rate_limit import reset_in_memory_buckets
 from app.core.session_token import ADMIN_SESSION_COOKIE, create_session_token
 from app.models import Category, Employee, Product
 from app.schemas.session import AdminSession
+from app.services import operations as svc
 
 async def _seed_sub_admin(db, employee_id="emp-1"):
     """require_admin re-checks that a token's employee still exists, so a
@@ -238,13 +239,14 @@ async def test_confirm_then_advance_delivery_end_to_end(client):
     assert r.json()["status"] == "confirmed"
     assert confirmation["grandTotal"] == 300.0
 
-    # Advance delivery, then read it back from the admin's own view of the
+    # Advance the order, then read it back from the admin's own view of the
     # quotation — there is no public tracking endpoint any more.
     patch = await client.patch(
-        f"/api/admin/quotations/{quotation_id}/delivery", json={"stage": 2}
+        f"/api/admin/quotations/{quotation_id}/delivery",
+        json={"stage": svc.MAX_STAGE},
     )
     assert patch.status_code == 200
-    assert patch.json()["confirmation"]["deliveryStage"] == 2
+    assert patch.json()["confirmation"]["deliveryStage"] == svc.MAX_STAGE
 
 
 async def test_cancelling_retracts_the_confirmation(client):
@@ -283,6 +285,54 @@ async def _issued_quotation(client, db):
         json={"lines": [{"name": "D", "quantity": 1, "unitPrice": 5.0}]},
     )
     return quotation_id
+
+
+async def test_confirming_an_order_emails_the_customer_once(client, db):
+    """Moving an order to the confirmed stage tells the customer.
+
+    Re-selecting the stage it already holds must not send a second copy —
+    a customer receiving duplicate confirmations for one order is worse
+    than receiving none.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_order_confirmed",
+        new=AsyncMock(return_value=True),
+    ) as send:
+        first = await client.patch(
+            f"/api/admin/quotations/{quotation_id}/delivery",
+            json={"stage": svc.MAX_STAGE},
+        )
+        assert first.status_code == 200
+        assert send.await_count == 1
+
+        # Same stage again: already confirmed, so nothing more is sent.
+        await client.patch(
+            f"/api/admin/quotations/{quotation_id}/delivery",
+            json={"stage": svc.MAX_STAGE},
+        )
+        assert send.await_count == 1
+
+
+async def test_moving_an_order_back_to_pending_sends_no_email(client, db):
+    """Only the transition into confirmed notifies the customer."""
+    from unittest.mock import AsyncMock, patch
+
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_order_confirmed",
+        new=AsyncMock(return_value=True),
+    ) as send:
+        await client.patch(
+            f"/api/admin/quotations/{quotation_id}/delivery", json={"stage": 0}
+        )
+        assert send.await_count == 0
 
 
 async def test_email_uses_the_pdf_the_browser_supplies(client, db):

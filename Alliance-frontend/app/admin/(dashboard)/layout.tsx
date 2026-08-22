@@ -33,7 +33,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     products: products.length,
     lowStock: products.filter((p) => p.stock !== "in-stock").length,
     // Orders are confirmed quotations, so both badges come from the same
-    // read. "Pending" for an order means it has not been delivered yet.
+    // read. An order is pending until it is confirmed on the Orders screen.
     pendingOrders: quotations.filter(
       (q) => q.status === "confirmed" && (q.confirmation?.deliveryStage ?? 0) < MAX_STAGE
     ).length,

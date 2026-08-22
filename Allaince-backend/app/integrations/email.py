@@ -281,3 +281,49 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         _shell(f"Quotation {confirmation.ref_number}", body),
         attachments,
     )
+
+
+async def send_order_confirmed(quotation) -> bool:
+    """Tells the customer their order is confirmed and in preparation.
+
+    Sent when an admin moves the order to Confirmed on the Orders screen —
+    the point at which the business has committed to fulfilling it. Carries
+    no PDF: the customer already has the quotation, and nothing about the
+    priced offer changes here.
+    """
+    details = quotation.details or {}
+    confirmation = quotation.confirmation
+    to = details.get("email")
+    if not to:
+        logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
+        return False
+    if confirmation is None:
+        logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
+        return False
+
+    body = (
+        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
+        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Your order against reference '
+        f"<strong>{escape(confirmation.ref_number)}</strong> is now confirmed and being "
+        f"prepared. Thank you for your business.</p>"
+        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
+        + _rows(
+            [
+                ("Reference", confirmation.ref_number),
+                ("Order value", f"BDT {confirmation.grand_total:,.2f}"),
+                ("Prepared for", details.get("companyName") or details.get("fullName") or "—"),
+            ]
+        )
+        + "</table>"
+        + _line_items_table(confirmation)
+        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">Our team will contact you directly to arrange '
+        "freight and delivery. For anything urgent, reply to this email or message us "
+        "on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    )
+
+    return await send_email(
+        to,
+        f"Order confirmed — {confirmation.ref_number}",
+        _shell(f"Order confirmed — {confirmation.ref_number}", body),
+    )

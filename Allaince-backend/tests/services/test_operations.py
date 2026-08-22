@@ -8,6 +8,7 @@ from app.services.operations import (
     add_order,
     add_quotation,
     amount_in_words,
+    MAX_STAGE,
     clamp_stage,
     confirm_quotation,
     default_subject,
@@ -87,7 +88,12 @@ def test_default_subject_pluralises():
     assert default_subject([{"name": "A"}]) == "Financial Offer for supply of A."
 
 
-@pytest.mark.parametrize("raw,expected", [(None, 0), (-3, 0), (0, 0), (2, 2), (99, 3)])
+# Expressed against MAX_STAGE rather than a literal so the cases keep
+# asserting clamping behaviour if the stage list changes length again.
+@pytest.mark.parametrize(
+    "raw,expected",
+    [(None, 0), (-3, 0), (0, 0), (MAX_STAGE, MAX_STAGE), (99, MAX_STAGE)],
+)
 def test_clamp_stage(raw, expected):
     assert clamp_stage(raw) == expected
 
@@ -193,12 +199,12 @@ async def test_update_delivery_stage_clamps_and_stamps(db):
     await confirm_quotation(db, quotation.id, lines=[{"name": "D", "quantity": 1, "unitPrice": 5}])
     tracking = quotation.confirmation.tracking_id
 
-    updated = await update_delivery_stage(db, tracking, 2)
-    assert updated.confirmation.delivery_stage == 2
+    updated = await update_delivery_stage(db, tracking, MAX_STAGE)
+    assert updated.confirmation.delivery_stage == MAX_STAGE
     assert updated.confirmation.delivery_updated_at is not None
 
     overflow = await update_delivery_stage(db, tracking, 99)
-    assert overflow.confirmation.delivery_stage == 3
+    assert overflow.confirmation.delivery_stage == MAX_STAGE
 
 
 # --- orders and contact requests --------------------------------------------

@@ -131,9 +131,23 @@ async def update_delivery(
     quotation = await svc.get_quotation(db, quotation_id)
     if quotation is None or quotation.confirmation is None:
         raise HTTPException(status_code=404, detail="No issued confirmation for this quotation.")
+
+    was = svc.clamp_stage(quotation.confirmation.delivery_stage)
     updated = await svc.update_delivery_stage(
         db, quotation.confirmation.tracking_id, payload.stage
     )
+    now = svc.clamp_stage(updated.confirmation.delivery_stage)
+
+    # Only on the transition into the confirmed stage — re-selecting the value
+    # it already holds must not send the customer a duplicate.
+    if now == svc.MAX_STAGE and was != svc.MAX_STAGE:
+        try:
+            await email_integration.send_order_confirmed(updated)
+        except Exception:
+            # The stage change is saved and correct; a mail failure must not
+            # roll it back or surface as a failed action.
+            logger.exception("Failed to send order-confirmed email for %s", quotation_id)
+
     return _out(updated)
 
 

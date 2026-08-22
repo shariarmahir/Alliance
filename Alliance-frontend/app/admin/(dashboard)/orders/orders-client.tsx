@@ -18,13 +18,13 @@ import {
 } from "../admin-ui";
 import { apiFetch } from "@/app/lib/api-browser";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
-import { DELIVERY_STAGES, clampStage } from "@/app/lib/delivery";
+import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import type { Quotation } from "@/app/lib/types";
 
-// Every row here is a confirmed quotation, so "status" in the order sense is
-// its delivery progress rather than the quotation status — filtering by
-// stage is what an admin actually wants to slice by on this screen. The
-// stage index is carried as a string because FilterBar is keyed on strings.
+// Every row is an accepted price request. Its order state (Pending or
+// Confirmed) is stored as the confirmation's stage index, which is what the
+// backend compares to decide whether to email the customer. Carried as a
+// string here because FilterBar is keyed on strings.
 type StageFilter = string;
 
 function OrderRow({
@@ -48,10 +48,13 @@ function OrderRow({
         `/api/admin/quotations/${encodeURIComponent(quotation.id)}/delivery`,
         { method: "PATCH", body: { stage: next } }
       );
-      toast.success(`Marked ${DELIVERY_STAGES[next].label.toLowerCase()}.`);
+      toast.success(`Marked ${DELIVERY_STAGES[next].label.toLowerCase()}.`, {
+        description:
+          next === MAX_STAGE ? "A confirmation email has been sent to the customer." : undefined,
+      });
       onChanged();
     } catch {
-      toast.error("Could not update the delivery stage.");
+      toast.error("Could not update the order status.");
     } finally {
       setBusy(false);
     }
@@ -103,7 +106,7 @@ function OrderRow({
         {new Date(confirmation.issuedAt).toLocaleDateString("en-GB")}
       </td>
       <td className={TD}>
-        <Pill tone={stage >= DELIVERY_STAGES.length - 1 ? "ok" : "info"}>
+        <Pill tone={stage >= MAX_STAGE ? "ok" : "warn"}>
           {DELIVERY_STAGES[stage].label.toUpperCase()}
         </Pill>
       </td>
@@ -159,13 +162,13 @@ export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) 
     (sum, q) => sum + (q.confirmation?.grandTotal ?? 0),
     0
   );
-  const delivered = count(DELIVERY_STAGES.length - 1);
+  const confirmed = count(MAX_STAGE);
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Orders"
-        subtitle="Confirmed quotations. Track delivery progress and issue documents."
+        subtitle="Accepted price requests. Confirm an order to notify the customer."
       >
         <FilterBar
           value={filter}
@@ -184,8 +187,8 @@ export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) 
       {initialOrders.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Open orders", value: String(initialOrders.length - delivered), tone: "bg-accent" },
-            { label: "Delivered", value: String(delivered), tone: "bg-ok-dot" },
+            { label: "Awaiting confirmation", value: String(initialOrders.length - confirmed), tone: "bg-accent" },
+            { label: "Confirmed", value: String(confirmed), tone: "bg-ok-dot" },
             { label: "Order value", value: formatPrice(totalValue), tone: "bg-primary" },
           ].map((s) => (
             <Panel key={s.label} className="overflow-hidden">
@@ -214,7 +217,7 @@ export function OrdersClient({ initialOrders }: { initialOrders: Quotation[] }) 
                   <th className={TH}>ITEMS</th>
                   <th className={TH}>TOTAL</th>
                   <th className={TH}>ISSUED</th>
-                  <th className={TH}>DELIVERY</th>
+                  <th className={TH}>STATUS</th>
                   <th className={TH}>ACTIONS</th>
                 </tr>
               </thead>

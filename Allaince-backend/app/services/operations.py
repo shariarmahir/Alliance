@@ -8,11 +8,12 @@ from app.models import ContactRequest, Order, OrderConfirmation, Product, Quotat
 from app.models.base import business_today
 
 # Delivery stages shared with the customer tracking page.
+# Two states, not a delivery pipeline: the business arranges freight directly
+# with the customer, so the middle stages were never tracked against reality.
+# "Confirmed" is the terminal state and is what triggers the customer email.
 DELIVERY_STAGES = [
-    {"label": "Confirmed", "hint": "Your order is confirmed and being prepared."},
-    {"label": "Packed", "hint": "Items are packed and awaiting collection."},
-    {"label": "In Transit", "hint": "On the way to your delivery address."},
-    {"label": "Delivered", "hint": "Delivered. Thank you for your business."},
+    {"label": "Pending", "hint": "Your order is being prepared."},
+    {"label": "Confirmed", "hint": "Your order is confirmed. Our team will arrange delivery with you."},
 ]
 MAX_STAGE = len(DELIVERY_STAGES) - 1
 
