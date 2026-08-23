@@ -55,7 +55,7 @@ export function ClientReviewsCarousel({ reviews }: { reviews: Review[] }) {
             ref={(el) => {
               cardRefs.current[i] = el;
             }}
-            className="relative flex w-[300px] shrink-0 snap-start flex-col rounded-[10px] border border-slate-line bg-white p-6 transition-shadow hover:shadow-md sm:w-[380px]"
+            className="glass-card flex w-[300px] shrink-0 snap-start flex-col rounded-[10px] p-6 sm:w-[380px]"
           >
             <span className="font-mono text-[13px] tracking-[0.08em] text-accent">
               {"★".repeat(r.rating)}

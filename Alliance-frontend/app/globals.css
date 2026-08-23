@@ -290,6 +290,13 @@ body {
 .glass-card:active {
   transform: translateY(0);
 }
+/* Direct children ride above the sweep (z-index 1), which would otherwise
+   wash across the icon and text instead of behind them. Doing it here keeps
+   every card from repeating `relative z-2` on each child. */
+.glass-card > * {
+  position: relative;
+  z-index: 2;
+}
 /* The sweep is decoration; a reduced-motion preference should not have to
    sit through it. The lift and shadow stay — they convey state. */
 @media (prefers-reduced-motion: reduce) {

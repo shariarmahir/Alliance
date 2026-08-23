@@ -230,7 +230,7 @@ export default function Home() {
           {services.map((s) => (
             <div
               key={s.title}
-              className="group rounded-[10px] border border-slate-line bg-white p-3.5 transition-all hover:border-primary hover:shadow-[0_10px_24px_rgba(16,25,45,.08)] sm:p-5.5"
+              className="glass-card group rounded-[10px] p-3.5 sm:p-5.5"
             >
               <span
                 className={`mb-3 flex size-9 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 sm:mb-4 sm:size-11 ${s.tone}`}
