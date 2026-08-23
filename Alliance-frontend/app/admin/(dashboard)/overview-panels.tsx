@@ -5,6 +5,33 @@ const PANEL = "rounded-[10px] border border-slate-line bg-white p-5";
 const HEADING = "text-[15px] font-bold text-ink";
 const EMPTY = "text-[12px] leading-[1.6] text-[#8a94a6]";
 
+/**
+ * Whole-number percentages that always sum to 100, by the largest-remainder
+ * method. Rounding each share on its own is off by a point often enough to
+ * matter here — 1/3/3 of 7 would print 14/43/43 = 100, but 1/1/1 of 3 would
+ * print 33/33/33, and a legend that visibly fails to add up reads as a bug.
+ * The spare point goes to whichever share was cut hardest.
+ */
+function percentShares(counts: number[], total: number): number[] {
+  if (total <= 0) return counts.map(() => 0);
+
+  const exact = counts.map((c) => (c / total) * 100);
+  const floors = exact.map(Math.floor);
+  let remaining = 100 - floors.reduce((sum, n) => sum + n, 0);
+
+  const order = exact
+    .map((value, i) => ({ i, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder);
+
+  const result = [...floors];
+  for (const { i } of order) {
+    if (remaining <= 0) break;
+    result[i] += 1;
+    remaining -= 1;
+  }
+  return result;
+}
+
 export async function TopDestinationsPanel() {
   const countries = await readTopDestinations();
   const max = Math.max(1, ...countries.map((c) => c.orders));
@@ -65,8 +92,9 @@ export async function OrderRatioPanel() {
     );
   }
 
-  const confirmedPct = Math.round((confirmed / total) * 100);
-  const pendingEnd = Math.round(((confirmed + pending) / total) * 100);
+  const shares = percentShares([confirmed, pending, cancelled], total);
+  const confirmedPct = shares[0];
+  const pendingEnd = confirmedPct + shares[1];
   const conversion = confirmedPct;
 
   return (
@@ -91,13 +119,18 @@ export async function OrderRatioPanel() {
             { label: "Confirmed", value: confirmed, dot: "bg-ok-dot" },
             { label: "Pending", value: pending, dot: "bg-accent" },
             { label: "Cancelled", value: cancelled, dot: "bg-[#e04545]" },
-          ].map((row) => (
-            <span key={row.label} className="flex items-center justify-between">
+          ].map((row, i) => (
+            <span key={row.label} className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <span className={`size-2.5 rounded-sm ${row.dot}`} />
                 {row.label}
               </span>
-              <strong className="font-mono text-ink">{row.value}</strong>
+              <span className="flex items-baseline gap-2.5 font-mono">
+                <span className="w-9 text-right text-[11.5px] text-[#8a94a6]">
+                  {shares[i]}%
+                </span>
+                <strong className="w-6 text-right text-ink">{row.value}</strong>
+              </span>
             </span>
           ))}
         </div>
