@@ -217,6 +217,122 @@ async def test_uploaded_product_image_is_actually_servable(client, db, tmp_path,
     assert served.content == PNG
 
 
+async def test_gallery_upload_appends_behind_the_main_image(client, db, tmp_path, monkeypatch):
+    """The main photo leads the gallery and the extras follow, which is the
+    order the product page renders the thumbnail strip in."""
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+
+    main = await client.post(
+        "/api/admin/products/widget/image",
+        files={"file": ("photo.png", io.BytesIO(PNG), "image/png")},
+    )
+    main_url = main.json()["image"]
+
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[
+            ("files", ("a.png", io.BytesIO(PNG), "image/png")),
+            ("files", ("b.png", io.BytesIO(PNG), "image/png")),
+        ],
+    )
+    assert r.status_code == 200
+    gallery = r.json()["gallery"]
+    assert gallery[0] == main_url
+    assert len(gallery) == 3
+    # Distinct keys: sharing one would mean each upload overwrote the last.
+    assert len(set(gallery)) == 3
+
+
+async def test_uploaded_gallery_images_are_actually_servable(client, db, tmp_path, monkeypatch):
+    """Same reasoning as the main-image test: a 200 with a plausible URL is
+    not proof a browser can load it."""
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("a.png", io.BytesIO(PNG), "image/png"))],
+    )
+    url = r.json()["gallery"][-1]
+    path = "/" + url.split("/", 3)[-1] if "://" in url else url
+    served = await client.get(path)
+    assert served.status_code == 200
+    assert served.content == PNG
+
+
+async def test_gallery_upload_is_additive(client, db, tmp_path, monkeypatch):
+    """Uploading one more shot must not wipe the ones already there."""
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+
+    await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("a.png", io.BytesIO(PNG), "image/png"))],
+    )
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("b.png", io.BytesIO(PNG), "image/png"))],
+    )
+    assert len(r.json()["gallery"]) == 2
+
+
+async def test_replacing_the_main_image_keeps_the_gallery(client, db, tmp_path, monkeypatch):
+    """The main-image route used to overwrite `gallery` with a single-item
+    list, so re-uploading the primary photo discarded every extra shot."""
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+
+    await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("a.png", io.BytesIO(PNG), "image/png"))],
+    )
+    r = await client.post(
+        "/api/admin/products/widget/image",
+        files={"file": ("new.png", io.BytesIO(PNG), "image/png")},
+    )
+    gallery = r.json()["gallery"]
+    assert gallery[0] == r.json()["image"]
+    assert len(gallery) == 2
+
+
+async def test_gallery_is_capped(client, db, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[
+            ("files", (f"{n}.png", io.BytesIO(PNG), "image/png")) for n in range(4)
+        ],
+    )
+    assert r.status_code == 400
+
+
+async def test_gallery_upload_rejects_non_image(client, db, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    await _seed(db)
+    _auth(client)
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("payload.exe", io.BytesIO(b"MZ..."), "application/octet-stream"))],
+    )
+    assert r.status_code == 400
+
+
+async def test_gallery_upload_requires_authentication(client, db):
+    await _seed(db)
+    r = await client.post(
+        "/api/admin/products/widget/gallery",
+        files=[("files", ("a.png", io.BytesIO(PNG), "image/png"))],
+    )
+    assert r.status_code == 401
+
+
 async def test_upload_rejects_non_image(client, db, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     await _seed(db)

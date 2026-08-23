@@ -62,6 +62,10 @@ function RepeatableList({ label, values, onChange, placeholder }: RepeatableList
 
 type SpecRow = { key: string; value: string };
 
+// Matches MAX_GALLERY_IMAGES in the backend's catalog router; the API rejects
+// anything beyond this, so the picker stops offering slots at the same point.
+const MAX_GALLERY = 3;
+
 export function AddProductDialog({
   categories,
   brands,
@@ -86,6 +90,8 @@ export function AddProductDialog({
   const [alternatePartNumbers, setAlternatePartNumbers] = useState<string[]>([]);
   const [specs, setSpecs] = useState<SpecRow[]>([{ key: "", value: "" }]);
   const [image, setImage] = useState<File | null>(null);
+  // null = an empty slot the admin added but has not picked a file for yet.
+  const [gallery, setGallery] = useState<(File | null)[]>([]);
 
   function resetForm() {
     setName("");
@@ -99,6 +105,7 @@ export function AddProductDialog({
     setAlternatePartNumbers([]);
     setSpecs([{ key: "", value: "" }]);
     setImage(null);
+    setGallery([]);
     setErrors({});
   }
 
@@ -147,6 +154,25 @@ export function AddProductDialog({
           );
         } catch {
           toast.warning(`"${name}" was saved, but the image could not be uploaded.`);
+        }
+      }
+
+      // After the main image, which leads the gallery. Empty slots are
+      // skipped so adding a picker and not using it is harmless.
+      const extras = gallery.filter((f): f is File => f !== null);
+      if (extras.length > 0) {
+        const galleryForm = new FormData();
+        extras.forEach((file) => galleryForm.append("files", file));
+        try {
+          await apiUpload(
+            `/api/admin/products/${encodeURIComponent(created.slug)}/gallery`,
+            galleryForm
+          );
+        } catch (err) {
+          toast.warning(
+            `"${name}" was saved, but the additional images could not be uploaded.`,
+            { description: err instanceof ApiError ? err.message : undefined }
+          );
         }
       }
 
@@ -303,14 +329,59 @@ export function AddProductDialog({
             </div>
           </div>
 
-          {/* One image only. The API stores a single product image and uses it
-              as the gallery too, so the "Gallery Images" picker that used to
-              sit here had nowhere to send its files — they were silently
-              discarded on every save. */}
           <div className="space-y-1.5">
             <Label htmlFor="image">Product Image</Label>
             <Input id="image" type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} required />
+            <p className="text-xs text-muted-foreground">
+              The main photo, shown first on the product page.
+            </p>
             {errors.image && <p className="text-xs text-destructive">{errors.image}</p>}
+          </div>
+
+          {/* Up to three extra shots, which become the thumbnail strip under
+              the main image on the product page. Added one slot at a time so
+              a picker is only shown when it is wanted. */}
+          <div className="space-y-1.5">
+            <Label>Additional Images (optional)</Label>
+            <div className="space-y-1.5">
+              {gallery.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-1.5">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    aria-label={`Additional image ${idx + 1}`}
+                    onChange={(e) => {
+                      const next = [...gallery];
+                      next[idx] = e.target.files?.[0] ?? null;
+                      setGallery(next);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Remove additional image ${idx + 1}`}
+                    onClick={() => setGallery(gallery.filter((_, i) => i !== idx))}
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {gallery.length < MAX_GALLERY && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setGallery([...gallery, null])}
+                >
+                  <Plus className="size-3.5" /> Add Image
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {gallery.length}/{MAX_GALLERY} added &middot; shown as thumbnails beside the
+                main image.
+              </p>
+            </div>
           </div>
 
           <DialogFooter>

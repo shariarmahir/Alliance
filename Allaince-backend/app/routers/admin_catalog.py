@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
@@ -110,7 +111,64 @@ async def upload_product_image(
     except ImageRejected as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    updated = await svc.update_product(db, slug, {"image": url, "gallery": [url]})
+    # The main image leads the gallery. Any extra shots already uploaded are
+    # kept behind it, so replacing the primary photo does not silently discard
+    # the rest of the gallery.
+    extras = [u for u in (product.gallery or []) if u != url and u != product.image]
+    updated = await svc.update_product(db, slug, {"image": url, "gallery": [url, *extras]})
+    return ProductOut.model_validate(updated)
+
+
+MAX_GALLERY_IMAGES = 3
+
+
+@router.post("/products/{slug}/gallery", response_model=ProductOut)
+async def upload_product_gallery(
+    slug: str, session: AdminDep, db: DbSession, files: list[UploadFile] = File(...)
+):
+    """Adds extra photos shown as thumbnails beside the main product image.
+
+    Appends rather than replaces, so uploading one more shot does not wipe the
+    others. Each file gets its own key -- the main image is keyed on the slug
+    alone, so gallery shots must be suffixed or they would overwrite it and
+    each other.
+    """
+    product = await svc.get_product(db, slug)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    existing = list(product.gallery or [])
+    if product.image and product.image not in existing:
+        existing.insert(0, product.image)
+
+    room = MAX_GALLERY_IMAGES - max(0, len(existing) - 1)
+    if len(files) > room:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Only {MAX_GALLERY_IMAGES} extra images are allowed per product; "
+                f"room for {max(0, room)} more."
+            ),
+        )
+
+    added: list[str] = []
+    for index, file in enumerate(files):
+        content = await file.read()
+        try:
+            ext = validate_image(file.filename or "", content, file.content_type)
+            # Millisecond stamp plus position: two files uploaded together in
+            # the same second would otherwise collide on the same key.
+            stamp = f"{int(time.time() * 1000)}-{index}"
+            url = save_image(
+                product_image_key(product.category_slug, f"{slug}-{stamp}{ext}"),
+                content,
+                file.content_type,
+            )
+        except ImageRejected as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        added.append(url)
+
+    updated = await svc.update_product(db, slug, {"gallery": [*existing, *added]})
     return ProductOut.model_validate(updated)
 
 
