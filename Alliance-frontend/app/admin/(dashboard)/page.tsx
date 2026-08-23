@@ -60,10 +60,12 @@ export default async function AdminOverviewPage({
     readPaymentAnalytics(range),
   ]);
   const rangeLabel = RANGE_LABEL[range];
+  // Both trends are built from the same buckets for the same range, so they
+  // align index-for-index and share the label.
   const revenueChartData = analytics.revenueTrend.map((point, i) => ({
     label: point.label,
     revenue: point.value,
-    orders: analytics.orderTrend[i]?.value ?? 0,
+    pending: payments.pendingTrend[i]?.value ?? 0,
   }));
 
   return (
