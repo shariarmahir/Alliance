@@ -29,12 +29,13 @@ export async function CategoryGrid() {
           <Link
             key={c.slug}
             href={`/products?category=${c.slug}`}
-            className="flex flex-col items-center gap-2 rounded-[10px] border border-slate-line bg-white p-2.5 text-center transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_8px_22px_rgba(0,125,204,.12)] sm:gap-2.5 sm:p-4"
+            className="glass-card flex flex-col items-center gap-2 rounded-[10px] p-2.5 text-center sm:gap-2.5 sm:p-4"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-blue sm:size-13">
+            {/* Above the card's shine sweep, which is z-index 1. */}
+            <span className="relative z-2 flex size-10 shrink-0 items-center justify-center rounded-md bg-white/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)] sm:size-13">
               <Image src={c.icon} alt="" width={22} height={22} className="sm:h-7.5 sm:w-7.5" />
             </span>
-            <span className="min-w-0">
+            <span className="relative z-2 min-w-0">
               <strong className="line-clamp-2 text-[10.5px] font-semibold text-ink sm:text-[13px] sm:leading-[1.3]">
                 {c.name}
               </strong>

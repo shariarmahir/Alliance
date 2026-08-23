@@ -244,6 +244,67 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
+/* Glass treatment for cards sitting on a light page, sharing the buttons'
+   translucency, blur, lift and shine sweep. The sweep is tinted with the
+   brand blue rather than white: the buttons sweep white over saturated
+   blue/gold, but on a near-white card a white highlight is invisible. */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(234, 245, 253, 0.55) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 1px 2px rgba(16, 25, 45, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(0, 125, 204, 0.16), transparent);
+  transform: skewX(-20deg);
+  z-index: 1;
+  pointer-events: none;
+}
+.glass-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 125, 204, 0.45);
+  box-shadow:
+    0 10px 26px rgba(0, 125, 204, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.glass-card:hover::after {
+  animation: glass-shine 0.9s ease;
+}
+.glass-card:active {
+  transform: translateY(0);
+}
+/* The sweep is decoration; a reduced-motion preference should not have to
+   sit through it. The lift and shadow stay — they convey state. */
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .btn-glass,
+  .btn-glass-accent {
+    transition: none;
+  }
+  .glass-card:hover::after,
+  .btn-glass:hover::after,
+  .btn-glass-accent:hover::after {
+    animation: none;
+  }
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
