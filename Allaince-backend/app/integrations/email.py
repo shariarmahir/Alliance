@@ -231,10 +231,13 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
 
     body = (
         f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Thank you for your enquiry'
-        f"{_company_clause(details)}. We are pleased to offer the following, "
-        f"quoted against reference <strong>{escape(confirmation.ref_number)}</strong>. "
-        f"The full quotation is attached as a PDF.</p>"
+        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">With reference to your '
+        "valued inquiry, we are pleased to submit our best competitive offer for your "
+        "kind consideration.</p>"
+        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached our '
+        f"price quotation, reference <strong>{escape(confirmation.ref_number)}</strong>, "
+        "for your review. We sincerely hope our offer meets your requirements and "
+        "expectations.</p>"
         + _subject_block(confirmation)
         + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
         + _rows(
@@ -252,15 +255,17 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         + '" style="display:inline-block;background:#007DCC;color:#fff;padding:11px 20px;'
         'border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold">'
         "View this request</a></p>"
-        '<p style="font-size:12.5px;color:#667085;line-height:1.6;margin:10px 0 0">'
+        '<p style="font-size:14px;line-height:1.65;margin:18px 0 0">We look forward to '
+        "receiving your valued order and establishing a long-term business relationship "
+        "with your esteemed organization.</p>"
+        '<p style="font-size:12.5px;color:#667085;line-height:1.6;margin:14px 0 0">'
         "Reply to this email to accept the offer. To adjust quantities or "
         "specifications, reply with the changes and an engineer will re-issue "
         "a revised offer.</p>"
-        '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">Questions about compatibility or lead time? '
-        "Reply here, or message us on WhatsApp at "
-        '<strong>+8801315-770099</strong> — sending a photo of the equipment '
-        "nameplate is usually the fastest way for us to confirm the exact part.</p>"
+        '<p style="font-size:14px;line-height:1.65;margin:22px 0 0;padding-top:16px;'
+        'border-top:1px solid #e3e8ef">Best Regards,<br>'
+        "Md. Nurul Islam<br>"
+        "Manager &ndash; Sales</p>"
     )
 
     attachments = None
