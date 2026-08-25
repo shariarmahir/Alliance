@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FileCheck2, ChevronUp, Mail, CheckCircle2 } from "lucide-react";
+import { FileCheck2, ChevronUp, Mail, CheckCircle2, Upload } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -20,7 +21,7 @@ import {
   generateRefNumber,
 } from "@/app/lib/order-confirmation";
 import { downloadQuotationPdf, quotationPdfToBase64 } from "@/app/lib/quotation-pdf";
-import { apiFetch, ApiError } from "@/app/lib/api-browser";
+import { apiFetch, apiUpload, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationTerms } from "@/app/lib/types";
 
 // Editable per-line state. Product IDs are deliberately absent — the server
@@ -107,6 +108,7 @@ export function ConfirmQuotationPanel({
   sequence: number;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const existing = quotation.confirmation;
   const [submitting, setSubmitting] = useState(false);
 
@@ -152,9 +154,12 @@ export function ConfirmQuotationPanel({
 
   const [emailing, setEmailing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [savingPo, setSavingPo] = useState(false);
+  const [poNumber, setPoNumber] = useState(quotation.poNumber ?? "");
+  const [poFile, setPoFile] = useState<File | null>(null);
   // Every footer action writes the same record, so one running action locks
   // them all rather than letting two overlapping saves race each other.
-  const busyAny = submitting || emailing || confirming;
+  const busyAny = submitting || emailing || confirming || savingPo;
   // Set once the email actually lands, so the panel keeps a visible record of
   // the send rather than relying on a toast the admin may have missed.
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -294,6 +299,40 @@ export function ConfirmQuotationPanel({
       toast.error("Could not issue the order confirmation.", { id: toastId });
     } finally {
       setEmailing(false);
+    }
+  }
+
+  // Number and file travel together when both are present, but either alone
+  // is valid: the PO number usually arrives by email before the signed
+  // document follows.
+  async function saveWorkOrder() {
+    setSavingPo(true);
+    try {
+      if (poFile) {
+        const form = new FormData();
+        form.set("file", poFile);
+        form.set("poNumber", poNumber.trim());
+        await apiUpload(
+          `/api/admin/quotations/${encodeURIComponent(quotation.id)}/work-order`,
+          form
+        );
+      } else {
+        await apiFetch(
+          `/api/admin/quotations/${encodeURIComponent(quotation.id)}/work-order`,
+          { method: "PATCH", body: { poNumber: poNumber.trim() } }
+        );
+      }
+      toast.success("Work order saved.");
+      setPoFile(null);
+      // Refresh rather than close: the admin almost always confirms the
+      // order immediately after filing the PO, so the panel stays put.
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not save the work order."
+      );
+    } finally {
+      setSavingPo(false);
     }
   }
 
@@ -484,6 +523,59 @@ export function ConfirmQuotationPanel({
                 </span>
               </div>
             )}
+
+            {/* The customer's own paperwork. Sits directly above Confirm
+                because the PO is what authorises accepting the order, and
+                filing it after the fact is how it gets forgotten. */}
+            <div className="rounded-[10px] border border-slate-line bg-white p-4">
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <p className="text-[13px] font-bold text-ink">Customer Work Order / PO</p>
+                {quotation.poUploadedAt && (
+                  <span className="font-mono text-[11px] text-ok">
+                    Attached {new Date(quotation.poUploadedAt).toLocaleDateString("en-GB")}
+                  </span>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <div>
+                  <FieldLabel>PO NUMBER</FieldLabel>
+                  <Input
+                    value={poNumber}
+                    onChange={(e) => setPoNumber(e.target.value)}
+                    placeholder="e.g. PO-8891"
+                  />
+                </div>
+                <div>
+                  <FieldLabel>DOCUMENT</FieldLabel>
+                  <Input
+                    type="file"
+                    accept=".pdf,image/jpeg,image/png,image/webp"
+                    onChange={(e) => setPoFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={saveWorkOrder}
+                  disabled={busyAny || (!poFile && !poNumber.trim())}
+                  className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2 text-[12.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                >
+                  <Upload className="size-3.5" />
+                  {savingPo ? "Saving..." : "Save Work Order"}
+                </button>
+                {quotation.poDocumentUrl && (
+                  <a
+                    href={quotation.poDocumentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-semibold text-primary hover:underline"
+                  >
+                    View attached document
+                  </a>
+                )}
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
               <p className="text-[11.5px] text-[#8a94a6]">

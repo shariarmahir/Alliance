@@ -106,7 +106,7 @@ async def test_add_quotation_computes_total_server_side(db):
     quotation = await add_quotation(db, ITEMS, DETAILS)
     # 100*2 + 50*1 — never taken from the client.
     assert quotation.total == 250.0
-    assert quotation.status == "pending"
+    assert quotation.status == "inbox"
     assert quotation.customer_email == "ada@example.com"
 
 

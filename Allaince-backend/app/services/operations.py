@@ -153,7 +153,9 @@ async def add_quotation(db: AsyncSession, items: list[dict], details: dict) -> Q
         items=items,
         total=round(total, 2),
         details=details,
-        status="pending",
+        # A brand-new customer request is untouched work: it belongs in the
+        # inbox, not in "pending", which now means a quotation was prepared.
+        status="inbox",
         customer_email=(details.get("email") or "").strip().lower(),
         submitted_at=submitted_at,
     )
@@ -234,11 +236,11 @@ async def confirm_quotation(
     """Saves the priced offer, and by default flips the quotation to confirmed
     in the same commit so the two can never disagree.
 
-    With confirm=False the offer is written and the request is marked
-    "quoted" — still open, still in the Pending queue, but visibly priced.
-    That is what lets an admin quote a request, download or email the PDF,
-    and still decide separately whether to accept it. A request that has
-    already been confirmed is never walked backwards to "quoted"."""
+    With confirm=False the offer is written and an inbox request moves to
+    "pending" — prepared but not yet sent. That is what lets an admin price a
+    request, download or email the PDF, and still decide separately whether to
+    accept it. A request already submitted, confirmed or cancelled is never
+    walked backwards."""
     quotation = await get_quotation(db, quotation_id)
     if quotation is None:
         return None
@@ -292,10 +294,58 @@ async def confirm_quotation(
 
     if confirm:
         quotation.status = "confirmed"
-    elif quotation.status == "pending":
-        # Only from pending: re-quoting an already confirmed or cancelled
-        # request must not reopen it.
-        quotation.status = "quoted"
+    elif quotation.status == "inbox":
+        # Preparing a quotation moves an untouched request out of the inbox.
+        # Only from inbox: re-pricing a submitted, confirmed or cancelled
+        # request must not drag it backwards through the workflow.
+        quotation.status = "pending"
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+async def mark_quotation_submitted(db: AsyncSession, quotation_id: str) -> Quotation | None:
+    """Records that the quotation reached the customer.
+
+    Called only after the send actually succeeded, so "submitted" always means
+    a real email went out. Advances from pending; a quotation already confirmed
+    or cancelled keeps its status, since re-sending a copy of the document does
+    not undo the customer's decision.
+    """
+    quotation = await get_quotation(db, quotation_id)
+    if quotation is None:
+        return None
+
+    quotation.quoted_sent_at = datetime.now(timezone.utc)
+    if quotation.status in ("inbox", "pending"):
+        quotation.status = "submitted"
+    await db.commit()
+    await db.refresh(quotation)
+    return quotation
+
+
+async def record_work_order(
+    db: AsyncSession,
+    quotation_id: str,
+    *,
+    po_number: str | None = None,
+    document_url: str | None = None,
+) -> Quotation | None:
+    """Attaches the customer's Work Order / PO to the quotation.
+
+    Number and document arrive separately — the number is often known from an
+    email before the signed PDF follows — so each is written only when given
+    rather than blanking the other.
+    """
+    quotation = await get_quotation(db, quotation_id)
+    if quotation is None:
+        return None
+
+    if po_number is not None:
+        quotation.po_number = po_number.strip()
+    if document_url is not None:
+        quotation.po_document_url = document_url
+        quotation.po_uploaded_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(quotation)
     return quotation

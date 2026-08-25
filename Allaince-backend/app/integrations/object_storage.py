@@ -22,6 +22,20 @@ ALLOWED_CONTENT_TYPES = {
 }
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
+# Customer paperwork — a Work Order or PO, typically a PDF or a phone scan.
+# Deliberately a separate set from the image lists above so widening this can
+# never make the product-photo routes start accepting documents. Note SVG is
+# absent: it is an executable document, and these are served to admins rather
+# than through the image optimiser's sandbox.
+ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_DOCUMENT_CONTENT_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
+
 _UNSAFE = re.compile(r"[^A-Za-z0-9._-]+")
 
 # Local-disk fallback for development, so image upload works without an S3
@@ -65,6 +79,34 @@ def validate_image(filename: str, content: bytes, content_type: str | None) -> s
     if content_type and content_type not in ALLOWED_CONTENT_TYPES:
         raise ImageRejected(f"Unsupported content type '{content_type}'.")
     return ext
+
+
+def validate_document(filename: str, content: bytes, content_type: str | None) -> str:
+    """Returns the validated extension, or raises ImageRejected.
+
+    Mirrors validate_image but against the document allow-lists, with a larger
+    ceiling: a scanned multi-page PO runs bigger than a product photo.
+    """
+    if not content:
+        raise ImageRejected("The uploaded file is empty.")
+    if len(content) > MAX_DOCUMENT_BYTES:
+        raise ImageRejected(
+            f"Document exceeds the {MAX_DOCUMENT_BYTES // (1024 * 1024)}MB limit."
+        )
+
+    ext = Path(safe_filename(filename)).suffix.lower()
+    if ext not in ALLOWED_DOCUMENT_EXTENSIONS:
+        raise ImageRejected(
+            f"Unsupported document type '{ext or 'unknown'}'. "
+            f"Allowed: {', '.join(sorted(ALLOWED_DOCUMENT_EXTENSIONS))}."
+        )
+    if content_type and content_type not in ALLOWED_DOCUMENT_CONTENT_TYPES:
+        raise ImageRejected(f"Unsupported content type '{content_type}'.")
+    return ext
+
+
+def work_order_key(quotation_id: str, ext: str) -> str:
+    return f"documents/work-orders/{safe_filename(quotation_id)}{ext}"
 
 
 def _public_url(key: str) -> str:

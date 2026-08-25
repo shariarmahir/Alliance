@@ -269,14 +269,14 @@ async def order_status_ratio(db: AsyncSession) -> list[OrderRatioSlice]:
     """How every price request has resolved, for the conversion donut.
 
     Counts quotations rather than the `orders` table, which no longer has a
-    writer. "quoted" folds into pending: a priced offer the customer has not
-    accepted is still an open request, which is also how the Price requests
-    screen queues it.
+    writer. Everything short of confirmed or cancelled folds into "pending":
+    an untouched request, a prepared quotation and one already sent are all
+    still open as far as conversion is concerned.
     """
     quotations = list((await db.execute(select(Quotation))).scalars().all())
     counts: dict[str, int] = {"confirmed": 0, "pending": 0, "cancelled": 0}
     for quotation in quotations:
-        if quotation.status in ("pending", "quoted"):
+        if quotation.status in ("inbox", "pending", "submitted"):
             counts["pending"] += 1
         elif quotation.status in counts:
             counts[quotation.status] += 1

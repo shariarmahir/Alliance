@@ -2,11 +2,17 @@ import base64
 import binascii
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 
 from app.core.deps import DbSession, SuperAdminDep, require_area
 from app.integrations import email as email_integration
 from app.integrations import pdf as pdf_integration
+from app.integrations.object_storage import (
+    ImageRejected,
+    save_image,
+    validate_document,
+    work_order_key,
+)
 from app.schemas.operations import (
     ConfirmQuotationRequest,
     ContactRequestOut,
@@ -18,6 +24,7 @@ from app.schemas.operations import (
     QuotationEmailRequest,
     QuotationOut,
     QuotationStatusUpdate,
+    WorkOrderUpdate,
 )
 from app.schemas.session import AdminSession
 from app.services import operations as svc
@@ -73,6 +80,10 @@ def _out(quotation) -> QuotationOut:
             "details": quotation.details,
             "status": quotation.status,
             "confirmation": quotation.confirmation,
+            "quoted_sent_at": quotation.quoted_sent_at,
+            "po_document_url": quotation.po_document_url,
+            "po_number": quotation.po_number,
+            "po_uploaded_at": quotation.po_uploaded_at,
         }
     )
 
@@ -236,7 +247,59 @@ async def email_quotation(
         raise HTTPException(
             status_code=502, detail="Email could not be sent. Check the mail configuration."
         )
+
+    # Only after a confirmed send: "submitted" has to mean the customer
+    # actually received it, so a mail failure must leave the status alone.
+    await svc.mark_quotation_submitted(db, quotation_id)
     return {"sent": True, "attached": pdf_bytes is not None}
+
+
+@router.patch("/quotations/{quotation_id}/work-order", response_model=QuotationOut)
+async def set_work_order_number(
+    quotation_id: str,
+    payload: WorkOrderUpdate,
+    db: DbSession,
+    session: AdminSession = QuotationsArea,
+):
+    """Records the customer's PO number, which usually arrives before the file."""
+    updated = await svc.record_work_order(db, quotation_id, po_number=payload.po_number)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+    return _out(updated)
+
+
+@router.post("/quotations/{quotation_id}/work-order", response_model=QuotationOut)
+async def upload_work_order(
+    quotation_id: str,
+    db: DbSession,
+    file: UploadFile = File(...),
+    po_number: str = Form(default=""),
+    session: AdminSession = QuotationsArea,
+):
+    """Attaches the customer's signed Work Order / PO document.
+
+    Keyed on the quotation id, so re-uploading a corrected PO replaces the
+    previous file rather than accumulating orphans nothing links to.
+    """
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+
+    content = await file.read()
+    try:
+        ext = validate_document(file.filename or "", content, file.content_type)
+        url = save_image(work_order_key(quotation_id, ext), content, file.content_type)
+    except ImageRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    updated = await svc.record_work_order(
+        db,
+        quotation_id,
+        po_number=po_number or None,
+        document_url=url,
+    )
+    logger.info("%s uploaded a work order for %s", session.email, quotation_id)
+    return _out(updated)
 
 
 @router.post("/quotations/{quotation_id}/challan/email")

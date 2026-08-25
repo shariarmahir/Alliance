@@ -79,7 +79,8 @@ async def test_submit_quotation_computes_total_and_returns_id(client, db):
     assert r.status_code == 201
     body = r.json()
     assert body["total"] == 200.0
-    assert body["status"] == "pending"
+    # A new customer request lands untouched in the inbox.
+    assert body["status"] == "inbox"
     assert body["id"]
 
 
@@ -171,12 +172,140 @@ async def test_super_admin_can_read_quotations(client):
 # --- confirmation and tracking flow ----------------------------------------
 
 
-async def test_pricing_without_confirm_marks_quoted_not_confirmed(client):
+async def test_emailing_the_quotation_marks_it_submitted(client, db):
+    """"Submitted" has to mean the customer actually received it, so the
+    status advances on a successful send rather than on the click."""
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": False, "lines": [{"name": "D", "quantity": 1, "unitPrice": 10.0}]},
+    )
+    assert (await client.get(f"/api/admin/quotations/{quotation_id}")).json()["status"] == "pending"
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_quotation_issued",
+        new=AsyncMock(return_value=True),
+    ):
+        r = await client.post(
+            f"/api/admin/quotations/{quotation_id}/email",
+            json={"pdfBase64": base64.b64encode(b"%PDF-1.4 x").decode()},
+        )
+    assert r.status_code == 200
+
+    body = (await client.get(f"/api/admin/quotations/{quotation_id}")).json()
+    assert body["status"] == "submitted"
+    assert body["quotedSentAt"] is not None
+
+
+async def test_a_failed_send_leaves_the_status_alone(client, db):
+    """A mail failure must not claim the customer was sent anything."""
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": False, "lines": [{"name": "D", "quantity": 1, "unitPrice": 10.0}]},
+    )
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_quotation_issued",
+        new=AsyncMock(return_value=False),
+    ):
+        r = await client.post(
+            f"/api/admin/quotations/{quotation_id}/email",
+            json={"pdfBase64": base64.b64encode(b"%PDF-1.4 x").decode()},
+        )
+    assert r.status_code == 502
+
+    body = (await client.get(f"/api/admin/quotations/{quotation_id}")).json()
+    assert body["status"] == "pending"
+    assert body["quotedSentAt"] is None
+
+
+async def test_resending_does_not_walk_a_confirmed_quotation_backwards(client, db):
+    """Re-sending a copy of the document is not the customer un-deciding."""
+    import base64
+    from unittest.mock import AsyncMock, patch
+
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": True, "lines": [{"name": "D", "quantity": 1, "unitPrice": 10.0}]},
+    )
+
+    with patch(
+        "app.routers.admin_operations.email_integration.send_quotation_issued",
+        new=AsyncMock(return_value=True),
+    ):
+        await client.post(
+            f"/api/admin/quotations/{quotation_id}/email",
+            json={"pdfBase64": base64.b64encode(b"%PDF-1.4 x").decode()},
+        )
+
+    assert (
+        await client.get(f"/api/admin/quotations/{quotation_id}")
+    ).json()["status"] == "confirmed"
+
+
+async def test_work_order_upload_attaches_the_document(client, db, tmp_path, monkeypatch):
+    import io
+
+    monkeypatch.chdir(tmp_path)
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/work-order",
+        files={"file": ("po.pdf", io.BytesIO(b"%PDF-1.4 purchase order"), "application/pdf")},
+        data={"poNumber": "PO-8891"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["poDocumentUrl"].endswith(".pdf")
+    assert body["poUploadedAt"] is not None
+
+
+async def test_work_order_rejects_an_executable(client, db, tmp_path, monkeypatch):
+    """A PO is paperwork; the document allow-list must not accept a binary."""
+    import io
+
+    monkeypatch.chdir(tmp_path)
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/work-order",
+        files={"file": ("payload.exe", io.BytesIO(b"MZ..."), "application/octet-stream")},
+    )
+    assert r.status_code == 400
+
+
+async def test_work_order_number_can_be_set_without_a_file(client, db):
+    """The PO number often arrives in an email before the signed PDF does."""
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+
+    r = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/work-order", json={"poNumber": "PO-1234"}
+    )
+    assert r.status_code == 200
+    assert r.json()["poNumber"] == "PO-1234"
+    assert r.json()["poDocumentUrl"] is None
+
+
+async def test_pricing_without_confirm_marks_pending_not_confirmed(client):
     """Producing the quotation document is not the same as accepting it.
 
     An admin prices a request so they can download or email the PDF. That
-    marks it "quoted" — visibly priced, but still an open request — and it
-    must not become "confirmed" until they explicitly say so.
+    moves it out of the inbox to "pending" — prepared but not yet sent — and
+    it must not become "confirmed" until they explicitly say so.
     """
     quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
     _auth(client)
@@ -192,7 +321,7 @@ async def test_pricing_without_confirm_marks_quoted_not_confirmed(client):
     # The priced offer is saved...
     assert r.json()["confirmation"]["grandTotal"] == 300.0
     # ...but the request has not been accepted.
-    assert r.json()["status"] == "quoted"
+    assert r.json()["status"] == "pending"
 
     # Confirming afterwards keeps the same reference rather than minting a new
     # one, so the customer's copy stays valid.

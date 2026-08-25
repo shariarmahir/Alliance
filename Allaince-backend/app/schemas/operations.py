@@ -9,10 +9,10 @@ ContactMethod = Literal["email", "phone", "whatsapp"]
 LeadTime = Literal["standard", "urgent", "flexible"]
 DeliveryOptionId = Literal["standard", "express", "air"]
 OrderStatus = Literal["pending", "confirmed", "cancelled"]
-# "quoted" means priced and the PDF produced, but not yet accepted. It is
-# still an open request — it stays in the Pending queue — and only exists so
-# an admin can see at a glance which requests have already been quoted.
-QuotationStatus = Literal["pending", "quoted", "confirmed", "cancelled"]
+# The commercial workflow, in order. "inbox" is an untouched customer request;
+# "pending" means a quotation has been prepared but not yet sent; "submitted"
+# means it was emailed to the customer. Cancellation can happen from any point.
+QuotationStatus = Literal["inbox", "pending", "submitted", "confirmed", "cancelled"]
 PaymentStatus = Literal["pending", "received"]
 
 
@@ -109,10 +109,21 @@ class QuotationOut(CamelModel):
     details: QuotationDetails
     status: QuotationStatus
     confirmation: OrderConfirmationOut | None = None
+    quoted_sent_at: datetime | None = None
+    po_document_url: str | None = None
+    po_number: str = ""
+    po_uploaded_at: datetime | None = None
 
 
 class QuotationStatusUpdate(CamelModel):
     status: QuotationStatus
+
+
+class WorkOrderUpdate(CamelModel):
+    """The customer's PO reference. The file itself arrives as multipart on the
+    upload route; this carries the number, which is often known first."""
+
+    po_number: str = Field(default="", max_length=120)
 
 
 class QuotationEmailRequest(CamelModel):

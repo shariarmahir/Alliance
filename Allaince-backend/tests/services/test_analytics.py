@@ -249,13 +249,13 @@ async def test_paid_orders_are_not_also_counted_as_pending(db):
     assert result.pending_count == 0
 
 
-async def test_a_quoted_offer_is_not_money_owed(db):
-    """A "quoted" request has a priced confirmation attached — the offer whose
+async def test_a_prepared_offer_is_not_money_owed(db):
+    """A "pending" request has a priced confirmation attached — the offer whose
     PDF was produced — but the customer has not accepted it. Counting it made
     the panel's pending total exceed the sum of the rows the Orders table
     shows, which lists confirmed orders only."""
     await _order(db, 1, 22.0)  # confirmed, unpaid
-    await _order(db, 1, 4.0, status="quoted")
+    await _order(db, 1, 4.0, status="pending")
     await db.commit()
 
     result = await read_payment_analytics(db, "month")
@@ -263,11 +263,11 @@ async def test_a_quoted_offer_is_not_money_owed(db):
     assert result.pending_count == 1
 
 
-async def test_a_quoted_offer_is_not_revenue(db):
+async def test_a_prepared_offer_is_not_revenue(db):
     """Same rule on the Overview: booking an unaccepted offer as revenue
     reports sales the business has not made."""
     await _order(db, 1, 22.0)
-    await _order(db, 1, 4.0, status="quoted")
+    await _order(db, 1, 4.0, status="pending")
     await db.commit()
 
     result = await read_range_analytics(db, "month")
@@ -281,7 +281,7 @@ async def test_pending_total_matches_the_sum_of_confirmed_unpaid_orders(db):
     await _order(db, 1, 22.0)
     await _order(db, 2, 15.0)
     await _order(db, 3, 9.0, payment_status="received", paid_days_ago=1)
-    await _order(db, 1, 4.0, status="quoted")
+    await _order(db, 1, 4.0, status="pending")
     await _order(db, 1, 100.0, status="cancelled")
     await db.commit()
 
@@ -362,14 +362,16 @@ async def test_order_ratio_counts_quotations_by_outcome(db):
     assert ratio == {"confirmed": 1, "pending": 1, "cancelled": 1}
 
 
-async def test_order_ratio_folds_quoted_into_pending(db):
-    """A priced offer the customer has not accepted is still an open request,
-    which is how the Price requests screen queues it."""
-    await _order(db, 1, 10.0, status="quoted")
+async def test_order_ratio_folds_open_states_into_pending(db):
+    """Untouched, prepared and sent are all still open as far as conversion
+    goes — only confirmed and cancelled are settled outcomes."""
+    await _order(db, 1, 10.0, status="inbox")
+    await _order(db, 1, 10.0, status="pending")
+    await _order(db, 1, 10.0, status="submitted")
     await db.commit()
 
     ratio = {s.status: s.count for s in await order_status_ratio(db)}
-    assert ratio["pending"] == 1
+    assert ratio["pending"] == 3
     assert ratio["confirmed"] == 0
 
 
@@ -393,7 +395,7 @@ async def test_top_destinations_groups_case_variants(db):
 
 
 async def test_top_destinations_excludes_unconfirmed_and_blank(db):
-    await _order(db, 1, 10.0, status="quoted", country="India")
+    await _order(db, 1, 10.0, status="pending", country="India")
     await _order(db, 1, 10.0, country="")
     await db.commit()
 

@@ -185,9 +185,15 @@ export type DailyReport = {
 };
 
 export type OrderStatus = "pending" | "confirmed" | "cancelled";
-// "quoted" = priced and the PDF produced, but not yet accepted. Still an open
-// request, so it stays in the Pending queue alongside "pending".
-export type QuotationStatus = "pending" | "quoted" | "confirmed" | "cancelled";
+// The commercial workflow, in order. "inbox" is an untouched customer request;
+// "pending" means a quotation has been prepared but not yet sent; "submitted"
+// means it was emailed to the customer. Cancellation can happen at any point.
+export type QuotationStatus =
+  | "inbox"
+  | "pending"
+  | "submitted"
+  | "confirmed"
+  | "cancelled";
 export type PaymentStatus = "pending" | "received";
 
 // A confirmed order. Persisted client-side (localStorage, for the success/
@@ -257,15 +263,20 @@ export type OrderConfirmation = {
   paymentReceivedAt?: string; // ISO — when payment was recorded
 };
 
-// A submitted quotation, persisted server-side (data/quotations.json) as of
-// Phase 3 — previously sessionStorage-only.
+// A customer's price request and everything the business attaches to it as it
+// moves through the workflow.
 export type Quotation = {
   id: string; // crypto.randomUUID()
   items: QuoteItem[];
   total: number;
   details: QuotationDetails;
-  status: QuotationStatus; // defaults to "pending"
-  confirmation?: OrderConfirmation; // present only while status === "confirmed"
+  status: QuotationStatus; // defaults to "inbox"
+  confirmation?: OrderConfirmation; // the priced offer, once prepared
+  quotedSentAt?: string | null; // ISO — set when the quotation email went out
+  // The customer's own Work Order / PO, attached at confirmation time.
+  poDocumentUrl?: string | null;
+  poNumber?: string;
+  poUploadedAt?: string | null;
 };
 
 export type ContactRequest = {

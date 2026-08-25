@@ -37,10 +37,11 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     pendingOrders: quotations.filter(
       (q) => q.status === "confirmed" && (q.confirmation?.deliveryStage ?? 0) < MAX_STAGE
     ).length,
-    // "quoted" is still an open request — priced, but not yet accepted — so
-    // it counts toward the badge the same as an untouched one.
+    // Every stage short of a decision is still work in hand, so all three
+    // count toward the badge — an untouched request, a prepared quotation and
+    // one awaiting the customer's answer all need someone to come back to it.
     pendingQuotations: quotations.filter(
-      (q) => q.status === "pending" || q.status === "quoted"
+      (q) => q.status === "inbox" || q.status === "pending" || q.status === "submitted"
     ).length,
     openContactRequests: contactRequests.filter((r) => !r.handled).length,
   };

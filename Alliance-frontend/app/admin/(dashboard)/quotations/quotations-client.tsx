@@ -35,17 +35,19 @@ import type { Quotation, QuotationStatus } from "@/app/lib/types";
 const SLA_HOURS = 4;
 
 const STATUS_PILL: Record<QuotationStatus, { label: string; tone: PillTone }> = {
-  pending: { label: "PENDING", tone: "warn" },
-  // Informational rather than a warning: the request has been quoted, so it
-  // is a step further along than pending even though it is still open.
-  quoted: { label: "PDF DOWNLOADED", tone: "info" },
+  // Untouched work: a warning tone because it is the queue that needs action.
+  inbox: { label: "NEW", tone: "warn" },
+  // Prepared but not yet sent — a step further along, so informational.
+  pending: { label: "PREPARED", tone: "info" },
+  submitted: { label: "SUBMITTED", tone: "info" },
   confirmed: { label: "CONFIRMED", tone: "ok" },
   cancelled: { label: "CANCELLED", tone: "danger" },
 };
 
-// Both are open requests awaiting a decision, so the Pending tab shows them
-// together — quoting one must not make it vanish from the queue.
-const OPEN_STATUSES: QuotationStatus[] = ["pending", "quoted"];
+// Everything short of a decision. A request stays visible in the working
+// queue as it moves through preparation and sending, so acting on one never
+// makes it vanish mid-workflow.
+const OPEN_STATUSES: QuotationStatus[] = ["inbox", "pending", "submitted"];
 
 const LEAD_TIME_LABEL: Record<string, string> = {
   standard: "Standard",
@@ -508,7 +510,7 @@ function ClearCancelledBanner({
 
 export function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
   const router = useRouter();
-  const [filter, setFilter] = useState<"all" | QuotationStatus>("pending");
+  const [filter, setFilter] = useState<"all" | QuotationStatus>("inbox");
   // The row whose confirmation panel is open, if any. Tracked up here rather
   // than inside the row because issuing a confirmation moves the quotation out
   // of the Pending filter: without pinning it, the row — and the open panel
@@ -521,7 +523,6 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
   const now = useClientNow();
 
   const count = (s: QuotationStatus) => initialQuotations.filter((q) => q.status === s).length;
-  const openCount = initialQuotations.filter((q) => OPEN_STATUSES.includes(q.status)).length;
   // Next ref sequence, so a freshly opened confirm form pre-fills a number
   // that doesn't clash with the ones already issued.
   const nextSequence = initialQuotations.filter((q) => q.confirmation).length + 1;
@@ -534,12 +535,11 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
             ageLabel(q.details.submittedAt, now).breached
         ).length;
 
-  // Oldest first while pending — the ones closest to breaching the SLA need
-  // answering first; everything else reads newest first.
-  const matchesFilter = (q: Quotation) =>
-    // The Pending tab is the open-requests queue: a quoted request is still
-    // awaiting a decision, so it belongs there next to the unquoted ones.
-    filter === "pending" ? OPEN_STATUSES.includes(q.status) : q.status === filter;
+  // Each tab is one workflow stage, so it shows exactly that stage. The
+  // stages are now distinct steps an admin moves a request through, rather
+  // than one "open" bucket, and lumping them together would hide where a
+  // request actually is.
+  const matchesFilter = (q: Quotation) => q.status === filter;
 
   const visible =
     filter === "all"
@@ -572,8 +572,10 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "pending", label: "Pending", count: openCount },
-            { value: "confirmed", label: "Confirmed", count: count("confirmed") },
+            { value: "inbox", label: "Inbox", count: count("inbox") },
+            { value: "pending", label: "Pending", count: count("pending") },
+            { value: "submitted", label: "Submitted", count: count("submitted") },
+            { value: "confirmed", label: "Order Confirmed", count: count("confirmed") },
             { value: "cancelled", label: "Cancelled", count: count("cancelled") },
             { value: "all", label: "All", count: initialQuotations.length },
           ]}

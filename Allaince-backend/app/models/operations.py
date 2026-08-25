@@ -21,13 +21,24 @@ class Quotation(Base):
     items: Mapped[list] = mapped_column(JSONVariant, default=list, nullable=False)
     total: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     details: Mapped[dict] = mapped_column(JSONVariant, default=dict, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), default="pending", index=True, nullable=False)
+    # inbox -> pending -> submitted -> confirmed, or cancelled from any point.
+    # "inbox" is an untouched customer request; "pending" means a quotation has
+    # been prepared but not yet sent; "submitted" means it reached the customer.
+    status: Mapped[str] = mapped_column(String(20), default="inbox", index=True, nullable=False)
     # Denormalized out of `details` so listing/analytics can filter and sort
     # without unpacking JSON on every row.
     customer_email: Mapped[str] = mapped_column(String(320), default="", index=True, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
         UTCDateTime, default=utcnow, index=True, nullable=False
     )
+    # Set when the quotation email is actually sent, which is also what moves
+    # the status to "submitted" — the two must not drift apart.
+    quoted_sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    # The customer's own Work Order / PO document, uploaded at confirmation.
+    # Stored as a URL from the same object storage products use.
+    po_document_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    po_number: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    po_uploaded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     confirmation: Mapped["OrderConfirmation | None"] = relationship(
         back_populates="quotation",

@@ -16,9 +16,10 @@ function ageLabel(submittedAt: string) {
 
 export async function PendingQuotationsPanel() {
   const quotations = await readQuotations();
-  // Matches the Quotations screen's Pending tab: a quoted request is still
-  // open until it is confirmed or cancelled, so it belongs in this queue.
-  const isOpen = (status: string) => status === "pending" || status === "quoted";
+  // Every workflow stage short of confirmed or cancelled: the request is
+  // still open work regardless of how far along the paperwork has got.
+  const isOpen = (status: string) =>
+    status === "inbox" || status === "pending" || status === "submitted";
   const pending = quotations
     .filter((q) => isOpen(q.status))
     .sort(
