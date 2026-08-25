@@ -1,11 +1,19 @@
-# Local production-like stack: API + Postgres + Redis.
+# Production-like stack: API + Postgres + Redis. Also what runs on the VPS.
 # Copy .env.example to .env and fill the secrets before running.
+#
+# Ports bind to 127.0.0.1, not 0.0.0.0. On a laptop behind a router the
+# difference is invisible; on a public VPS `- "5432:5432"` publishes Postgres
+# to the whole internet, past the host firewall — Docker writes its own
+# iptables rules, so `firewall-cmd` does not cover it. Nginx reaches the API
+# over loopback, and nothing else needs reaching from outside.
 services:
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Falls back to the throwaway dev password so a bare `docker compose up`
+      # still works locally; .env must set a real one anywhere reachable.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: allaince
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -14,8 +22,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:7-alpine
@@ -25,23 +34,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   api:
     build: .
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/allaince
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/allaince
       REDIS_URL: redis://redis:6379/0
       ENVIRONMENT: production
+    # Uploaded product images land on the container filesystem, which a rebuild
+    # discards. Without this volume every `up --build` silently deletes them —
+    # the same data loss as the ephemeral-disk PaaS tier this replaces.
+    volumes:
+      - media:/app/media
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
 volumes:
   pgdata:
+  media:
