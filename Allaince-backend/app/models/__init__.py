@@ -2,8 +2,13 @@ from app.models.base import Base, JSONVariant, UTCDateTime, utcnow
 from app.models.catalog import Brand, Category, HeroImage, Product
 from app.models.employee import DailyReport, Employee, LeaveRequest, Task
 from app.models.operations import (
+    Challan,
+    ChallanLine,
     ContactRequest,
     GmailToken,
+    Invoice,
+    InvoiceLine,
+    InvoicePayment,
     Order,
     OrderConfirmation,
     Quotation,
@@ -23,8 +28,13 @@ __all__ = [
     "Employee",
     "LeaveRequest",
     "Task",
+    "Challan",
+    "ChallanLine",
     "ContactRequest",
     "GmailToken",
+    "Invoice",
+    "InvoiceLine",
+    "InvoicePayment",
     "Order",
     "OrderConfirmation",
     "Quotation",

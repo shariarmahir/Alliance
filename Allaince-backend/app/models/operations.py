@@ -46,6 +46,16 @@ class Quotation(Base):
         uselist=False,
         lazy="selectin",
     )
+    invoices: Mapped[list["Invoice"]] = relationship(
+        back_populates="quotation",
+        cascade="all, delete-orphan",
+        order_by="Invoice.created_at",
+    )
+    challans: Mapped[list["Challan"]] = relationship(
+        back_populates="quotation",
+        cascade="all, delete-orphan",
+        order_by="Challan.created_at",
+    )
 
 
 class OrderConfirmation(Base):
@@ -86,6 +96,169 @@ class OrderConfirmation(Base):
     payment_received_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     quotation: Mapped["Quotation"] = relationship(back_populates="confirmation")
+
+
+class Invoice(Base):
+    """A billing document raised against a confirmed order.
+
+    Separate from OrderConfirmation because one order can be invoiced more
+    than once (part-billing a staged delivery), and because an invoice has its
+    own approval lifecycle and its own number series that must not move when
+    the underlying quotation is re-priced.
+    """
+
+    __tablename__ = "invoices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    quotation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("quotations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    # Assigned at approval, not at draft: an abandoned draft must not consume
+    # a number out of the formal series.
+    invoice_number: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    invoice_date: Mapped[str] = mapped_column(String(10), default="", nullable=False)
+    # pending -> submitted -> (partially_paid) -> paid -> completed, or cancelled.
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True, nullable=False)
+
+    subtotal: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    discount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    # Percent, not amount: the rate is what an admin knows, and storing the
+    # computed figure alongside it means a rounding change can never make the
+    # printed document disagree with itself.
+    tax_rate: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    tax_amount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    other_charges: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    grand_total: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    amount_paid: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime, default=utcnow, index=True, nullable=False
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    quotation: Mapped["Quotation"] = relationship(back_populates="invoices")
+    lines: Mapped[list["InvoiceLine"]] = relationship(
+        back_populates="invoice",
+        cascade="all, delete-orphan",
+        order_by="InvoiceLine.position",
+        lazy="selectin",
+    )
+    payments: Mapped[list["InvoicePayment"]] = relationship(
+        back_populates="invoice",
+        cascade="all, delete-orphan",
+        order_by="InvoicePayment.received_at",
+        lazy="selectin",
+    )
+
+
+class InvoiceLine(Base):
+    """One billed line. Real rows rather than JSON so invoiced quantities can
+    be summed per order line to work out what is left to bill."""
+
+    __tablename__ = "invoice_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    invoice_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("invoices.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    # Ties back to the confirmation line it bills, so balances are per product
+    # rather than per position in a list that may be filtered.
+    slug: Mapped[str] = mapped_column(String(200), default="", index=True, nullable=False)
+    name: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    specifications: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    unit: Mapped[str] = mapped_column(String(30), default="Pcs", nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    unit_price: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    invoice: Mapped["Invoice"] = relationship(back_populates="lines")
+
+
+class InvoicePayment(Base):
+    """One receipt against an invoice. A list rather than a single figure:
+    "partially paid" only means anything if each instalment is recorded."""
+
+    __tablename__ = "invoice_payments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    invoice_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("invoices.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    amount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    method: Mapped[str] = mapped_column(String(60), default="", nullable=False)
+    reference: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    received_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, nullable=False)
+    note: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    invoice: Mapped["Invoice"] = relationship(back_populates="payments")
+
+
+class Challan(Base):
+    """A delivery note for goods leaving against a confirmed order.
+
+    One order may ship across several challans, so the balance of what is
+    still owed is derived by summing delivered quantities rather than stored
+    on the order, which would drift the moment a challan is cancelled.
+    """
+
+    __tablename__ = "challans"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    quotation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("quotations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    challan_number: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    challan_date: Mapped[str] = mapped_column(String(10), default="", nullable=False)
+    # pending -> dispatched -> delivered, or cancelled.
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True, nullable=False)
+
+    delivery_address: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    vehicle_number: Mapped[str] = mapped_column(String(60), default="", nullable=False)
+    driver_info: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    receiver_name: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    remarks: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # The customer's signed copy, once it comes back.
+    signed_document_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime, default=utcnow, index=True, nullable=False
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    dispatched_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    quotation: Mapped["Quotation"] = relationship(back_populates="challans")
+    lines: Mapped[list["ChallanLine"]] = relationship(
+        back_populates="challan",
+        cascade="all, delete-orphan",
+        order_by="ChallanLine.position",
+        lazy="selectin",
+    )
+
+
+class ChallanLine(Base):
+    """One delivered line. Rows rather than JSON because the delivered balance
+    per product is a SUM across every non-cancelled challan on the order."""
+
+    __tablename__ = "challan_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    challan_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("challans.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    slug: Mapped[str] = mapped_column(String(200), default="", index=True, nullable=False)
+    name: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    specifications: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    unit: Mapped[str] = mapped_column(String(30), default="Pcs", nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    challan: Mapped["Challan"] = relationship(back_populates="lines")
 
 
 class Order(Base):

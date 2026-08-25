@@ -41,6 +41,9 @@ const SUB_ADMIN_ALLOWED_EXACT = ["/admin"];
 const SUB_ADMIN_GRANTABLE_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/admin/quotations", area: "quotations" },
   { prefix: "/admin/orders", area: "orders" },
+  // Invoices and challans are order fulfilment, so they ride the same grant.
+  { prefix: "/admin/invoices", area: "orders" },
+  { prefix: "/admin/challans", area: "orders" },
   { prefix: "/admin/emails", area: "emails" },
   { prefix: "/admin/contact-requests", area: "contact-requests" },
 ];

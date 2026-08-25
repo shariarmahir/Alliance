@@ -14,6 +14,7 @@ from app.routers import (
     admin_operations,
     analytics,
     auth,
+    billing,
     catalog,
     emails,
     employees,
@@ -121,6 +122,7 @@ app.include_router(catalog.router)
 app.include_router(admin_catalog.router)
 app.include_router(operations.router)
 app.include_router(admin_operations.router)
+app.include_router(billing.router)
 app.include_router(employees.router)
 app.include_router(analytics.router)
 app.include_router(emails.router)

@@ -50,6 +50,24 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     enabled: true,
     requiresArea: "quotations",
   },
+  // Both are raised against a confirmed order, so they sit behind the same
+  // grant as Orders rather than needing one of their own.
+  {
+    label: "Invoices",
+    href: "/admin/invoices",
+    icon: "orders",
+    roles: ["super", "sub"],
+    enabled: true,
+    requiresArea: "orders",
+  },
+  {
+    label: "Challans",
+    href: "/admin/challans",
+    icon: "orders",
+    roles: ["super", "sub"],
+    enabled: true,
+    requiresArea: "orders",
+  },
   {
     label: "Contact Requests",
     href: "/admin/contact-requests",
@@ -97,7 +115,11 @@ export type AdminNavGroup = {
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   { label: "Overview", icon: "overview", hrefs: ["/admin"] },
   { label: "Products & Stock", icon: "products", hrefs: ["/admin/products", "/admin/stock"] },
-  { label: "Orders", icon: "orders", hrefs: ["/admin/orders"] },
+  {
+    label: "Orders & Documents",
+    icon: "orders",
+    hrefs: ["/admin/orders", "/admin/invoices", "/admin/challans"],
+  },
   { label: "Quotations", icon: "quotations", hrefs: ["/admin/quotations"] },
   {
     label: "Employees & Leave",

@@ -223,4 +223,105 @@ export async function readHeroImages() {
   });
 }
 
+// --- Invoices & challans ----------------------------------------------------
+
+export type InvoiceStatus =
+  | "pending"
+  | "submitted"
+  | "partially_paid"
+  | "paid"
+  | "completed"
+  | "cancelled";
+
+export type ChallanStatus = "pending" | "dispatched" | "delivered" | "cancelled";
+
+export type DocumentLine = {
+  slug: string;
+  name: string;
+  specifications: string;
+  unit: string;
+  quantity: number;
+};
+
+export type InvoiceLine = DocumentLine & { unitPrice: number; total: number };
+
+export type InvoicePayment = {
+  id: string;
+  amount: number;
+  method: string;
+  reference: string;
+  note: string;
+  receivedAt: string;
+};
+
+export type Invoice = {
+  id: string;
+  quotationId: string;
+  invoiceNumber: string | null;
+  invoiceDate: string;
+  status: InvoiceStatus;
+  subtotal: number;
+  discount: number;
+  taxRate: number;
+  taxAmount: number;
+  otherCharges: number;
+  grandTotal: number;
+  amountPaid: number;
+  notes: string;
+  createdAt: string;
+  approvedAt: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  lines: InvoiceLine[];
+  payments: InvoicePayment[];
+  customerName: string;
+  refNumber: string;
+  poNumber: string;
+};
+
+export type Challan = {
+  id: string;
+  quotationId: string;
+  challanNumber: string | null;
+  challanDate: string;
+  status: ChallanStatus;
+  deliveryAddress: string;
+  vehicleNumber: string;
+  driverInfo: string;
+  receiverName: string;
+  remarks: string;
+  signedDocumentUrl: string | null;
+  createdAt: string;
+  approvedAt: string | null;
+  dispatchedAt: string | null;
+  deliveredAt: string | null;
+  lines: DocumentLine[];
+  customerName: string;
+  refNumber: string;
+  poNumber: string;
+};
+
+// Ordered → delivered → balance per line. This is what stops an admin
+// over-shipping or double-billing when one order ships in several parts.
+export type OrderBalanceLine = {
+  slug: string;
+  name: string;
+  specifications: string;
+  unit: string;
+  unitPrice: number;
+  ordered: number;
+  delivered: number;
+  invoiced: number;
+  balance: number;
+  uninvoiced: number;
+};
+
+export async function readInvoices(): Promise<Invoice[]> {
+  return getOrDefault<Invoice[]>("/api/admin/invoices", [], { auth: true });
+}
+
+export async function readChallans(): Promise<Challan[]> {
+  return getOrDefault<Challan[]>("/api/admin/challans", [], { auth: true });
+}
+
 export { api };
