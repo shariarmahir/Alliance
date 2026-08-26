@@ -37,6 +37,25 @@ def _check_production_config() -> None:
         # Credentialed CORS plus a wildcard origin lets any site call the API
         # with the admin's cookie attached.
         problems.append("CORS_ALLOWED_ORIGINS must list exact origins, not '*'.")
+
+    # A wildcard is the obvious mistake; these are the quiet ones. Every
+    # .env starts life pointing at localhost, and the dev entry survives into
+    # production far more often than a '*' does -- at which point a page on
+    # any developer's machine can call the live API with the admin's cookie.
+    # A plaintext origin is the same problem via a downgrade, and is dead
+    # configuration anyway once COOKIE_SECURE is on.
+    for origin in settings.cors_origins_list:
+        if origin == "*":
+            continue
+        host = origin.split("://", 1)[-1].split(":", 1)[0].lower()
+        if host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+            problems.append(
+                f"CORS_ALLOWED_ORIGINS contains the development origin {origin!r}."
+            )
+        elif not origin.startswith("https://"):
+            problems.append(
+                f"CORS_ALLOWED_ORIGINS entry {origin!r} must use https in production."
+            )
     if not settings.cookie_secure:
         problems.append("COOKIE_SECURE must be true so the session cookie requires HTTPS.")
     if settings.cookie_samesite != "none":

@@ -53,3 +53,41 @@ def test_short_session_secret_is_rejected_at_load():
             session_secret="too-short",
             gmail_token_encryption_secret="test-secret-must-be-at-least-32-characters",
         )
+
+
+def test_plaintext_origin_is_rejected(prod, monkeypatch):
+    """An http:// origin in production defeats the secure cookie.
+
+    COOKIE_SECURE means the browser only sends the session over HTTPS, so a
+    plaintext origin in the allowlist is either dead configuration or a
+    downgrade path. Either way it should not reach production silently.
+    """
+    monkeypatch.setattr(
+        settings, "cors_allowed_origins", "https://auto-bd.com,http://auto-bd.com"
+    )
+    with pytest.raises(RuntimeError, match="https"):
+        _check_production_config()
+
+
+def test_localhost_origin_is_rejected(prod, monkeypatch):
+    """A leftover dev origin lets a page on the developer's own machine call
+    production with the admin's cookie attached. It is the easiest of these
+    to leave behind, because it is what every .env starts with."""
+    # https, so the plaintext rule cannot fire -- this isolates the localhost
+    # check. With http:// both rules match and the test proves nothing about
+    # which one caught it.
+    monkeypatch.setattr(
+        settings, "cors_allowed_origins", "https://auto-bd.com,https://localhost:3000"
+    )
+    with pytest.raises(RuntimeError, match="development origin"):
+        _check_production_config()
+
+
+def test_real_production_origins_still_pass(prod, monkeypatch):
+    """The guard must not reject the configuration it is meant to allow."""
+    monkeypatch.setattr(
+        settings,
+        "cors_allowed_origins",
+        "https://www.auto-bd.com,https://auto-bd.com",
+    )
+    _check_production_config()

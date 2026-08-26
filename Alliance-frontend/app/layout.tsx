@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/app/components/ui/sonner";
 import { Providers } from "./providers";
-import { BUSINESS, SITE_NAME, SITE_SHORT_NAME, SITE_URL } from "@/app/lib/site";
+import { BUSINESS, SITE_NAME, SITE_SHORT_NAME, SITE_URL, SOCIAL } from "@/app/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,14 +32,23 @@ export const metadata: Metadata = {
   // Tells Google which URL is the real one when a page is reachable at several
   // (www vs bare domain, query-string variants).
   alternates: { canonical: "/" },
+  // Google ignores this tag for ranking. It is kept because other engines
+  // (Bing, Yandex, and most site-search tools) still read it, and it costs
+  // nothing. The brand variants that actually matter for search live in the
+  // Organization's alternateName below, which Google does read.
   keywords: [
     "AutoLink",
+    "AutoLink BD",
+    "AutoLinkBD",
+    "AutoLink Bangladesh",
     "AutoLink Integrated Technologies",
+    "auto technology Bangladesh",
     "industrial electronics Bangladesh",
     "PLC supplier Dhaka",
     "automation parts Bangladesh",
     "servo drives Dhaka",
     "HMI supplier Bangladesh",
+    "inverter supplier Bangladesh",
   ],
   robots: {
     index: true,
@@ -103,8 +112,26 @@ const STRUCTURED_DATA = {
       "@type": "Organization",
       "@id": ORGANIZATION_ID,
       name: SITE_NAME,
-      alternateName: [SITE_SHORT_NAME, "AutoLink Bangladesh"],
+      // Every spelling someone might actually type. Google matches a brand
+      // query against these, so "autolinkbd" and "autolink bd" resolve to
+      // this entity rather than to nothing — they are how the business is
+      // written on social handles and in conversation, not just formally.
+      alternateName: [
+        SITE_SHORT_NAME,
+        "AutoLink BD",
+        "AutoLinkBD",
+        "AutoLink Bangladesh",
+        "Auto Link",
+        "AutoLink Technologies",
+        "AutoLink Integrated Technology",
+      ],
       url: SITE_URL,
+      // The strongest single signal tying a brand name to a site. Google
+      // corroborates the entity against profiles it already knows, so a
+      // knowledge panel for "autolink" resolves here instead of to an
+      // unrelated company sharing the word. SOCIAL already held these; they
+      // were simply never expressed to search engines.
+      sameAs: [SOCIAL.facebook, SOCIAL.linkedin],
       description:
         "Supplier of industrial electronics and automation spares — PLCs, drives, servos, HMIs and power system electronics.",
       logo: {
