@@ -133,3 +133,56 @@ def test_missing_native_libs_raise_pdf_unavailable(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
     with pytest.raises(pdf_integration.PdfUnavailable, match="GTK/Pango/Cairo"):
         pdf_integration._render_html("<p>x</p>")
+
+
+def _capture(render, *args):
+    """Renders and returns the HTML instead of the PDF bytes."""
+    captured = {}
+    original = pdf_integration._render_html
+    pdf_integration._render_html = lambda html: captured.setdefault("html", html) or b"%PDF-"
+    try:
+        render(*args)
+    finally:
+        pdf_integration._render_html = original
+    return captured["html"]
+
+
+def test_documents_carry_the_masthead_the_client_uses():
+    """The client's own Quotation and Challan PDFs share one masthead: the
+    logo mark, the AUTOLINK INTEGRATED TECHNOLOGIES line, and a filled title
+    badge. A document that renders without them is off-brand to a customer
+    holding the earlier ones."""
+    from tests.integrations._pdf_fixtures import make_quotation
+
+    html = _capture(pdf_integration.render_quotation_pdf, make_quotation())
+
+    assert "AUTOLINK INTEGRATED TECHNOLOGIES" in html
+    assert 'class="badge"' in html
+    assert "Price Quotation" in html
+    # The mark is embedded, not linked: WeasyPrint has no base URL here, so a
+    # relative path would render an empty box.
+    assert "data:image/png;base64," in html
+
+
+def test_documents_close_and_foot_the_way_the_client_documents_do():
+    from tests.integrations._pdf_fixtures import make_quotation
+
+    html = _capture(pdf_integration.render_quotation_pdf, make_quotation())
+
+    assert "Thinking you" in html
+    assert pdf_integration.SIGNATORY in html
+    assert "Corporate Office:" in html
+    assert pdf_integration.PHONE in html
+
+
+def test_the_address_block_reads_as_a_letter_not_a_label_grid():
+    """"To / Managing Director / Company / Address", with the reference and
+    date opposite -- the arrangement on the documents this replaces."""
+    from tests.integrations._pdf_fixtures import make_quotation
+
+    html = _capture(pdf_integration.render_quotation_pdf, make_quotation())
+
+    assert 'class="to"' in html
+    assert ">To<" in html or "To<br>" in html
+    assert "Ref:" in html
+    assert "Date:" in html

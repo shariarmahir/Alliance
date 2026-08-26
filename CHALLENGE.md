@@ -631,3 +631,49 @@ place — a dormant second invoice generator is exactly the kind of thing that
 gets re-wired by accident later.
 
 **377 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 11 — the documents did not look like the client's documents
+
+The client supplied their real Challan, their Q_Demo quotation, and a
+screenshot of the generated quotation. The generated documents were
+functionally correct and visually a different company's stationery.
+
+| The client's documents | What was rendered |
+|---|---|
+| Logo mark + AUTOLINK INTEGRATED TECHNOLOGIES | Text wordmark only |
+| Filled title badge, top right | Small grey caption |
+| "To / Managing Director / Company / Address" | 2x2 label grid |
+| Corporate Office, phone, email in the footer | "computer-generated document" |
+| "Thinking you" + Md Nurul Islam + phone | Empty ruled signature line |
+
+A customer holding an earlier quotation and a new invoice would not read them
+as coming from the same business.
+
+## The fix
+
+One shared masthead, address block, signature and footer, applied across all
+five renderers — quotation, price request, invoice, challan and order
+invoice — so the whole document set matches the supplied originals.
+
+The mark is embedded as a data URI. WeasyPrint resolves relative URLs against
+the HTML's base and these documents are rendered from a string with no base,
+so a path would have produced a silent empty box rather than an error.
+
+## A latent crash found while wiring it
+
+`render_invoice_pdf()` (the storefront order invoice) has an `address` dict,
+not the quotation `details` shape. Passing `details` there compiled fine and
+would have raised `NameError` on the first real call. Caught by rendering the
+documents rather than trusting the test suite — **377 tests passed with that
+bug in place**, because none of them rendered that particular document.
+
+`_customer_block()` was deleted rather than left unused: a second address
+renderer is exactly what drifts out of step with the approved one.
+
+Verified by generating real PDFs: challan 48KB, invoice 51KB, quotation 52KB,
+each with a valid `%PDF-` header. Three regression tests cover the masthead,
+the footer and signature, and the address block, all sabotage-verified.
+
+**380 backend tests, typecheck clean, lint 0 errors, build successful.**

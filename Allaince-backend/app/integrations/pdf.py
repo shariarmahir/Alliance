@@ -78,12 +78,23 @@ BASE_CSS = """
 @page { size: A4; margin: 14mm 12mm; }
 * { box-sizing: border-box; }
 body { font-family: "Helvetica", "Arial", sans-serif; font-size: 10.5px; color: #1a1a1a; margin: 0; }
+/* The masthead in the client's own documents: mark and wordmark on the
+   left, a filled title badge on the right, over a blue rule. */
 .head { display: flex; justify-content: space-between; align-items: flex-start;
-        border-bottom: 3px solid #007DCC; padding-bottom: 10px; margin-bottom: 14px; }
-.brand { font-size: 22px; font-weight: 700; color: #007DCC; letter-spacing: -0.4px; }
+        margin-bottom: 4px; }
+.mark { height: 34px; margin-bottom: 2px; }
+.brand { font-size: 23px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.4px;
+         display: inline-block; vertical-align: middle; margin-left: 6px; }
 .brand span { color: #FFB900; }
-.tag { font-size: 9px; color: #667085; margin-top: 1px; letter-spacing: 0.4px; }
-.meta { text-align: right; font-size: 9.5px; color: #475467; line-height: 1.55; }
+.tag { font-size: 8.5px; color: #667085; letter-spacing: 1.6px; margin-top: 1px; }
+.badge { background: #FFB900; color: #1a1a1a; font-size: 13px; font-weight: 700;
+         padding: 7px 16px; white-space: nowrap; }
+.rule { border-bottom: 2.5px solid #007DCC; margin: 6px 0 12px; }
+/* "To / Managing Director / Company / Address", with the reference and date
+   opposite it -- the layout the customer already recognises. */
+.to { width: 100%; margin-bottom: 14px; }
+.to td { vertical-align: top; font-size: 10px; line-height: 1.6; }
+.to .r { text-align: right; white-space: nowrap; }
 h1 { font-size: 14px; margin: 0 0 8px; }
 .subject { background: #f4f8fb; border-left: 3px solid #007DCC; padding: 8px 10px;
            margin-bottom: 12px; font-size: 10.5px; }
@@ -101,56 +112,100 @@ table { width: 100%; border-collapse: collapse; }
 .terms h2 { font-size: 11px; margin: 0 0 6px; color: #007DCC; }
 .terms td { padding: 3px 6px 3px 0; font-size: 9.5px; vertical-align: top; }
 .terms td:first-child { color: #667085; width: 34%; }
-.foot { margin-top: 22px; border-top: 1px solid #e4e7ec; padding-top: 8px;
-        font-size: 8.5px; color: #667085; text-align: center; }
-.sign { margin-top: 30px; display: flex; justify-content: flex-end; }
-.sign div { border-top: 1px solid #98a2b3; padding-top: 4px; width: 170px;
-            text-align: center; font-size: 9.5px; }
+.foot { position: fixed; bottom: 0; left: 0; right: 0;
+        border-top: 1.5px solid #9dc3e0; padding-top: 6px;
+        font-size: 8.5px; color: #475467; text-align: center; line-height: 1.5; }
+.foot .page { text-align: right; font-style: italic; font-size: 8.5px;
+              color: #667085; margin-bottom: 2px; }
+/* The client's documents close with a thank-you and a named signatory
+   rather than an empty ruled line. */
+.sign { margin-top: 26px; font-size: 10px; }
+.sign .who { margin-top: 34px; font-weight: 700; }
 """
 
 ADDRESS = "House: 104, Road: 15, Sector: 11, Uttara, Dhaka-1230, Bangladesh"
 
 
+PHONE = "+8801711585291"
+SIGNATORY = "Md Nurul Islam"
+SIGNATORY_PHONE = "+8801315-770099"
+
+_LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo-mark.png"
+
+
+def _logo_data_uri() -> str:
+    """The mark as a data URI.
+
+    Embedded rather than linked: WeasyPrint resolves relative URLs against the
+    HTML's base, and these documents are rendered from a string with no base,
+    so a path would silently produce a document with no logo.
+    """
+    try:
+        import base64
+
+        return "data:image/png;base64," + base64.b64encode(
+            _LOGO_PATH.read_bytes()
+        ).decode("ascii")
+    except OSError:
+        # A missing asset must not cost the customer their invoice.
+        logger.warning("PDF logo missing at %s; rendering wordmark only.", _LOGO_PATH)
+        return ""
+
+
 def _header(doc_title: str, meta_rows: list[tuple[str, str]]) -> str:
-    meta = "<br>".join(f"<strong>{escape(k)}:</strong> {escape(str(v))}" for k, v in meta_rows)
+    """The masthead from the client's own documents: mark and wordmark left,
+    a filled title badge right, over the blue rule."""
+    logo = _logo_data_uri()
+    mark = f'<img class="mark" src="{logo}" alt="">' if logo else ""
     return f"""
     <div class="head">
       <div>
-        <div class="brand">AutoLink<span>.</span></div>
-        <div class="tag">INTEGRATED TECHNOLOGIES</div>
-        <div class="tag">{escape(ADDRESS)}</div>
-        <div class="tag">{escape(settings.resend_from_email)} &middot; +8801315-770099</div>
+        <div>{mark}<span class="brand">AutoLink<span>.</span></span></div>
+        <div class="tag">AUTOLINK INTEGRATED TECHNOLOGIES</div>
       </div>
-      <div class="meta"><div style="font-size:13px;font-weight:700;color:#1a1a1a;
-           margin-bottom:4px">{escape(doc_title)}</div>{meta}</div>
-    </div>"""
+      <div class="badge">{escape(doc_title)}</div>
+    </div>
+    <div class="rule"></div>"""
+
+
+def _address_block(details: dict, meta_rows: list[tuple[str, str]]) -> str:
+    """"To / Managing Director / Company / Address" on the left, reference and
+    date on the right -- the arrangement the customer already recognises."""
+    company = details.get("companyName") or details.get("fullName") or ""
+    contact = details.get("fullName") or ""
+    place = ", ".join(
+        part for part in (details.get("address"), details.get("country")) if part
+    )
+    reach = ", ".join(
+        f"{label}: {value}"
+        for label, value in (("Contact", details.get("phone")),
+                             ("Email", details.get("email")))
+        if value
+    )
+    left = "<br>".join(
+        escape(line) for line in ("To", contact, company, place, reach) if line
+    )
+    right = "<br>".join(
+        f"{escape(k)}: {escape(str(v))}" for k, v in meta_rows
+    )
+    return f'<table class="to"><tr><td>{left}</td><td class="r">{right}</td></tr></table>'
+
+
+def _signature() -> str:
+    return (
+        '<div class="sign">Thinking you'
+        f'<div class="who">{escape(SIGNATORY)}</div>'
+        f"<div>{escape(SIGNATORY_PHONE)}</div></div>"
+    )
 
 
 def _footer() -> str:
     return (
-        '<div class="foot">AutoLink Integrated Technologies &middot; '
-        "This is a computer-generated document.</div>"
+        '<div class="foot">'
+        f"Corporate Office: {escape(ADDRESS)}<br>"
+        f"Phone: {escape(PHONE)}, Email: {escape(settings.resend_from_email)}"
+        "</div>"
     )
-
-
-def _customer_block(details: dict) -> str:
-    rows = [
-        ("Company", details.get("companyName") or "—"),
-        ("Attention", details.get("fullName") or "—"),
-        ("Email", details.get("email") or "—"),
-        ("Phone", details.get("phone") or "—"),
-    ]
-    cells = "".join(
-        f'<td style="padding:2px 10px 2px 0;font-size:9.5px"><span style="color:#667085">'
-        f"{escape(k)}:</span> <strong>{escape(str(v))}</strong></td>"
-        for k, v in rows[:2]
-    )
-    cells2 = "".join(
-        f'<td style="padding:2px 10px 2px 0;font-size:9.5px"><span style="color:#667085">'
-        f"{escape(k)}:</span> <strong>{escape(str(v))}</strong></td>"
-        for k, v in rows[2:]
-    )
-    return f"<table><tr>{cells}</tr><tr>{cells2}</tr></table>"
 
 
 def render_quotation_pdf(quotation) -> bytes:
@@ -190,8 +245,9 @@ def render_quotation_pdf(quotation) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("QUOTATION", [("Ref", confirmation.ref_number), ("Date", confirmation.issued_date)])}
-    {_customer_block(details)}
+    {_header("Price Quotation", [])}
+    {_address_block(details, [("Ref", confirmation.ref_number),
+                              ("Date", confirmation.issued_date)])}
     <div class="subject"><strong>Subject:</strong> {escape(confirmation.subject or "")}</div>
     <table class="items">
       <thead><tr><th style="width:5%">SL</th><th style="width:27%">Description</th>
@@ -204,7 +260,7 @@ def render_quotation_pdf(quotation) -> bytes:
       <td class="num">BDT {confirmation.grand_total:,.2f}</td></tr></table>
     <div class="words">In words: {escape(amount_in_words(confirmation.grand_total))}</div>
     <div class="terms"><h2>Terms &amp; Conditions</h2><table>{term_rows}</table></div>
-    <div class="sign"><div>Authorised Signature</div></div>
+    {_signature()}
     {_footer()}
     </body></html>"""
     return _render_html(html)
@@ -224,8 +280,9 @@ def _render_request_pdf(quotation) -> bytes:
 
     submitted = details.get("submittedAt", "")
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("PRICE REQUEST", [("Request ID", quotation.id[:8].upper()), ("Submitted", str(submitted)[:10])])}
-    {_customer_block(details)}
+    {_header("Price Request", [])}
+    {_address_block(details, [("Ref", quotation.id[:8].upper()),
+                              ("Date", str(submitted)[:10])])}
     <div class="subject">This document lists the items requested. Pricing follows in a
       formal quotation once reviewed.</div>
     <table class="items">
@@ -323,8 +380,8 @@ def render_invoice_document_pdf(invoice, quotation) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("INVOICE", meta)}
-    {_customer_block(details)}
+    {_header("Invoice", [])}
+    {_address_block(details, meta)}
     {watermark}
     <table class="items">
       <thead><tr><th style="width:5%">SL</th><th style="width:27%">Description</th>
@@ -336,7 +393,7 @@ def render_invoice_document_pdf(invoice, quotation) -> bytes:
     <table class="totals">{totals}</table>
     <div class="words">In words: {escape(amount_in_words(invoice.grand_total))}</div>
     {payment_block}
-    <div class="sign"><div>Authorised Signature</div></div>
+    {_signature()}
     {_footer()}
     </body></html>"""
     return _render_html(html)
@@ -411,8 +468,8 @@ def render_challan_document_pdf(challan, quotation, balances: dict) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("DELIVERY CHALLAN", meta)}
-    {_customer_block(details)}
+    {_header("Challan", [])}
+    {_address_block(details, meta)}
     {address_block}
     {watermark}
     <table class="items">
@@ -455,7 +512,13 @@ def render_invoice_pdf(order) -> bytes:
     )
 
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
-    {_header("INVOICE", [("Order", order.order_number), ("Date", str(order.placed_at)[:10])])}
+    {_header("Invoice", [])}
+    {_address_block({"companyName": address.get("name"),
+                     "address": address.get("line"),
+                     "country": address.get("country"),
+                     "phone": address.get("phone")},
+                    [("Ref", order.order_number),
+                     ("Date", str(order.placed_at)[:10])])}
     <div style="font-size:9.5px;margin-bottom:10px"><span style="color:#667085">Ship to:</span><br>{ship_to}</div>
     <table class="items">
       <thead><tr><th style="width:6%">SL</th><th style="width:46%">Description</th>
