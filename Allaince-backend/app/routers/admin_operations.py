@@ -131,7 +131,10 @@ async def update_quotation_status(
     db: DbSession,
     session: AdminSession = QuotationsArea,
 ):
-    quotation = await svc.update_quotation_status(db, quotation_id, payload.status)
+    try:
+        quotation = await svc.update_quotation_status(db, quotation_id, payload.status)
+    except svc.ConfirmationInUse as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
     return _out(quotation)

@@ -4,7 +4,15 @@ from datetime import date, datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ContactRequest, Order, OrderConfirmation, Product, Quotation
+from app.models import (
+    Challan,
+    ContactRequest,
+    Invoice,
+    Order,
+    OrderConfirmation,
+    Product,
+    Quotation,
+)
 from app.models.base import business_today
 
 # Delivery stages shared with the customer tracking page.
@@ -199,18 +207,53 @@ async def delete_cancelled_quotations(db: AsyncSession) -> int:
     return len(rows)
 
 
+class ConfirmationInUse(Exception):
+    """Raised when retracting a confirmation would orphan real paperwork.
+
+    Item 14 requires the confirmed record to remain available "for future
+    documentation, reference, tracking, and audit purposes". Invoices and
+    challans are built from the confirmation's lines, prices and reference,
+    so deleting it leaves an approved invoice pointing at nothing.
+    """
+
+
+async def _documents_against(db: AsyncSession, quotation_id: str) -> tuple[int, int]:
+    """Live invoices and challans on an order. Cancelled ones do not count:
+    a document that was itself withdrawn is not paperwork to protect."""
+    invoices = await db.scalar(
+        select(func.count())
+        .select_from(Invoice)
+        .where(Invoice.quotation_id == quotation_id, Invoice.status != "cancelled")
+    )
+    challans = await db.scalar(
+        select(func.count())
+        .select_from(Challan)
+        .where(Challan.quotation_id == quotation_id, Challan.status != "cancelled")
+    )
+    return int(invoices or 0), int(challans or 0)
+
+
 async def update_quotation_status(
     db: AsyncSession, quotation_id: str, status: str
 ) -> Quotation | None:
     quotation = await get_quotation(db, quotation_id)
     if quotation is None:
         return None
-    quotation.status = status
+
     # Moving off "confirmed" retracts the issued document: leaving it behind
     # would let a cancelled quotation still serve a downloadable confirmation.
+    # But it can only be retracted while nothing has been built on top of it.
     if status != "confirmed" and quotation.confirmation is not None:
+        invoices, challans = await _documents_against(db, quotation_id)
+        if invoices or challans:
+            raise ConfirmationInUse(
+                f"This order has {invoices} invoice(s) and {challans} challan(s) "
+                "raised against it. Cancel those documents first."
+            )
         await db.delete(quotation.confirmation)
         quotation.confirmation = None
+
+    quotation.status = status
     await db.commit()
     await db.refresh(quotation)
     return quotation

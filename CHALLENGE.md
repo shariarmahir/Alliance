@@ -273,3 +273,54 @@ itself consumed. Both cases are covered by test: editing up to the ordered
 quantity passes, one unit past it is refused.
 
 **347 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 4 — Document 1, and the confirmation that could be erased
+
+Document 1 was recorded as 14 of 14 in the first audit. That audit checked
+each item had a feature. Walking the workflow in sequence, and then applying
+the Pass 2 question — *what happens on the paths the document does not
+describe?* — found one defect, of the same family as the billing ones.
+
+## The walkthrough
+
+All 14 items pass in order: Inbox → View → Prepare → Save → Pending →
+Edit → Preview → Send E-mail → Submitted → Confirm (with revised price,
+quantity and terms per item 12) → Work Order/PO → History.
+
+## The defect
+
+`update_quotation_status()` deletes the OrderConfirmation whenever status
+moves off `confirmed` — correct in isolation, since a cancelled quotation
+must not still serve a downloadable confirmation. But nothing checked whether
+anything had been built on top of it.
+
+Measured, not inferred. A confirmed order with an **approved invoice**
+`AIT/MFL/I-0001/2026` for 1,000, sent back to Inbox:
+
+| | Before | After |
+|---|---|---|
+| Confirmation | `AIT/MFL/Q-0001/2026` | **deleted** |
+| Invoice number | `AIT/MFL/I-0001/2026` | unchanged |
+| Invoice's quotation ref | `AIT/MFL/Q-0001/2026` | **empty** |
+| Order balances | 1 line | **HTTP 400** |
+
+An approved invoice, already with the customer, pointing at nothing — and an
+order whose delivery position can no longer be computed. This is precisely
+what item 14 exists to prevent: the record must remain available "for future
+documentation, reference, tracking, and audit purposes".
+
+## The fix
+
+`ConfirmationInUse` in `app/services/operations.py`. Retracting a
+confirmation is refused while any non-cancelled invoice or challan references
+it, and the message names how many of each.
+
+Cancelled documents are deliberately not counted: a document that was itself
+withdrawn is not paperwork worth protecting, and counting it would freeze an
+order permanently. An order confirmed by mistake with nothing raised against
+it still cancels normally — covered by its own test.
+
+**Verified strict by sabotage** (disabling the guard fails both tests).
+**354 backend tests, typecheck clean, lint 0 errors, build successful.**

@@ -300,8 +300,13 @@ function QuotationRow({
       );
       toast.success(`Quotation for ${quotation.details.companyName} marked ${status}.`);
       onChanged();
-    } catch {
-      toast.error("Could not update quotation status.");
+    } catch (error) {
+      // The backend refuses to retract a confirmation that invoices or
+      // challans were built from, and names them. That reason is far more
+      // use to an admin than a generic failure.
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not update quotation status."
+      );
     } finally {
       setBusy(false);
     }
