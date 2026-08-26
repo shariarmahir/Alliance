@@ -244,6 +244,33 @@ async def _documents_against(db: AsyncSession, quotation_id: str) -> tuple[int, 
     return int(invoices or 0), int(challans or 0)
 
 
+async def delivered_in_full(db: AsyncSession, quotation: Quotation) -> bool:
+    """Section B's Completed: every confirmed line delivered in full.
+
+    Derived from the challans on each call rather than stored on the order,
+    so cancelling a challan reopens it automatically -- a stored flag would
+    keep saying Completed for goods that came back.
+    """
+    if quotation.confirmation is None:
+        return False
+    ordered: dict[str, int] = {}
+    for line in quotation.confirmation.lines or []:
+        slug = line.get("slug") or ""
+        if slug:
+            ordered[slug] = ordered.get(slug, 0) + int(line.get("quantity") or 0)
+    if not ordered:
+        return False
+
+    rows = await db.execute(
+        select(ChallanLine.slug, func.sum(ChallanLine.quantity))
+        .join(Challan, Challan.id == ChallanLine.challan_id)
+        .where(Challan.quotation_id == quotation.id, Challan.status != "cancelled")
+        .group_by(ChallanLine.slug)
+    )
+    delivered = {slug: int(total or 0) for slug, total in rows.all()}
+    return all(delivered.get(slug, 0) >= qty for slug, qty in ordered.items())
+
+
 async def _committed_quantities(db: AsyncSession, quotation_id: str) -> dict[str, int]:
     """The most any line has already been invoiced or delivered.
 

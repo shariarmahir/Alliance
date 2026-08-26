@@ -256,6 +256,9 @@ export type OrderConfirmation = {
   // Index into DELIVERY_STAGES (app/lib/delivery.ts); absent means stage 0
   // ("Confirmed"). Internal only — there is no customer-facing tracking page.
   deliveryStage?: number;
+  /** Section B's Completed: every confirmed line delivered in full. Derived
+      from the challans server-side, so it cannot disagree with them. */
+  deliveryComplete?: boolean;
   deliveryUpdatedAt?: string; // ISO
   // Payment is tracked separately from delivery: an order can be delivered
   // before payment clears, or paid for before it ships.

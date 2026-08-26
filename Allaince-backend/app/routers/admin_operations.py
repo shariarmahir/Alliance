@@ -71,7 +71,18 @@ def _decode_pdf(pdf_base64: str | None) -> bytes | None:
     return pdf_bytes
 
 
-def _out(quotation) -> QuotationOut:
+def _out(quotation, *, delivery_complete: bool = False) -> QuotationOut:
+    """`delivery_complete` is passed by callers that have a DB session to
+    derive it; the rest fall back to False rather than claiming completion
+    they have not checked."""
+    confirmation = quotation.confirmation
+    if confirmation is not None and delivery_complete:
+        # Pydantic reads it off the ORM object, which has no such column.
+        confirmation = {
+            **{c.name: getattr(confirmation, c.name)
+               for c in confirmation.__table__.columns},
+            "delivery_complete": True,
+        }
     return QuotationOut.model_validate(
         {
             "id": quotation.id,
@@ -79,7 +90,7 @@ def _out(quotation) -> QuotationOut:
             "total": quotation.total,
             "details": quotation.details,
             "status": quotation.status,
-            "confirmation": quotation.confirmation,
+            "confirmation": confirmation,
             "quoted_sent_at": quotation.quoted_sent_at,
             "po_document_url": quotation.po_document_url,
             "po_number": quotation.po_number,
@@ -95,7 +106,19 @@ def _out(quotation) -> QuotationOut:
 async def list_quotations(
     db: DbSession, status_filter: str | None = None, session: AdminSession = QuotationsArea
 ):
-    return [_out(q) for q in await svc.list_quotations(db, status=status_filter)]
+    rows = await svc.list_quotations(db, status=status_filter)
+    # One query per confirmed order rather than a join: the Orders screen
+    # needs Section B's Completed state per row, and only confirmed rows can
+    # have challans at all.
+    return [
+        _out(
+            q,
+            delivery_complete=(
+                await svc.delivered_in_full(db, q) if q.confirmation else False
+            ),
+        )
+        for q in rows
+    ]
 
 
 @router.get("/quotations/{quotation_id}", response_model=QuotationOut)
@@ -105,7 +128,10 @@ async def get_quotation(
     quotation = await svc.get_quotation(db, quotation_id)
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
-    return _out(quotation)
+    return _out(
+        quotation,
+        delivery_complete=await svc.delivered_in_full(db, quotation),
+    )
 
 
 @router.delete("/quotations/cancelled", status_code=status.HTTP_200_OK)

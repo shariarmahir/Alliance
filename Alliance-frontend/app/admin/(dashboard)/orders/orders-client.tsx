@@ -589,9 +589,17 @@ function OrderRow({
         {new Date(confirmation.issuedAt).toLocaleDateString("en-GB")}
       </td>
       <td className={TD}>
-        <Pill tone={stage >= MAX_STAGE ? "ok" : "warn"}>
-          {DELIVERY_STAGES[stage].label.toUpperCase()}
-        </Pill>
+        {/* Section B: once the total ordered quantity has been delivered the
+            order's delivery status is Completed. That is derived from the
+            challans, not from the stage dropdown, so it reports what has
+            actually shipped rather than what someone last selected. */}
+        {confirmation.deliveryComplete ? (
+          <Pill tone="ok">COMPLETED</Pill>
+        ) : (
+          <Pill tone={stage >= MAX_STAGE ? "ok" : "warn"}>
+            {DELIVERY_STAGES[stage].label.toUpperCase()}
+          </Pill>
+        )}
       </td>
       <td className={TD}>
         <Pill tone={paid ? "ok" : "warn"}>{paid ? "RECEIVED" : "PENDING"}</Pill>

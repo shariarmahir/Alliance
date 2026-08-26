@@ -82,6 +82,12 @@ class OrderConfirmationOut(CamelModel):
     issued_at: datetime
     delivery_stage: int = 0
     delivery_updated_at: datetime | None = None
+    # Section B: "When the total ordered quantity has been delivered, the
+    # Work Order delivery status will automatically become Completed."
+    # delivery_stage is the customer's tracker (Pending, Confirmed), not a
+    # fulfilment state, so completion is reported separately -- derived from
+    # the challans rather than stored, so it cannot disagree with them.
+    delivery_complete: bool = False
     payment_status: PaymentStatus = "pending"
     payment_received_at: datetime | None = None
 

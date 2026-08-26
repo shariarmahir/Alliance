@@ -476,3 +476,62 @@ line blocks the revision and by how much, not a generic failure.
 
 **370 backend tests, typecheck clean, lint 0 errors, build successful.**
 Sabotage-verified: disabling the comparison fails both covering tests.
+
+---
+
+# Pass 8 — the seam between the two documents
+
+Every pass so far stayed inside one document. Document 2 opens with a promise
+Document 1 never mentions:
+
+> "The Invoice & Challan Management System should start from the Order
+> Confirmed records so that all documents remain linked with the original
+> Price Request, Quotation, and Customer Work Order/PO."
+
+Six tests attacked that join. **Five held. One found a gap.**
+
+## Held
+
+- A confirmed line carrying an approved invoice **cannot be dropped** from the
+  order by omission. Pass 7 guarded reducing a quantity; removing the line
+  entirely is the same reduction expressed differently, and the guard already
+  covered it.
+- The **PO number flows through to documents raised before it arrived** — an
+  invoice created pre-PO shows it once filed, because it is read from the
+  order rather than copied.
+- A **delivered order cannot be cancelled** from the Quotations screen; the
+  Remove button routes to the same guarded endpoint.
+- Order History returns request, quotation, confirmation, invoice and challan
+  together with the PO number.
+
+## The gap: Section B's Completed had nowhere to live
+
+Section B: *"When the total ordered quantity has been delivered, the Work
+Order delivery status will automatically become Completed."*
+
+`delivery_stage` has exactly two values — **Pending** and **Confirmed**. It is
+the customer's tracker, not a fulfilment state. The Orders screen groups rows
+by it, so an order whose goods had entirely shipped still read *CONFIRMED*,
+and **Completed could not be displayed at all** — the payload carried no
+delivery figures to derive it from.
+
+## The fix
+
+`delivered_in_full()` compares each confirmed line against the sum of its
+non-cancelled challan lines, exposed as `deliveryComplete` on the
+confirmation. The Orders screen shows **COMPLETED** when it is true.
+
+Derived per request, never stored: cancelling a challan reopens the order
+automatically, where a stored flag would keep claiming Completed for goods
+that came back.
+
+## A wrong assertion, corrected
+
+The first version of the delivery test asserted `deliveryStage == 4`. It
+failed at 1 — and the code was right: `MAX_STAGE` is `len(DELIVERY_STAGES) - 1`,
+which is 1, not a number I had assumed. The test now asserts `ops.MAX_STAGE`
+so adding a stage cannot silently break it. Chasing that wrong assumption is
+what exposed the real gap underneath it.
+
+**376 backend tests, typecheck clean, lint 0 errors, build successful.**
+Sabotage-verified: forcing the comparison true fails the covering test.
