@@ -25,6 +25,10 @@ import {
 import { apiFetch, apiUpload, ApiError } from "@/app/lib/api-browser";
 import type { Brand, Category, Product } from "@/app/lib/types";
 
+// Matches the Add dialog. slugify() lowercases and strips punctuation, so no
+// stored brand slug can collide with this.
+const OTHER_BRAND = "__other__";
+
 // Editing an existing product. Deliberately narrower than Add: the fields an
 // admin actually revisits are the price, the stock, the commercial details
 // and the picture. Specs and alternate part numbers are set once when the
@@ -50,6 +54,7 @@ export function EditProductDialog({
   const [partNumber, setPartNumber] = useState(product.partNumber);
   const [categorySlug, setCategorySlug] = useState(product.categorySlug);
   const [brand, setBrand] = useState(product.brand);
+  const [customBrand, setCustomBrand] = useState("");
   // Empty rather than "0": a product nobody has costed reads "Not set" in the
   // table, and pre-filling a zero here would quietly turn that into a price.
   const [price, setPrice] = useState(product.price ? String(product.price) : "");
@@ -64,6 +69,10 @@ export function EditProductDialog({
       toast.error("Name and part number are required.");
       return;
     }
+    if (brand === OTHER_BRAND && !customBrand.trim()) {
+      toast.error("Type the new brand name.");
+      return;
+    }
     setBusy(true);
     try {
       await apiFetch(`/api/admin/products/${encodeURIComponent(product.slug)}`, {
@@ -72,7 +81,7 @@ export function EditProductDialog({
           name: name.trim(),
           partNumber: partNumber.trim(),
           categorySlug,
-          brand,
+          brand: brand === OTHER_BRAND ? customBrand.trim() : brand,
           price: Number(price) || 0,
           stockQty: Number(stockQty) || 0,
           warrantyYears: Number(warrantyYears) || 0,
@@ -185,8 +194,17 @@ export function EditProductDialog({
                       {b.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value={OTHER_BRAND}>Other (type a new brand)</SelectItem>
                 </SelectContent>
               </Select>
+              {brand === OTHER_BRAND && (
+                <Input
+                  autoFocus
+                  placeholder="e.g. Delta Electronics"
+                  value={customBrand}
+                  onChange={(e) => setCustomBrand(e.target.value)}
+                />
+              )}
             </div>
           </div>
 

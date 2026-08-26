@@ -151,3 +151,37 @@ async def test_the_admin_endpoint_is_the_only_one_that_carries_the_price(client,
     # Everything else must match, or the two screens disagree about the
     # catalogue itself rather than just the price.
     assert set(admin_row) - set(public_row) == {"price"}
+
+
+async def test_a_product_can_introduce_a_brand_that_does_not_exist_yet(client, db):
+    """Brands are implied by products rather than managed on their own screen,
+    so the Add Product form must accept a name that is not in the list. A
+    dropdown limited to existing brands makes the first product of any new
+    make impossible to catalogue."""
+    _auth(client)
+    cat = await client.post("/api/admin/categories", json={"name": "Drives"})
+    r = await client.post("/api/admin/products", json={
+        "partNumber": "PN-NEWBRAND-1",
+        "name": "Delta VFD",
+        "brand": "Delta Electronics",
+        "categorySlug": cat.json()["slug"],
+        "stockQty": 3,
+    })
+    assert r.status_code == 201, r.text
+    assert r.json()["brand"] == "Delta Electronics"
+
+    # And it becomes selectable for the next product.
+    brands = (await client.get("/api/brands")).json()
+    assert any(b["name"] == "Delta Electronics" for b in brands)
+
+
+async def test_an_edited_product_can_move_to_a_brand_that_does_not_exist_yet(client, db):
+    product = await _create(client)
+    _auth(client)
+    r = await client.patch(
+        f"/api/admin/products/{product['slug']}", json={"brand": "Fuji Electric"}
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["brand"] == "Fuji Electric"
+    brands = (await client.get("/api/brands")).json()
+    assert any(b["name"] == "Fuji Electric" for b in brands)

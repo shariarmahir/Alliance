@@ -19,6 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Brand, Category } from "@/app/lib/types";
 import { apiFetch, apiUpload, ApiError } from "@/app/lib/api-browser";
 
+// A value no real brand slug can collide with: slugify() lowercases and
+// strips punctuation, so no stored slug ever contains "__".
+const OTHER_BRAND = "__other__";
+
 type RepeatableListProps = {
   label: string;
   values: string[];
@@ -83,6 +87,10 @@ export function AddProductDialog({
   const [partNumber, setPartNumber] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
+  // Brands are implied by products rather than managed on their own screen,
+  // so the first product of a new make has to be able to name it here. The
+  // dropdown alone made that impossible.
+  const [customBrand, setCustomBrand] = useState("");
   const [warrantyYears, setWarrantyYears] = useState("2");
   const [stockQty, setStockQty] = useState("50");
   const [price, setPrice] = useState("");
@@ -101,6 +109,7 @@ export function AddProductDialog({
     setBrand("");
     setWarrantyYears("2");
     setStockQty("50");
+    setCustomBrand("");
     setPrice("");
     setShortSpecs(["", "", ""]);
     setDescription([""]);
@@ -113,6 +122,15 @@ export function AddProductDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Choosing Other and typing nothing would reach the API as an empty
+    // brand and come back as a schema error about a field the admin cannot
+    // see, so it is caught here where the box actually is.
+    if (brand === OTHER_BRAND && !customBrand.trim()) {
+      setErrors({ brand: "Type the new brand name." });
+      return;
+    }
+
     setSubmitting(true);
     setErrors({});
 
@@ -133,7 +151,7 @@ export function AddProductDialog({
           name,
           partNumber,
           categorySlug,
-          brand,
+          brand: brand === OTHER_BRAND ? customBrand.trim() : brand,
           warrantyYears: Number(warrantyYears) || 0,
           stockQty: Number(stockQty) || 0,
           price: Number(price) || 0,
@@ -257,8 +275,17 @@ export function AddProductDialog({
                       {b.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value={OTHER_BRAND}>Other (type a new brand)</SelectItem>
                 </SelectContent>
               </Select>
+              {brand === OTHER_BRAND && (
+                <Input
+                  autoFocus
+                  placeholder="e.g. Delta Electronics"
+                  value={customBrand}
+                  onChange={(e) => setCustomBrand(e.target.value)}
+                />
+              )}
               {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
             </div>
           </div>
