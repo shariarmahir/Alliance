@@ -85,6 +85,7 @@ export function AddProductDialog({
   const [brand, setBrand] = useState("");
   const [warrantyYears, setWarrantyYears] = useState("2");
   const [stockQty, setStockQty] = useState("50");
+  const [price, setPrice] = useState("");
   const [shortSpecs, setShortSpecs] = useState<string[]>(["", "", ""]);
   const [description, setDescription] = useState<string[]>([""]);
   const [alternatePartNumbers, setAlternatePartNumbers] = useState<string[]>([]);
@@ -100,6 +101,7 @@ export function AddProductDialog({
     setBrand("");
     setWarrantyYears("2");
     setStockQty("50");
+    setPrice("");
     setShortSpecs(["", "", ""]);
     setDescription([""]);
     setAlternatePartNumbers([]);
@@ -134,6 +136,7 @@ export function AddProductDialog({
           brand,
           warrantyYears: Number(warrantyYears) || 0,
           stockQty: Number(stockQty) || 0,
+          price: Number(price) || 0,
           shortSpecs: shortSpecs.filter((s) => s.trim()),
           description: description.filter((s) => s.trim()),
           alternatePartNumbers: alternatePartNumbers.filter((s) => s.trim()),
@@ -260,9 +263,23 @@ export function AddProductDialog({
             </div>
           </div>
 
-          {/* No price field: this is a quotation business, and the figure that
-              reaches a customer is the one set when a quote is accepted. */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* The price is the admin's own reference figure for pricing a
+              quotation. It never reaches the storefront -- the public
+              catalogue endpoint omits the field -- so it can be left blank
+              on a product nobody has costed yet. */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="price">Price (admin only)</Label>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Not set"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="warrantyYears">Warranty (years)</Label>
               <Input id="warrantyYears" type="number" min="0" value={warrantyYears} onChange={(e) => setWarrantyYears(e.target.value)} />

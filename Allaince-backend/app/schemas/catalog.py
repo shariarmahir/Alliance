@@ -49,8 +49,46 @@ class ProductOut(CamelModel):
     warranty_years: int
 
 
+class PublicProductOut(CamelModel):
+    """The storefront's view of a product: everything except the price.
+
+    This is a quotation-based B2B site -- a customer asks for a price and the
+    business decides what to offer them, per customer and per quantity. The
+    catalogue price is an internal figure for preparing that offer, so the
+    field is absent here rather than hidden by the frontend: an
+    unauthenticated endpoint is readable by anyone, including competitors,
+    regardless of what the page chooses to display.
+
+    Spelled out rather than subclassing ProductOut and excluding one field --
+    inheriting means a price added to the parent silently reappears here,
+    which is the failure this class exists to prevent.
+    """
+
+    slug: str
+    part_number: str
+    name: str
+    brand: str
+    category_slug: str
+    image: str
+    gallery: list[str]
+    short_specs: list[str]
+    description: list[str]
+    alternate_part_numbers: list[str]
+    specifications: dict[str, str]
+    stock: StockStatus
+    stock_qty: int
+    warranty_years: int
+
+
 class ProductListOut(CamelModel):
     items: list[ProductOut]
+    total: int
+    page: int
+    page_size: int
+
+
+class PublicProductListOut(CamelModel):
+    items: list[PublicProductOut]
     total: int
     page: int
     page_size: int

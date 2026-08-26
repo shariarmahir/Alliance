@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
+import { formatPrice } from "@/app/lib/utils";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
 import { CategoriesTab } from "./categories-tab";
@@ -106,6 +107,10 @@ export function ProductsClient({
                       <th className={TH}>PRODUCT</th>
                       <th className={TH}>CATEGORY</th>
                       <th className={TH}>BRAND</th>
+                      {/* Admin-only. The storefront quotes on request rather
+                          than publishing a price, and the public catalogue
+                          endpoint does not return this field at all. */}
+                      <th className={`${TH} text-right`}>PRICE</th>
                       <th className={TH}>STOCK</th>
                       <th className={TH} />
                     </tr>
@@ -134,6 +139,17 @@ export function ProductsClient({
                         </td>
                         <td className={`${TD} text-ink-muted`}>{categoryName(p.categorySlug)}</td>
                         <td className={`${TD} text-ink-muted`}>{p.brand}</td>
+                        <td className={`${TD} text-right font-mono font-semibold text-ink`}>
+                          {/* An unpriced product is worth noticing rather than
+                              reading as free. */}
+                          {p.price ? (
+                            formatPrice(p.price)
+                          ) : (
+                            <span className="font-sans text-[11px] font-semibold text-[#cc9400]">
+                              Not set
+                            </span>
+                          )}
+                        </td>
                         <td className={TD}>
                           <div className="flex items-center gap-2">
                             <span className="w-8 shrink-0 font-mono font-bold text-ink">

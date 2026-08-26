@@ -7,6 +7,8 @@ from app.schemas.catalog import (
     HeroImageOut,
     ProductListOut,
     ProductOut,
+    PublicProductListOut,
+    PublicProductOut,
     TopSellerOut,
 )
 from app.services import catalog as svc
@@ -18,7 +20,7 @@ from app.services.analytics import top_sellers
 router = APIRouter(prefix="/api", tags=["catalog"])
 
 
-@router.get("/products", response_model=ProductListOut)
+@router.get("/products", response_model=PublicProductListOut)
 async def list_products(
     db: DbSession,
     category: str | None = None,
@@ -39,20 +41,20 @@ async def list_products(
         page_size=page_size,
         sort=sort,
     )
-    return ProductListOut(
-        items=[ProductOut.model_validate(p) for p in items],
+    return PublicProductListOut(
+        items=[PublicProductOut.model_validate(p) for p in items],
         total=total,
         page=page,
         page_size=page_size,
     )
 
 
-@router.get("/products/{slug}", response_model=ProductOut)
+@router.get("/products/{slug}", response_model=PublicProductOut)
 async def get_product(slug: str, db: DbSession):
     product = await svc.get_product(db, slug)
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return ProductOut.model_validate(product)
+    return PublicProductOut.model_validate(product)
 
 
 @router.get("/categories", response_model=list[CategoryOut])

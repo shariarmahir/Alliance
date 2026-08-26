@@ -25,7 +25,10 @@ export type Product = {
   description: string[]; // bullets for detail page
   alternatePartNumbers: string[];
   specifications: Record<string, string>;
-  price: number; // USD, unit price
+  /** Admin-only. The public catalogue endpoint omits this field entirely --
+      the storefront quotes on request rather than publishing a price -- so it
+      is absent on anything fetched through the storefront routes. */
+  price?: number;
   stock: StockStatus; // derived from stockQty via deriveStockStatus — not set directly by admin
   stockQty: number; // admin sets this directly
   warrantyYears: number;
