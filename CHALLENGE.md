@@ -535,3 +535,51 @@ what exposed the real gap underneath it.
 
 **376 backend tests, typecheck clean, lint 0 errors, build successful.**
 Sabotage-verified: forcing the comparison true fails the covering test.
+
+---
+
+# Pass 9 — the gap in the previous eight passes
+
+Every pass so far tested the API. None checked that the **screens are wired to
+it**. A path typo, a renamed route or a missing body field produces a 404 or
+a silently dropped value in the browser while all 376 backend tests still
+pass — because the tests call the right path and the UI calls a different one.
+
+## Endpoint wiring
+
+`test_ui_wiring.py` transcribes all 31 admin endpoints the UI calls and
+asserts each is registered. **All 31 exist.**
+
+Finding it took three wrong attempts, worth recording because the first two
+looked like catastrophic failures:
+
+1. A flat scan of `app.routes` reported **every endpoint missing**. The app
+   was fine — this FastAPI version wraps each `include_router()` call in an
+   `_IncludedRouter`, so the API paths are not top-level routes.
+2. Recursing through `.routes` still found nothing: an `_IncludedRouter` has
+   no `.routes`. Its endpoints live on `.original_router`.
+3. Following that finds **98 registered routes**, and all 31 UI calls match.
+
+Sabotage-verified: renaming one expected path to a route that does not exist
+fails the test.
+
+## The defect: Dispatch collected four of five fields
+
+Section B lists the dispatch details:
+
+> Delivery Date | Vehicle Number | Driver/Transport Information |
+> Receiver/Contact Person | **Remarks**
+
+`DispatchDialog` rendered three inputs and sent three fields. `remarks` was
+never collected — the model stores it, the API accepts it, the PDF renders
+it, and earlier passes tested it by calling the endpoint directly with a
+remarks value the screen could never produce.
+
+That is exactly the class of defect API testing cannot see: the backend was
+correct in every test, and the field was unreachable in the product.
+
+**Fix:** a Remarks textarea in the dispatch dialog, sent with the other four.
+Multi-line, because dispatch notes are instructions to whoever receives the
+goods rather than a short value.
+
+**377 backend tests, typecheck clean, lint 0 errors, build successful.**

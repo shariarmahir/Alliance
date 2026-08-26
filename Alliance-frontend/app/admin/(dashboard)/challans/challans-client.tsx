@@ -298,6 +298,9 @@ function DispatchDialog({ challan, onDone }: { challan: Challan; onDone: () => v
   const [vehicle, setVehicle] = useState(challan.vehicleNumber);
   const [driver, setDriver] = useState(challan.driverInfo);
   const [receiver, setReceiver] = useState(challan.receiverName);
+  // Section B lists Remarks among the dispatch details. The backend has
+  // always stored it; the dialog collected four of the five fields.
+  const [remarks, setRemarks] = useState(challan.remarks ?? "");
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -305,7 +308,12 @@ function DispatchDialog({ challan, onDone }: { challan: Challan; onDone: () => v
     try {
       await apiFetch(`/api/admin/challans/${encodeURIComponent(challan.id)}/dispatch`, {
         method: "POST",
-        body: { vehicleNumber: vehicle, driverInfo: driver, receiverName: receiver },
+        body: {
+          vehicleNumber: vehicle,
+          driverInfo: driver,
+          receiverName: receiver,
+          remarks,
+        },
       });
       toast.success("Marked dispatched.");
       setOpen(false);
@@ -349,6 +357,18 @@ function DispatchDialog({ challan, onDone }: { challan: Challan; onDone: () => v
           <div className="space-y-1.5">
             <Label>Receiver / contact person</Label>
             <Input value={receiver} onChange={(e) => setReceiver(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Remarks</Label>
+            {/* Multi-line: dispatch notes are instructions to whoever
+                receives the goods, not a single short value. */}
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={2}
+              placeholder="Handling notes, gate pass, delivery window..."
+              className="w-full rounded-[8px] border border-slate-line bg-white px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-primary"
+            />
           </div>
         </div>
 
