@@ -615,3 +615,50 @@ async def test_challan_cannot_be_dispatched_before_approval(client, db):
         f"/api/admin/challans/{challan['id']}/status", json={"status": "dispatched"}
     )
     assert r.status_code == 409
+
+
+async def test_an_order_cannot_be_billed_beyond_what_was_confirmed(client, db):
+    """The challan side refuses over-delivery; the invoice side must refuse
+    over-billing for the same reason. Ten were ordered, ten already invoiced,
+    so a second invoice for ten more bills the customer twice for one order."""
+    quotation_id = await _confirmed(client)
+    line = {"slug": "drive-1", "name": "Drive", "quantity": 10, "unitPrice": 100.0}
+
+    first = await client.post(
+        "/api/admin/invoices", json={"quotationId": quotation_id, "lines": [line]}
+    )
+    assert first.status_code == 201
+
+    second = await client.post(
+        "/api/admin/invoices", json={"quotationId": quotation_id, "lines": [line]}
+    )
+    assert second.status_code == 400
+
+
+async def test_a_draft_invoice_can_still_be_edited_up_to_the_full_order(client, db):
+    """Guarding over-billing must not make normal editing impossible: raising
+    a draft's own line back to the full ordered quantity has to keep working,
+    because that draft's own quantities are not competition for itself."""
+    quotation_id = await _confirmed(client)
+    invoice = (await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 4,
+                         "unitPrice": 100.0}]},
+    )).json()
+
+    r = await client.patch(
+        f"/api/admin/invoices/{invoice['id']}",
+        json={"lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                         "unitPrice": 100.0}]},
+    )
+    assert r.status_code == 200
+    assert r.json()["grandTotal"] == 1000.0
+
+    # But one past the ordered quantity is still refused.
+    over = await client.patch(
+        f"/api/admin/invoices/{invoice['id']}",
+        json={"lines": [{"slug": "drive-1", "name": "Drive", "quantity": 11,
+                         "unitPrice": 100.0}]},
+    )
+    assert over.status_code == 400

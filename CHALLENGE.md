@@ -242,3 +242,34 @@ the backend's own refusal message instead of a generic failure.
 
 **Six tests added, each one failing with 200 OK before the fix and passing
 after. 345 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 3 — the missing mirror
+
+Pass 2 fixed the arrows between statuses. This pass asked a different
+question: **where the two documents do the same job, does the code treat
+them the same way?**
+
+One place it did not. `create_challan()` calls `_guard_quantities()` and
+refuses to ship more than the order still owes. `create_invoice()` had no
+equivalent — nothing checked billed quantities against ordered ones.
+
+Confirmed by test: an order for 10 units, invoiced twice for 10 units each,
+returned **201 Created** both times. **The customer is billed twice for one
+order**, and the second invoice looks exactly as legitimate as the first —
+there is nothing on the document to show the quantity was already invoiced.
+
+The figure needed to prevent this already existed. `order_balances()` has
+returned an `uninvoiced` value all along, and the Prepare Invoice window uses
+it to default the quantity. It was displayed but never enforced, so it guided
+the normal path and stopped nothing on the abnormal one.
+
+**Fix:** `OverBilling` and `_guard_invoice_quantities()`, mirroring
+`OverDelivery` exactly, applied to both create and edit. The edit path
+excludes the invoice's own lines from the billed figure — otherwise raising a
+draft back to the full ordered quantity would fail against the balance it had
+itself consumed. Both cases are covered by test: editing up to the ordered
+quantity passes, one unit past it is refused.
+
+**347 backend tests, typecheck clean, lint 0 errors, build successful.**

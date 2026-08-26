@@ -222,15 +222,18 @@ async def list_invoices(
 @router.post("/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
 async def create_invoice(payload: InvoiceCreate, db: DbSession, session: AdminSession = OrdersArea):
     quotation = await _confirmed_order(db, payload.quotation_id)
-    invoice = await svc.create_invoice(
-        db,
-        quotation,
-        lines=[l.model_dump(by_alias=True) for l in payload.lines],
-        discount=payload.discount,
-        tax_rate=payload.tax_rate,
-        other_charges=payload.other_charges,
-        notes=payload.notes,
-    )
+    try:
+        invoice = await svc.create_invoice(
+            db,
+            quotation,
+            lines=[l.model_dump(by_alias=True) for l in payload.lines],
+            discount=payload.discount,
+            tax_rate=payload.tax_rate,
+            other_charges=payload.other_charges,
+            notes=payload.notes,
+        )
+    except svc.OverBilling as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("%s prepared an invoice for %s", session.email, quotation.id)
     return _invoice_out(invoice, quotation)
 
@@ -281,20 +284,24 @@ async def update_invoice(
             status_code=409, detail="An approved invoice cannot be edited."
         )
 
-    updated = await svc.update_invoice(
-        db,
-        invoice,
-        lines=(
-            [l.model_dump(by_alias=True) for l in payload.lines]
-            if payload.lines is not None
-            else None
-        ),
-        discount=payload.discount,
-        tax_rate=payload.tax_rate,
-        other_charges=payload.other_charges,
-        notes=payload.notes,
-    )
-    quotation = await ops.get_quotation(db, updated.quotation_id)
+    quotation = await ops.get_quotation(db, invoice.quotation_id)
+    try:
+        updated = await svc.update_invoice(
+            db,
+            invoice,
+            quotation,
+            lines=(
+                [l.model_dump(by_alias=True) for l in payload.lines]
+                if payload.lines is not None
+                else None
+            ),
+            discount=payload.discount,
+            tax_rate=payload.tax_rate,
+            other_charges=payload.other_charges,
+            notes=payload.notes,
+        )
+    except svc.OverBilling as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _invoice_out(updated, quotation)
 
 

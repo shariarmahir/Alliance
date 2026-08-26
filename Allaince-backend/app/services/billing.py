@@ -293,6 +293,7 @@ async def create_invoice(
     notes: str = "",
 ) -> Invoice:
     """Saves a draft invoice in the Pending list. No number is assigned yet."""
+    await _guard_invoice_quantities(db, quotation, lines)
     totals = compute_totals(
         lines, discount=discount, tax_rate=tax_rate, other_charges=other_charges
     )
@@ -329,6 +330,7 @@ async def create_invoice(
 async def update_invoice(
     db: AsyncSession,
     invoice: Invoice,
+    quotation: Quotation | None = None,
     *,
     lines: list[dict] | None = None,
     discount: float | None = None,
@@ -339,6 +341,13 @@ async def update_invoice(
     """Edits a pending invoice. Approved documents are not editable — the
     number is out with the customer by then, so a correction is a new invoice.
     """
+    if lines is not None and quotation is not None:
+        # Excluding this invoice's own lines, or raising it to the full
+        # ordered quantity would fail against the balance it itself consumed.
+        await _guard_invoice_quantities(
+            db, quotation, lines, exclude_invoice=invoice.id
+        )
+
     if lines is not None:
         for existing in list(invoice.lines):
             await db.delete(existing)
@@ -484,6 +493,59 @@ async def list_challans(
 
 class OverDelivery(ValueError):
     """Raised when a challan would ship more than the order still owes."""
+
+
+class OverBilling(ValueError):
+    """Raised when an invoice would bill more than the order still owes.
+
+    The mirror of OverDelivery. An order billed twice is a customer charged
+    twice, and the second invoice looks as legitimate as the first — there is
+    nothing on the document itself to show the quantity was already invoiced.
+    """
+
+
+async def _guard_invoice_quantities(
+    db: AsyncSession,
+    quotation: Quotation,
+    lines: list[dict],
+    *,
+    exclude_invoice: str | None = None,
+) -> None:
+    """Checks each line against what the order still has left to bill.
+
+    `exclude_invoice` leaves the invoice being edited out of the billed
+    figure, so its own quantities do not count against their own remaining
+    balance — the same reason `exclude_challan` exists on the delivery side.
+    """
+    balances = {b["slug"]: b for b in await order_balances(db, quotation)}
+
+    already: dict[str, int] = {}
+    if exclude_invoice:
+        rows = await db.execute(
+            select(InvoiceLine.slug, func.sum(InvoiceLine.quantity))
+            .join(Invoice, Invoice.id == InvoiceLine.invoice_id)
+            .where(
+                InvoiceLine.invoice_id == exclude_invoice,
+                Invoice.status.notin_(VOID_STATUSES),
+            )
+            .group_by(InvoiceLine.slug)
+        )
+        already = {slug: int(total or 0) for slug, total in rows.all()}
+
+    for line in lines:
+        slug = line.get("slug") or ""
+        quantity = int(line.get("quantity") or 0)
+        if quantity <= 0:
+            continue
+        balance = balances.get(slug)
+        if balance is None:
+            raise OverBilling(f"'{slug}' is not on this order.")
+        remaining = balance["uninvoiced"] + already.get(slug, 0)
+        if quantity > remaining:
+            raise OverBilling(
+                f"{balance['name'] or slug}: only {remaining} left to invoice, "
+                f"but {quantity} was entered."
+            )
 
 
 async def _guard_quantities(
