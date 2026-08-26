@@ -43,7 +43,7 @@ export async function PendingQuotationsPanel() {
         </p>
       ) : (
         <div className="scrollbar-slim overflow-x-auto">
-          <table className="w-full border-collapse text-[12.5px]">
+          <table className="w-full min-w-140 border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-surface">
                 {["REQUEST", "CLIENT", "COUNTRY", "AGE", "STATUS"].map((h) => (

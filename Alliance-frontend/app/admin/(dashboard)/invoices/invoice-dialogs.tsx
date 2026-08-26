@@ -318,7 +318,9 @@ export function EditInvoiceDialog({
           </table>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        {/* Three number inputs side by side leave ~90px each on a phone,
+            which is narrower than the figures they hold. */}
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className="mono-label mb-1 block text-[10px] text-ink-muted">Discount</label>
             <input

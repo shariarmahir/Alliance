@@ -72,7 +72,7 @@ export default function QuotePage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-7 py-24 text-center">
+      <div className="mx-auto flex max-w-2xl flex-col items-center px-5 py-24 sm:px-7 text-center">
         <ShoppingBag className="size-16 text-[#c8d0da]" />
         <h1 className="mt-4 text-2xl font-bold tracking-[-0.02em] text-ink">
           Your price request list is empty
@@ -103,7 +103,7 @@ export default function QuotePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1360px] px-8 py-6.5">
+    <div className="mx-auto max-w-[1360px] px-4 py-6.5 sm:px-6 lg:px-8">
       <div className="mb-1 flex items-center gap-3">
         <h1 className="text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">Ask Price</h1>
         <span className="rounded-[5px] bg-tint px-2.5 py-1 font-mono text-[11px] font-semibold text-[#00618f]">

@@ -62,7 +62,7 @@ export default async function ProductDetailPage({
   const pill = stockPill[product.stock];
 
   return (
-    <div className="mx-auto max-w-[1360px] px-8 pb-8 pt-4.5">
+    <div className="mx-auto max-w-[1360px] px-4 pb-8 pt-4.5 sm:px-6 lg:px-8">
       <nav className="mb-5 text-xs text-[#8a94a6]">
         <Link href="/" className="hover:text-primary">
           Home

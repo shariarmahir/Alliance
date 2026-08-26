@@ -35,7 +35,7 @@ export function HeroCarouselClient({ slides }: { slides: Slide[] }) {
         </div>
       ))}
 
-      <div className="relative z-10 mx-auto flex min-h-[452px] max-w-[1360px] flex-col justify-center gap-5 px-7 py-12 md:px-[68px]">
+      <div className="relative z-10 mx-auto flex min-h-[452px] max-w-[1360px] flex-col justify-center gap-5 px-4 sm:px-7 py-12 md:px-[68px]">
         <span className="w-fit rounded-[20px] border border-white/[0.22] bg-white/[0.13] px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[#ffd15c] backdrop-blur-sm">
           Obsolete &amp; Hard-To-Find Specialists
         </span>

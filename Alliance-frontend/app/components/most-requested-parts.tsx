@@ -17,7 +17,7 @@ export async function MostRequestedParts() {
   if (!week.length && !month.length && !year.length) return null;
 
   return (
-    <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
+    <section className="mx-auto max-w-[1360px] px-4 sm:px-7 py-13 md:px-[68px]">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="mb-1 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">

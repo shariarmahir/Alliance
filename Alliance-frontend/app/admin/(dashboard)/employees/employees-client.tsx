@@ -93,7 +93,7 @@ function RosterTab({
           </p>
         ) : (
           <div className="scrollbar-slim overflow-x-auto">
-            <table className="w-full text-[12.5px]">
+            <table className="w-full min-w-220 text-[12.5px]">
               <thead className="bg-surface">
                 <tr>
                   <th className={TH}>ID</th>
@@ -306,7 +306,7 @@ function TasksTab({ tasks, employees }: { tasks: Task[]; employees: SafeEmployee
         </div>
       ) : (
         <div className="scrollbar-slim overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-          <table className="w-full text-[12.5px]">
+          <table className="w-full min-w-160 text-[12.5px]">
             <thead className="bg-surface">
               <tr>
                 <th className={TH}>TASK</th>
@@ -364,7 +364,7 @@ function ReportsTab({
         </div>
       ) : (
         <div className="scrollbar-slim overflow-x-auto rounded-[10px] border border-slate-line bg-white">
-          <table className="w-full text-[12.5px]">
+          <table className="w-full min-w-160 text-[12.5px]">
             <thead className="bg-surface">
               <tr>
                 <th className={TH}>DATE</th>

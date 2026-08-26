@@ -48,7 +48,7 @@ export default async function ProductsPage({
   const heading = activeCategory?.name ?? "All products";
 
   return (
-    <div className="mx-auto max-w-[1360px] px-7 pb-9 pt-4">
+    <div className="mx-auto max-w-[1360px] px-4 pb-9 pt-4 sm:px-6 lg:px-7">
       <nav className="mb-4 text-xs text-[#8a94a6]">
         <Link href="/" className="hover:text-primary">
           Home

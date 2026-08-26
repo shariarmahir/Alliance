@@ -5,7 +5,7 @@ export async function Footer() {
   const categories = await getCategories();
   return (
     <footer className="bg-[#0d1626] text-white/[0.68]">
-      <div className="mx-auto max-w-[1360px] px-7 pt-12 md:px-[68px]">
+      <div className="mx-auto max-w-[1360px] px-4 sm:px-7 pt-12 md:px-[68px]">
         <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.3fr]">
           {/* Brand stays full-width at every size below lg — the address
               block needs the room. The other four sections (three link

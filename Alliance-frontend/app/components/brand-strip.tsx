@@ -5,7 +5,7 @@ import { BrandLogo } from "@/app/components/brand-logo";
 export async function BrandStrip() {
   const brands = await getBrands();
   return (
-    <section className="mx-auto max-w-[1360px] px-7 py-13 md:px-[68px]">
+    <section className="mx-auto max-w-[1360px] px-4 sm:px-7 py-13 md:px-[68px]">
       <div className="mb-5 flex items-baseline justify-between">
         <h2 className="text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
           Popular brands available

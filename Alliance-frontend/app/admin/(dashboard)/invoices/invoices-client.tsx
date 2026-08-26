@@ -640,7 +640,7 @@ export function InvoicesClient({
       ) : (
         <Panel className="overflow-hidden">
           <div className="scrollbar-slim overflow-x-auto">
-            <table className="w-full text-[12.5px]">
+            <table className="w-full min-w-260 text-[12.5px]">
               <thead className="bg-surface">
                 <tr>
                   <th className={TH}>INVOICE NO.</th>

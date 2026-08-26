@@ -122,7 +122,7 @@ export default function Home() {
         {heroStats.map((s) => (
           <div
             key={s.label}
-            className="flex flex-col items-center justify-center bg-surface px-7 py-3.5 text-center"
+            className="flex flex-col items-center justify-center bg-surface px-4 sm:px-7 py-3.5 text-center"
           >
             <p className="mono-label text-[10.5px] tracking-[0.09em] text-[#8a94a6]">{s.label}</p>
             <p className="mt-1 text-[19px] font-bold text-primary">{s.value}</p>
@@ -133,7 +133,7 @@ export default function Home() {
       <CategoryGrid />
 
       {/* Protect uptime. Reduce downtime. */}
-      <section className="mx-auto max-w-[1360px] px-7 py-15 md:px-[68px]">
+      <section className="mx-auto max-w-[1360px] px-4 sm:px-7 py-15 md:px-[68px]">
         <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[1fr_1.05fr]">
           <div>
             <h2 className="mb-3.5 text-[28px] font-bold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[32px]">
@@ -188,7 +188,7 @@ export default function Home() {
 
       {/* Quality parts and services you can trust */}
       <section className="border-y border-slate-line bg-surface-blue py-14">
-        <div className="mx-auto max-w-[1360px] px-7 md:px-[68px]">
+        <div className="mx-auto max-w-[1360px] px-4 sm:px-7 md:px-[68px]">
           <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-[1fr_1.15fr]">
             <div>
               <h2 className="mb-3.5 text-2xl font-bold leading-[1.2] tracking-[-0.02em] text-ink sm:text-[29px]">
@@ -218,7 +218,7 @@ export default function Home() {
       </section>
 
       {/* Services & support */}
-      <section id="services" className="mx-auto max-w-[1360px] px-7 py-14 md:px-[68px]">
+      <section id="services" className="mx-auto max-w-[1360px] px-4 sm:px-7 py-14 md:px-[68px]">
         <h2 className="mb-5.5 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
           Services &amp; support
         </h2>
@@ -258,7 +258,7 @@ export default function Home() {
 
       {/* The AutoLink difference */}
       <section className="mt-14 bg-[#0d1626] py-13">
-        <div className="mx-auto max-w-[1360px] px-7 md:px-[68px]">
+        <div className="mx-auto max-w-[1360px] px-4 sm:px-7 md:px-[68px]">
           <h2 className="mb-1.5 text-center text-2xl font-bold tracking-[-0.02em] text-white sm:text-[28px]">
             The AutoLink difference
           </h2>
@@ -284,7 +284,7 @@ export default function Home() {
       <ClientReviews />
 
       {/* Frequently asked + We are here to help you */}
-      <section id="contact" className="mx-auto max-w-[1360px] px-7 pb-16 pt-15 md:px-[68px]">
+      <section id="contact" className="mx-auto max-w-[1360px] px-4 sm:px-7 pb-16 pt-15 md:px-[68px]">
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_1.2fr] lg:items-start">
           <div>
             <h2 className="mb-2 text-2xl font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
