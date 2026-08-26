@@ -61,32 +61,52 @@ def _shell(title: str, body: str) -> str:
 </body></html>"""
 
 
+def _letter(greeting_name: str, paragraphs: list[str], block: str = "") -> str:
+    """A plain covering letter, signed.
+
+    The customer-facing emails used to restate the attachment in the body --
+    reference, amount, billed-to, the full terms table, sometimes the line
+    items. That made the email a second copy of the document it carried, and
+    a second copy is a second thing that can disagree with the first: a
+    revised PDF and a stale body, or a part-paid invoice quoting the order's
+    original total.
+
+    The document is the record. The email is the note that accompanies it, so
+    it now reads as one: address the customer, say what is attached, sign off.
+
+    `paragraphs` arrive as already-escaped HTML because most carry an inline
+    <strong> reference; anything interpolated into them is escaped at the
+    call site.
+
+    `block` is for table-level content that cannot live inside a <p> without
+    producing markup email clients render unpredictably. It sits after the
+    paragraphs and before the sign-off.
+    """
+    body = "".join(
+        f'<p style="font-size:14px;line-height:1.7;margin:0 0 14px">{p}</p>'
+        for p in paragraphs
+    )
+    return (
+        f'<p style="font-size:14px;margin:0 0 14px">Dear {escape(greeting_name)},</p>'
+        + body
+        + block
+        + '<p style="font-size:14px;line-height:1.7;margin:26px 0 0">Best Regards,<br>'
+        '<span style="color:#667085">'
+        "&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span><br>"
+        "Md. Nurul Islam<br>"
+        "Manager &ndash; Sales</p>"
+    )
+
+
+def _greeting(details: dict) -> str:
+    return details.get("fullName") or "Customer"
+
+
 def _rows(pairs: list[tuple[str, str]]) -> str:
     return "".join(
         f'<tr><td style="padding:6px 12px 6px 0;color:#667085;font-size:13px">{escape(k)}</td>'
         f'<td style="padding:6px 0;font-size:13px"><strong>{escape(str(v))}</strong></td></tr>'
         for k, v in pairs
-    )
-
-
-def _company_clause(details: dict) -> str:
-    company = (details.get("companyName") or "").strip()
-    return f" on behalf of {escape(company)}" if company else ""
-
-
-def _subject_block(confirmation) -> str:
-    """The admin-written subject line, when there is one.
-
-    Free text typed per quotation, so it is escaped like any other untrusted
-    input even though it originates internally.
-    """
-    subject = (confirmation.subject or "").strip()
-    if not subject:
-        return ""
-    return (
-        '<div style="margin:14px 0 0;padding:12px 14px;background:#f4faff;'
-        'border-left:3px solid #007DCC;font-size:13.5px;line-height:1.6">'
-        f"{escape(subject)}</div>"
     )
 
 
@@ -153,33 +173,6 @@ def _line_items_table(confirmation) -> str:
     )
 
 
-# Printed in this order because it is the order the PDF and the admin form use;
-# a customer comparing the two should not have to hunt.
-_TERM_LABELS = (
-    ("payment", "Payment"),
-    ("delivery", "Delivery"),
-    ("offerValidity", "Offer validity"),
-    ("vatAit", "VAT / AIT"),
-    ("stock", "Stock"),
-    ("installationCharge", "Installation"),
-    ("warranty", "Warranty"),
-)
-
-
-def _terms_block(terms: dict) -> str:
-    present = [(label, terms.get(key)) for key, label in _TERM_LABELS if terms.get(key)]
-    if not present:
-        return ""
-    return (
-        '<div style="margin:20px 0 0"><div style="font-size:11.5px;color:#667085;'
-        'text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'
-        "Terms of this offer</div>"
-        '<table style="width:100%;border-collapse:collapse">'
-        + _rows([(label, value) for label, value in present])
-        + "</table></div>"
-    )
-
-
 async def notify_new_quotation(quotation) -> bool:
     """Internal notification that a price request arrived."""
     details = quotation.details or {}
@@ -222,51 +215,23 @@ async def send_quotation_issued(quotation, pdf_bytes: bytes | None = None) -> bo
         logger.warning("Quotation %s has no customer email; not sending.", quotation.id)
         return False
 
-    # Points at the customer's own request page, not a tracking ID: there is
-    # no self-service tracking surface, and acceptance happens by the
-    # customer replying to this email — an admin then confirms it from the
-    # dashboard. This link is informational, not an "accept" action.
-    request_url = f"{settings.public_site_url.rstrip('/')}/quote/thank-you/{quotation.id}"
-    terms = confirmation.terms or {}
+    # The admin's own subject line, when they wrote one. Kept because it is
+    # written per quotation and says something the PDF does not -- unlike the
+    # tables that used to follow it, which only restated the attachment.
+    paragraphs = [
+        "With reference to your valued inquiry, we are pleased to submit our "
+        "best competitive offer for your kind consideration.",
+        "Please find attached our price quotation, reference "
+        f"<strong>{escape(confirmation.ref_number)}</strong>, for your review. "
+        "We sincerely hope our offer meets your requirements and expectations.",
+        "We look forward to receiving your valued order and establishing a "
+        "long-term business relationship with your esteemed organization.",
+    ]
+    subject_note = (confirmation.subject or "").strip()
+    if subject_note:
+        paragraphs.insert(0, escape(subject_note))
 
-    body = (
-        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">With reference to your '
-        "valued inquiry, we are pleased to submit our best competitive offer for your "
-        "kind consideration.</p>"
-        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached our '
-        f"price quotation, reference <strong>{escape(confirmation.ref_number)}</strong>, "
-        "for your review. We sincerely hope our offer meets your requirements and "
-        "expectations.</p>"
-        + _subject_block(confirmation)
-        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
-        + _rows(
-            [
-                ("Reference", confirmation.ref_number),
-                ("Offer date", str(confirmation.issued_date)),
-                ("Prepared for", details.get("companyName") or details.get("fullName") or "—"),
-            ]
-        )
-        + "</table>"
-        + _line_items_table(confirmation)
-        + _terms_block(terms)
-        + '<p style="margin:22px 0 6px"><a href="'
-        + escape(request_url)
-        + '" style="display:inline-block;background:#007DCC;color:#fff;padding:11px 20px;'
-        'border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold">'
-        "View this request</a></p>"
-        '<p style="font-size:14px;line-height:1.65;margin:18px 0 0">We look forward to '
-        "receiving your valued order and establishing a long-term business relationship "
-        "with your esteemed organization.</p>"
-        '<p style="font-size:12.5px;color:#667085;line-height:1.6;margin:14px 0 0">'
-        "Reply to this email to accept the offer. To adjust quantities or "
-        "specifications, reply with the changes and an engineer will re-issue "
-        "a revised offer.</p>"
-        '<p style="font-size:14px;line-height:1.65;margin:22px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">Best Regards,<br>'
-        "Md. Nurul Islam<br>"
-        "Manager &ndash; Sales</p>"
-    )
+    body = _letter(_greeting(details), paragraphs)
 
     attachments = None
     if pdf_bytes:
@@ -307,25 +272,20 @@ async def send_order_confirmed(quotation) -> bool:
         logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
         return False
 
-    body = (
-        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Your order against reference '
-        f"<strong>{escape(confirmation.ref_number)}</strong> is now confirmed and being "
-        f"prepared. Thank you for your business.</p>"
-        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
-        + _rows(
-            [
-                ("Reference", confirmation.ref_number),
-                ("Order value", f"BDT {confirmation.grand_total:,.2f}"),
-                ("Prepared for", details.get("companyName") or details.get("fullName") or "—"),
-            ]
-        )
-        + "</table>"
-        + _line_items_table(confirmation)
-        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">Our team will contact you directly to arrange '
-        "freight and delivery. For anything urgent, reply to this email or message us "
-        "on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    # The one customer email that carries no attachment, so the line items
+    # stay: here they are the only record of what was ordered, not a second
+    # copy of one. Passed as `block` because a <table> inside a <p> is markup
+    # email clients render however they like.
+    body = _letter(
+        _greeting(details),
+        [
+            "We are pleased to confirm your order against reference "
+            f"<strong>{escape(confirmation.ref_number)}</strong>, which is now "
+            "in preparation.",
+            "Our team will contact you directly to arrange freight and delivery. "
+            "We thank you for your valued business.",
+        ],
+        block=_line_items_table(confirmation),
     )
 
     return await send_email(
@@ -352,16 +312,17 @@ async def send_challan(quotation, pdf_bytes: bytes | None = None) -> bool:
         logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
         return False
 
-    body = (
-        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached the '
-        f"delivery challan for your order against reference "
-        f"<strong>{escape(confirmation.ref_number)}</strong>.</p>"
-        '<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Kindly check the items on '
-        "receipt and let us know straight away if anything does not match.</p>"
-        '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">Any questions? Reply to this email, or message us on '
-        "WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    body = _letter(
+        _greeting(details),
+        [
+            "We are pleased to inform you that your order has been dispatched.",
+            "Please find attached the delivery challan against reference "
+            f"<strong>{escape(confirmation.ref_number)}</strong>. Kindly check "
+            "the items on receipt and inform us straight away if anything does "
+            "not match.",
+            "We thank you for your valued order and look forward to serving you "
+            "again.",
+        ],
     )
 
     attachments = None
@@ -412,30 +373,21 @@ async def send_invoice(quotation, pdf_bytes: bytes | None = None, invoice=None) 
         amount = confirmation.grand_total
         outstanding = None
 
-    rows = [
-        ("Invoice", invoice_ref),
-        ("Amount", f"BDT {amount:,.2f}"),
-        ("Billed to", details.get("companyName") or details.get("fullName") or "—"),
-    ]
-    if quotation.po_number:
-        rows.insert(1, ("Work Order / PO", quotation.po_number))
-    # Only when something is still owed — a settled invoice showing a zero
-    # balance reads as a demand rather than an acknowledgement.
-    if outstanding is not None and outstanding > 0.01 and outstanding != amount:
-        rows.append(("Outstanding", f"BDT {outstanding:,.2f}"))
-
-    body = (
-        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Please find attached the '
-        f"invoice for your confirmed order, reference "
-        f"<strong>{escape(invoice_ref)}</strong>.</p>"
-        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
-        + _rows(rows)
-        + "</table>"
-        + _terms_block(confirmation.terms or {})
-        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">Any questions about this invoice? Reply to this '
-        "email, or message us on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    # `amount` carries into the subject line, which is where a figure earns
+    # its place: it lets the recipient triage the message without opening the
+    # attachment. Inside the body the invoice speaks for itself.
+    body = _letter(
+        _greeting(details),
+        [
+            "Thank you for your valued order. We are pleased to enclose our "
+            "invoice for your kind attention.",
+            "Please find attached the invoice, reference "
+            f"<strong>{escape(invoice_ref)}</strong>, covering your confirmed "
+            "order. Kindly review it at your convenience and let us know if "
+            "anything requires clarification.",
+            "We thank you for your continued confidence in AutoLink Integrated "
+            "Technologies and look forward to serving you again.",
+        ],
     )
 
     attachments = None
@@ -475,24 +427,16 @@ async def send_receipt(quotation, pdf_bytes: bytes | None = None) -> bool:
 
     receipt_ref = re.sub(r"/Q-?", "/R", confirmation.ref_number, flags=re.IGNORECASE)
 
-    body = (
-        f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
-        f'<p style="font-size:14px;line-height:1.65;margin:0 0 8px">Thank you — we have '
-        f"received your payment against order "
-        f"<strong>{escape(confirmation.ref_number)}</strong>. The money receipt is "
-        f"attached for your records.</p>"
-        + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
-        + _rows(
-            [
-                ("Receipt", receipt_ref),
-                ("Amount received", f"BDT {confirmation.grand_total:,.2f}"),
-                ("Against order", confirmation.ref_number),
-            ]
-        )
-        + "</table>"
-        + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
-        'border-top:1px solid #e3e8ef">If anything on this receipt looks wrong, reply to '
-        "this email, or message us on WhatsApp at <strong>+8801315-770099</strong>.</p>"
+    body = _letter(
+        _greeting(details),
+        [
+            "We gratefully acknowledge receipt of your payment against order "
+            f"<strong>{escape(confirmation.ref_number)}</strong>.",
+            "Please find the money receipt attached for your records. Should "
+            "anything on it require correction, kindly let us know.",
+            "We thank you for your prompt settlement and for your continued "
+            "confidence in AutoLink Integrated Technologies.",
+        ],
     )
 
     attachments = None

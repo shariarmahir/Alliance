@@ -5,6 +5,10 @@ import pytest
 
 from app.integrations import email as email_integration
 
+# The whole sign-off, not just the name: the fixture customer used to share
+# that name, so asserting it alone passed even with the block deleted.
+_SIGN_OFF = "Best Regards,"
+
 
 def _confirmation(**overrides):
     base = dict(
@@ -47,7 +51,7 @@ def _confirmation(**overrides):
 
 def _quotation(confirmation, **detail_overrides):
     details = {
-        "fullName": "Md Nurul Islam",
+        "fullName": "Mahir Shariar",
         "email": "customer@example.com",
         "companyName": "TechLink Automation",
     }
@@ -68,27 +72,41 @@ async def _render(quotation):
     return captured
 
 
-async def test_quotation_email_itemises_every_line():
-    """The PDF is the contractual document, but it must not be the only place
-    a customer can see what was quoted — many read mail on a phone."""
+async def test_quotation_email_is_a_covering_letter_not_a_second_copy():
+    """The body accompanies the PDF; it does not restate it.
+
+    Line items, the terms table and the reference/date/prepared-for rows all
+    used to be repeated in the body. Two copies of one document is two things
+    that can disagree -- a revised attachment beside a stale body. The PDF is
+    the record.
+    """
     sent = await _render(_quotation(_confirmation()))
     html = sent["html"]
 
-    assert "Mitsubishi GS2107 HMI" in html
-    assert "GS2107-WTBD" in html
-    assert "Danfoss Brake Resistor" in html
-    assert "MCF-107" in html
-    # Grand total, formatted with separators rather than a bare float.
-    assert "51,250.00" in html
+    # The letter itself.
+    assert "Dear Mahir Shariar," in html
+    assert "we are pleased to submit our best competitive offer" in html
+    assert "Please find attached our price quotation" in html
+    assert "long-term business relationship" in html
+    assert _SIGN_OFF in html
+
+    # The reference stays: it is what the customer quotes when replying.
+    assert "AIT/TA&amp;E/Q-0001/2026" in html
+
+    # None of the restated document survives.
+    assert "Mitsubishi GS2107 HMI" not in html
+    assert "GS2107-WTBD" not in html
+    assert "Terms of this offer" not in html
+    assert "12 Months Warranty (From the date of delivery)" not in html
+    # The grand total belongs to the attachment and the subject line, not here.
+    assert "51,250.00" not in html
 
 
-async def test_quotation_email_lists_the_offer_terms():
+async def test_admin_written_subject_line_survives():
+    """Free text typed per quotation, saying something the PDF does not --
+    unlike the tables removed around it, which only repeated the attachment."""
     sent = await _render(_quotation(_confirmation()))
-    html = sent["html"]
-
-    assert "07 days, From the Offer Date." in html
-    assert "12 Months Warranty (From the date of delivery)" in html
-    assert "Excluded." in html
+    assert "Offer for HMI spares" in sent["html"]
 
 
 async def test_quotation_email_subject_carries_reference_and_total():
@@ -119,7 +137,9 @@ async def test_quotation_email_escapes_untrusted_text():
 
     assert "<script>" not in html
     assert "<b>Injected</b>" not in html
-    assert "A &amp; B Co" in html
+    # The admin-written subject is still echoed into the body, so it is still
+    # the thing that must arrive escaped rather than rendered.
+    assert "&lt;script&gt;" in html
 
 
 async def test_quotation_email_without_customer_address_is_not_sent():
@@ -136,3 +156,97 @@ async def test_quotation_email_survives_an_empty_line_list(lines):
     html = (await _render(_quotation(_confirmation(lines=lines))))["html"]
     # Escaped in the body, since the reference contains an ampersand.
     assert "AIT/TA&amp;E/Q-0001/2026" in html
+
+
+async def _render_with(sender, *args, **kwargs):
+    """Captures the HTML from any of the customer-facing senders."""
+    captured: dict = {}
+
+    async def fake_send(to, subject, html, attachments=None):
+        captured.update(to=to, subject=subject, html=html, attachments=attachments)
+        return True
+
+    with patch.object(email_integration, "send_email", fake_send):
+        await sender(*args, **kwargs)
+    return captured
+
+
+def _invoice(**overrides):
+    base = dict(
+        invoice_number="AIT/M/I-0001/2026",
+        grand_total=500.0,
+        amount_paid=0.0,
+    )
+    base.update(overrides)
+    return types.SimpleNamespace(**base)
+
+
+async def test_invoice_email_is_a_letter_not_a_restated_invoice():
+    """The screenshot case. The body carried the invoice number, the amount,
+    who it was billed to and the whole terms table -- every figure the PDF
+    already stated, and one of them (the amount) was wrong whenever an order
+    was part-invoiced."""
+    quotation = _quotation(_confirmation())
+    sent = await _render_with(
+        email_integration.send_invoice, quotation, None, _invoice()
+    )
+    html = sent["html"]
+
+    assert "Dear Mahir Shariar," in html
+    assert "AIT/M/I-0001/2026" in html
+    assert _SIGN_OFF in html
+
+    # The duplicated document is gone.
+    assert "Terms of this offer" not in html
+    assert "Billed to" not in html
+    assert "BDT 500.00" not in html
+    assert "100% Cash/Pay order." not in html
+
+    # But the subject still carries the figure, where it aids triage.
+    assert "500.00" in sent["subject"]
+
+
+async def test_challan_email_is_a_letter():
+    quotation = _quotation(_confirmation())
+    html = (await _render_with(email_integration.send_challan, quotation, None))["html"]
+
+    assert "Dear Mahir Shariar," in html
+    assert "your order has been dispatched" in html
+    assert "AIT/TA&amp;E/Q-0001/2026" in html
+    assert _SIGN_OFF in html
+    assert "WhatsApp" not in html
+
+
+async def test_receipt_email_is_a_letter():
+    quotation = _quotation(_confirmation())
+    html = (await _render_with(email_integration.send_receipt, quotation, None))["html"]
+
+    assert "Dear Mahir Shariar," in html
+    assert "acknowledge receipt of your payment" in html
+    assert _SIGN_OFF in html
+    # The receipt PDF states the amount; the body no longer repeats it.
+    assert "51,250.00" not in html
+
+
+async def test_order_confirmed_keeps_its_line_items():
+    """The one customer email with no attachment. Here the items are the only
+    record of what was ordered, not a second copy of one -- so removing them
+    would lose information rather than de-duplicate it."""
+    quotation = _quotation(_confirmation())
+    html = (await _render_with(email_integration.send_order_confirmed, quotation))["html"]
+
+    assert "Dear Mahir Shariar," in html
+    assert "pleased to confirm your order" in html
+    assert "Mitsubishi GS2107 HMI" in html
+    assert "51,250.00" in html
+    assert _SIGN_OFF in html
+
+
+async def test_line_items_table_is_not_nested_inside_a_paragraph():
+    """A <table> inside a <p> is markup email clients render however they
+    like -- the browser closes the paragraph early and the layout breaks."""
+    quotation = _quotation(_confirmation())
+    html = (await _render_with(email_integration.send_order_confirmed, quotation))["html"]
+
+    before = html.split("<table", 1)[0]
+    assert before.rstrip().endswith("</p>")
