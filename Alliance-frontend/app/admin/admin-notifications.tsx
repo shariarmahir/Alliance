@@ -172,9 +172,14 @@ export function AdminNotifications({ counts }: { counts: AdminNavCounts }) {
         )}
       </DropdownMenuTrigger>
 
+      {/* A flat 344px leaves 8px of margin on a 360px phone, so it clips
+          against the edge. w-86 with a viewport cap gives the full width
+          wherever there is room and shrinks below it -- same max-w-[calc()]
+          pattern the dialog primitive uses, rather than a min() that
+          Tailwind rewrites into an unreliable form. */}
       <DropdownMenuContent
         align="end"
-        className="w-[344px] overflow-hidden rounded-[12px] border-slate-line p-0 shadow-[0_20px_48px_rgba(13,22,38,.16)]"
+        className="w-86 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[12px] border-slate-line p-0 shadow-[0_20px_48px_rgba(13,22,38,.16)]"
       >
         {/* Dark header mirrors the storefront's summary panels and the
             quotation email, so the admin surfaces read as one system. */}

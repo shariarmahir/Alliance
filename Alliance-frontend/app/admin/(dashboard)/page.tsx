@@ -73,7 +73,7 @@ export default async function AdminOverviewPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="mb-1 text-[26px] font-bold tracking-[-0.02em] text-ink">Overview</h1>
+          <h1 className="mb-1 text-[21px] font-bold tracking-[-0.02em] text-ink sm:text-[26px]">Overview</h1>
           <p className="text-[13px] text-[#64748b]">
             Business performance at a glance · {rangeLabel}
           </p>

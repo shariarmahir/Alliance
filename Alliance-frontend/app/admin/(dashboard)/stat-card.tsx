@@ -74,7 +74,12 @@ export function StatCard({
 
       <div className="relative p-4.5">
         <p className="mb-2 text-xs font-medium text-[#64748b]">{label}</p>
-        <p className="mb-2.5 font-mono text-[27px] font-bold tracking-[-0.02em] text-ink">{value}</p>
+        {/* Holds formatted currency, so it can reach "৳1,234,567.00". At a
+            flat 27px that overruns a half-width card on a phone; the smaller
+            step keeps it on one line until there is room. */}
+        <p className="mb-2.5 font-mono text-[22px] font-bold tracking-[-0.02em] text-ink sm:text-[27px]">
+          {value}
+        </p>
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[11.5px] font-semibold",
