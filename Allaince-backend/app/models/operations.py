@@ -261,6 +261,59 @@ class ChallanLine(Base):
     challan: Mapped["Challan"] = relationship(back_populates="lines")
 
 
+class DeletedOrder(Base):
+    """What survives a hard delete of an order.
+
+    "Remove anyway" destroys the quotation and every invoice, challan, line
+    and receipt hanging off it, on purpose -- the admin wants it gone from
+    every screen. But money that was recorded as received really was received,
+    and letting that figure vanish silently would mean revenue quietly
+    disagreeing with the bank for reasons nobody can reconstruct later.
+
+    So this row is written first and outlives the deletion. It holds no
+    foreign key: the record it describes no longer exists, and a reference to
+    a deleted row is exactly what a stub must not have. Amounts are copied as
+    plain numbers rather than recomputed, because the documents they were
+    derived from are gone by the time anyone reads this.
+
+    It is deliberately not editable through any route. An audit trail an
+    admin can rewrite is not an audit trail.
+    """
+
+    __tablename__ = "deleted_orders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    # The quotation's old id, kept only so a support question about a
+    # vanished reference can still be answered. Not a foreign key.
+    quotation_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    ref_number: Mapped[str] = mapped_column(String(60), default="", index=True, nullable=False)
+    customer_name: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    customer_email: Mapped[str] = mapped_column(String(320), default="", index=True, nullable=False)
+    company_name: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+
+    # The order's own value, and what its invoices actually said. Kept apart
+    # because they answer different questions: grand_total is what the order
+    # was worth, amount_invoiced is what was billed, amount_received is what
+    # came in. Collapsing them into one number loses the discrepancy that
+    # makes a deletion worth reviewing.
+    grand_total: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    amount_invoiced: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    amount_received: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    invoice_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    challan_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # When the order was originally confirmed, so the deleted revenue can be
+    # charted against the period it was booked in rather than the day someone
+    # happened to delete it.
+    confirmed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    deleted_at: Mapped[datetime] = mapped_column(
+        UTCDateTime, default=utcnow, index=True, nullable=False
+    )
+    deleted_by: Mapped[str] = mapped_column(String(320), default="", nullable=False)
+    reason: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+
 class Order(Base):
     __tablename__ = "orders"
 

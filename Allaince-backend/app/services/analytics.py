@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import OrderConfirmation, Product, Quotation
+from app.models import DeletedOrder, OrderConfirmation, Product, Quotation
 from app.schemas.analytics import (
     AnalyticsRange,
     CountryBreakdown,
@@ -168,10 +168,30 @@ async def read_range_analytics(db: AsyncSession, range_: AnalyticsRange) -> Rang
             if email:
                 prev_clients.add(email)
 
+    # Purged orders. Bucketed by confirmed_at, not deleted_at: the money was
+    # booked when the order was confirmed, so charting it on the day someone
+    # tidied up would put an old write-off in this month's column. A stub with
+    # no confirmed_at was never a confirmed order and so was never revenue.
+    deleted_trend = [TrendPoint(label=label, value=0) for label in labels]
+    deleted_revenue = 0.0
+    deleted_order_count = 0
+    for stub in (await db.execute(select(DeletedOrder))).scalars().all():
+        ts = _as_utc(stub.confirmed_at)
+        if ts is None or ts < window_from:
+            continue
+        i = _bucket_index_for(ts, starts)
+        if i >= 0:
+            deleted_trend[i].value += stub.grand_total
+        deleted_revenue += stub.grand_total
+        deleted_order_count += 1
+
     return RangeAnalytics(
         range=range_,
         revenue=revenue,
         revenue_delta_pct=delta_pct(revenue, prev_revenue),
+        deleted_revenue=round(deleted_revenue, 2),
+        deleted_order_count=deleted_order_count,
+        deleted_revenue_trend=deleted_trend,
         order_count=order_count,
         order_count_delta_pct=delta_pct(order_count, prev_order_count),
         quotation_count=quotation_count,

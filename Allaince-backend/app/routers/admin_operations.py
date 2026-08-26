@@ -16,8 +16,10 @@ from app.integrations.object_storage import (
 from app.schemas.operations import (
     ConfirmQuotationRequest,
     ContactRequestOut,
+    DeletedOrderOut,
     DeliveryStageUpdate,
     HandledUpdate,
+    PurgeQuotationRequest,
     OrderOut,
     OrderStatusUpdate,
     PaymentStatusUpdate,
@@ -165,6 +167,53 @@ async def update_quotation_status(
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
     return _out(quotation)
+
+
+@router.get("/deleted-orders", response_model=list[DeletedOrderOut])
+async def list_deleted_orders(db: DbSession, session: SuperAdminDep):
+    """The audit trail of purged orders, and the source of the deleted-revenue
+    chart. Super admin only, matching who is allowed to create these."""
+    return await svc.list_deleted_orders(db)
+
+
+@router.delete("/quotations/{quotation_id}", response_model=DeletedOrderOut)
+async def purge_quotation(
+    quotation_id: str,
+    payload: PurgeQuotationRequest,
+    db: DbSession,
+    session: SuperAdminDep,
+):
+    """Destroys an order and every invoice, challan and receipt against it.
+
+    Deliberately a DELETE on the quotation itself rather than another status
+    value: this is not a state the order moves into, it is the order ceasing
+    to exist, and modelling it as a status would put "destroy everything"
+    one dropdown selection away from an ordinary edit.
+
+    Super admin only. Sub-admins with the quotations area keep the ordinary
+    cancel, which still refuses while paperwork stands -- irreversibly
+    destroying financial records is not a routine delegated permission.
+    """
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+
+    stub = await svc.purge_quotation(
+        db, quotation, deleted_by=session.email, reason=payload.reason
+    )
+    # Logged at warning: this is the one operation here with nothing to undo
+    # it, and the amounts are what make it worth finding in a log later.
+    logger.warning(
+        "%s purged order %s (%s) - invoiced %.2f, received %.2f, %d invoice(s), %d challan(s)",
+        session.email,
+        stub.ref_number or quotation_id,
+        stub.company_name,
+        stub.amount_invoiced,
+        stub.amount_received,
+        stub.invoice_count,
+        stub.challan_count,
+    )
+    return stub
 
 
 @router.post("/quotations/{quotation_id}/confirm", response_model=QuotationOut)

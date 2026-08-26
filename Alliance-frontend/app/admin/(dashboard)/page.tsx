@@ -10,6 +10,7 @@ import { formatPrice } from "@/app/lib/utils";
 import { RangeToggle } from "./range-toggle";
 import { StatCard } from "./stat-card";
 import { RevenueChart } from "./charts/revenue-chart";
+import { DeletedRevenueChart } from "./charts/deleted-revenue-chart";
 import { BestSellersCard } from "./best-sellers-card";
 import { SubAdminDashboard } from "./sub-admin-dashboard";
 import {
@@ -128,6 +129,20 @@ export default async function AdminOverviewPage({
             pendingCount={payments.pendingCount}
             rangeLabel={rangeLabel}
           />
+          {/* Only once something has actually been deleted. A permanent
+              zeroed chart would imply deletions are a routine part of the
+              month rather than the exception they are. */}
+          {analytics.deletedOrderCount > 0 && (
+            <DeletedRevenueChart
+              data={analytics.deletedRevenueTrend.map((point) => ({
+                label: point.label,
+                deleted: point.value,
+              }))}
+              total={analytics.deletedRevenue}
+              count={analytics.deletedOrderCount}
+              caption={`${RANGE_LABEL[range][0].toUpperCase()}${RANGE_LABEL[range].slice(1)} · BDT`}
+            />
+          )}
         </div>
         <OrderRatioPanel />
       </div>

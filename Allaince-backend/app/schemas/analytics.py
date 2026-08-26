@@ -24,6 +24,15 @@ class RangeAnalytics(CamelModel):
     revenue_trend: list[TrendPoint]
     order_trend: list[TrendPoint]
     quotation_trend: list[TrendPoint]
+    # Orders destroyed by "Remove anyway", charted against the period they
+    # were confirmed in rather than the day they were deleted -- otherwise a
+    # cleanup of old records would show as a spike in the current month.
+    # Separate from revenue_trend because these are not sales: revenue counts
+    # live confirmed orders, so a purged order has already left that series.
+    # Showing them together would net a deletion against real income.
+    deleted_revenue: float = 0.0
+    deleted_order_count: int = 0
+    deleted_revenue_trend: list[TrendPoint] = []
 
 
 class PaymentAnalytics(CamelModel):

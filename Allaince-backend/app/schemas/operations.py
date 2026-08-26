@@ -130,6 +130,33 @@ class QuotationStatusUpdate(CamelModel):
     status: QuotationStatus
 
 
+class PurgeQuotationRequest(CamelModel):
+    """Why an order was destroyed. Optional, but recorded when given -- a
+    deleted paid order is the kind of thing someone asks about later."""
+
+    reason: str = Field(default="", max_length=2000)
+
+
+class DeletedOrderOut(CamelModel):
+    """A purged order's surviving record. No id of the deleted quotation is
+    exposed as a link, because there is nothing to link to."""
+
+    id: str
+    ref_number: str
+    customer_name: str
+    customer_email: str
+    company_name: str
+    grand_total: float
+    amount_invoiced: float
+    amount_received: float
+    invoice_count: int
+    challan_count: int
+    confirmed_at: datetime | None = None
+    deleted_at: datetime
+    deleted_by: str
+    reason: str = ""
+
+
 class WorkOrderUpdate(CamelModel):
     """The customer's PO reference. The file itself arrives as multipart on the
     upload route; this carries the number, which is often known first."""

@@ -8,6 +8,7 @@ from app.models import (
     Challan,
     ChallanLine,
     ContactRequest,
+    DeletedOrder,
     Invoice,
     InvoiceLine,
     Order,
@@ -406,6 +407,65 @@ async def update_quotation_status(
     await db.commit()
     await db.refresh(quotation)
     return quotation
+
+
+async def purge_quotation(
+    db: AsyncSession, quotation: Quotation, *, deleted_by: str, reason: str = ""
+) -> DeletedOrder:
+    """Destroys one order and every document raised against it.
+
+    This is the escape hatch behind "Remove anyway", and unlike
+    update_quotation_status it asks no permission: paid invoices, dispatched
+    challans and recorded receipts all go. That is the point -- an admin who
+    reaches for it wants the order gone from every screen, not withdrawn.
+
+    Scoped to one quotation by object, not by a list of ids: a bulk purge
+    driven by client-supplied ids would destroy whatever it was handed.
+
+    The audit stub is written from the order's own numbers before anything is
+    deleted, because a moment later there is nothing left to read them from.
+    Its amounts come from payment_position, so the figure recorded here is the
+    same one the Orders screen was showing -- a second calculation would be a
+    second opinion about how much money was involved.
+
+    Both writes ride one commit. A stub without a deletion would double-count
+    revenue; a deletion without a stub would lose it silently.
+    """
+    position = await payment_position(db, quotation)
+    confirmation = quotation.confirmation
+    details = quotation.details or {}
+    invoices, challans = await _documents_against(db, quotation.id)
+
+    stub = DeletedOrder(
+        quotation_id=quotation.id,
+        ref_number=confirmation.ref_number if confirmation is not None else "",
+        customer_name=details.get("fullName") or "",
+        customer_email=quotation.customer_email or "",
+        company_name=details.get("companyName") or "",
+        grand_total=confirmation.grand_total if confirmation is not None else 0.0,
+        amount_invoiced=position["amount_invoiced"],
+        amount_received=position["amount_paid"],
+        invoice_count=invoices,
+        challan_count=challans,
+        confirmed_at=confirmation.issued_at if confirmation is not None else None,
+        deleted_by=deleted_by,
+        reason=(reason or "").strip()[:2000],
+    )
+    db.add(stub)
+
+    # The confirmation, invoices, challans, their lines and every recorded
+    # payment go with it -- all four relationships cascade delete-orphan.
+    await db.delete(quotation)
+    await db.commit()
+    return stub
+
+
+async def list_deleted_orders(db: AsyncSession) -> list[DeletedOrder]:
+    """Newest first. Read-only everywhere: nothing writes these but a purge."""
+    rows = await db.execute(
+        select(DeletedOrder).order_by(DeletedOrder.deleted_at.desc())
+    )
+    return list(rows.scalars().all())
 
 
 async def next_confirmation_sequence(db: AsyncSession) -> int:

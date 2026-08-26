@@ -30,6 +30,7 @@ import { WorkOrderDialog } from "./work-order-dialog";
 import { OrderHistoryDialog } from "./order-history-dialog";
 import { OrderDocumentsDialog } from "./order-documents-dialog";
 import { SendQuotationButton } from "./send-quotation-button";
+import { PurgeOrderDialog } from "./purge-order-dialog";
 import { NextStep } from "./workflow-stage";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { useClientNow } from "@/app/lib/use-client-now";
@@ -270,12 +271,14 @@ function QuotationRow({
   quotation,
   sequence,
   panelOpen,
+  canPurge,
   onPanelOpenChange,
   onChanged,
 }: {
   quotation: Quotation;
   sequence: number;
   panelOpen: boolean;
+  canPurge: boolean;
   onPanelOpenChange: (open: boolean) => void;
   onChanged: () => void;
 }) {
@@ -471,6 +474,16 @@ function QuotationRow({
               onConfirm={() => setStatus("cancelled")}
             />
           )}
+          {/* The escape hatch, super admin only. Sits beside Remove rather
+              than replacing it: the ordinary cancel is the right action
+              almost always, and this one cannot be undone. */}
+          {canPurge && quotation.status === "confirmed" && (
+            <PurgeOrderDialog
+              quotation={quotation}
+              disabled={busy}
+              onPurged={onChanged}
+            />
+          )}
         </div>
       </td>
     </tr>
@@ -582,7 +595,13 @@ function ClearCancelledBanner({
   );
 }
 
-export function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
+export function QuotationsClient({
+  initialQuotations,
+  canPurge,
+}: {
+  initialQuotations: Quotation[];
+  canPurge: boolean;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | QuotationStatus>("inbox");
   // The row whose confirmation panel is open, if any. Tracked up here rather
@@ -699,6 +718,7 @@ export function QuotationsClient({ initialQuotations }: { initialQuotations: Quo
                     quotation={quotation}
                     sequence={nextSequence}
                     panelOpen={openPanelId === quotation.id}
+                    canPurge={canPurge}
                     onPanelOpenChange={(open) =>
                       setOpenPanelId(open ? quotation.id : null)
                     }

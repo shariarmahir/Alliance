@@ -32,6 +32,13 @@ export type RangeAnalytics = {
   revenueTrend: TrendPoint[];
   orderTrend: TrendPoint[];
   quotationTrend: TrendPoint[];
+  // Orders destroyed by "Remove anyway", bucketed by when they were confirmed
+  // rather than when they were deleted. Kept out of revenueTrend on purpose:
+  // these are not sales, and netting them against income would understate the
+  // period and make the two impossible to reconcile apart.
+  deletedRevenue: number;
+  deletedOrderCount: number;
+  deletedRevenueTrend: TrendPoint[];
 };
 
 const EMPTY_ANALYTICS = (range: AnalyticsRange): RangeAnalytics => ({
@@ -47,6 +54,9 @@ const EMPTY_ANALYTICS = (range: AnalyticsRange): RangeAnalytics => ({
   revenueTrend: [],
   orderTrend: [],
   quotationTrend: [],
+  deletedRevenue: 0,
+  deletedOrderCount: 0,
+  deletedRevenueTrend: [],
 });
 
 export async function readRangeAnalytics(range: AnalyticsRange): Promise<RangeAnalytics> {
