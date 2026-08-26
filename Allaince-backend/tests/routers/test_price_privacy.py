@@ -124,3 +124,30 @@ async def test_the_edit_dialog_payload_updates_every_field_it_sends(client, db):
     row = next(x for x in again.json()["items"] if x["slug"] == product["slug"])
     assert row["price"] == 4321.0
     assert row["stockQty"] == 12
+
+
+async def test_the_admin_endpoint_is_the_only_one_that_carries_the_price(client, db):
+    """The two product endpoints differ by exactly one field, and an admin
+    screen that reads the public one shows every price as "Not set" no matter
+    what was saved. That is not a visible failure -- no error, no empty list,
+    just a wrong number -- so it is pinned here.
+    """
+    product = await _create(client)
+
+    _auth(client)
+    admin_row = next(
+        p for p in (await client.get("/api/admin/products")).json()["items"]
+        if p["slug"] == product["slug"]
+    )
+
+    client.cookies.clear()
+    public_row = next(
+        p for p in (await client.get("/api/products")).json()["items"]
+        if p["slug"] == product["slug"]
+    )
+
+    assert "price" in admin_row
+    assert "price" not in public_row
+    # Everything else must match, or the two screens disagree about the
+    # catalogue itself rather than just the price.
+    assert set(admin_row) - set(public_row) == {"price"}
