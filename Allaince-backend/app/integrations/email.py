@@ -383,8 +383,15 @@ async def send_challan(quotation, pdf_bytes: bytes | None = None) -> bool:
     )
 
 
-async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
-    """Sends the invoice for a confirmed order with the PDF attached."""
+async def send_invoice(quotation, pdf_bytes: bytes | None = None, invoice=None) -> bool:
+    """Sends an invoice to the customer with the PDF attached.
+
+    `invoice` carries the real document — its own number, its own total, and
+    its own outstanding balance. Without it this fell back to deriving a
+    reference from the quotation and quoting the quotation's total, so a
+    part-paid or partially-invoiced order was billed for the wrong amount
+    under a number that appeared on no record anywhere.
+    """
     details = quotation.details or {}
     confirmation = quotation.confirmation
     to = details.get("email")
@@ -395,7 +402,27 @@ async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
         logger.warning("Quotation %s has no confirmation; not sending.", quotation.id)
         return False
 
-    invoice_ref = re.sub(r"/Q-?", "/I", confirmation.ref_number, flags=re.IGNORECASE)
+    if invoice is not None:
+        invoice_ref = invoice.invoice_number or confirmation.ref_number
+        amount = invoice.grand_total
+        outstanding = invoice.grand_total - invoice.amount_paid
+    else:
+        # Legacy callers that have no Invoice row to hand.
+        invoice_ref = re.sub(r"/Q-?", "/I", confirmation.ref_number, flags=re.IGNORECASE)
+        amount = confirmation.grand_total
+        outstanding = None
+
+    rows = [
+        ("Invoice", invoice_ref),
+        ("Amount", f"BDT {amount:,.2f}"),
+        ("Billed to", details.get("companyName") or details.get("fullName") or "—"),
+    ]
+    if quotation.po_number:
+        rows.insert(1, ("Work Order / PO", quotation.po_number))
+    # Only when something is still owed — a settled invoice showing a zero
+    # balance reads as a demand rather than an acknowledgement.
+    if outstanding is not None and outstanding > 0.01 and outstanding != amount:
+        rows.append(("Outstanding", f"BDT {outstanding:,.2f}"))
 
     body = (
         f"<p style=\"font-size:14px;margin:0 0 14px\">Dear {escape(details.get('fullName') or 'Customer')},</p>"
@@ -403,13 +430,7 @@ async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
         f"invoice for your confirmed order, reference "
         f"<strong>{escape(invoice_ref)}</strong>.</p>"
         + '<table style="width:100%;border-collapse:collapse;margin:18px 0 4px">'
-        + _rows(
-            [
-                ("Invoice", invoice_ref),
-                ("Amount", f"BDT {confirmation.grand_total:,.2f}"),
-                ("Billed to", details.get("companyName") or details.get("fullName") or "—"),
-            ]
-        )
+        + _rows(rows)
         + "</table>"
         + _terms_block(confirmation.terms or {})
         + '<p style="font-size:13px;line-height:1.65;margin:18px 0 0;padding-top:16px;'
@@ -430,7 +451,7 @@ async def send_invoice(quotation, pdf_bytes: bytes | None = None) -> bool:
 
     return await send_email(
         to,
-        f"Invoice {invoice_ref} — BDT {confirmation.grand_total:,.2f}",
+        f"Invoice {invoice_ref} — BDT {amount:,.2f}",
         _shell(f"Invoice {invoice_ref}", body),
         attachments,
     )

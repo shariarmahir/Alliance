@@ -36,6 +36,11 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { DocumentActions } from "../document-actions";
+import {
+  ViewInvoiceDialog,
+  EditInvoiceDialog,
+  SendInvoiceButton,
+} from "./invoice-dialogs";
 import type {
   Invoice,
   InvoiceStatus,
@@ -465,18 +470,30 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
         <Pill tone={pill.tone}>{pill.label}</Pill>
       </td>
       <td className={TD}>
+        {/* Item 12: from Pending the user can View, Edit, Cancel, Preview
+            and Print. Items 17-19 add Send, which is what moves an approved
+            invoice to Submitted. */}
         <div className="flex flex-wrap items-center gap-2">
+          <ViewInvoiceDialog invoice={invoice} />
           {invoice.invoiceNumber === null ? (
-            <button
-              type="button"
-              onClick={approve}
-              disabled={busy}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-            >
-              <CheckCircle2 className="size-3.5" /> Approve
-            </button>
+            <>
+              {/* Corrections belong before approval — after it, the number
+                  is on a document the customer may already hold. */}
+              <EditInvoiceDialog invoice={invoice} onDone={onChanged} />
+              <button
+                type="button"
+                onClick={approve}
+                disabled={busy}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <CheckCircle2 className="size-3.5" /> Approve
+              </button>
+            </>
           ) : (
             <>
+              {invoice.status === "pending" && (
+                <SendInvoiceButton invoice={invoice} onDone={onChanged} />
+              )}
               <RecordPaymentDialog invoice={invoice} onDone={onChanged} />
               {invoice.status === "paid" && (
                 <RowButton tone="ok" disabled={busy} onClick={() => setStatus("completed")}>

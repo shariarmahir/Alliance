@@ -35,6 +35,11 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { DocumentActions } from "../document-actions";
+import {
+  ViewChallanDialog,
+  EditChallanDialog,
+  SendChallanButton,
+} from "./challan-dialogs";
 import type { Challan, ChallanStatus, OrderBalanceLine } from "@/app/lib/admin-data";
 import type { Quotation } from "@/app/lib/types";
 
@@ -451,19 +456,28 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
         <Pill tone={pill.tone}>{pill.label}</Pill>
       </td>
       <td className={TD}>
+        {/* View, Edit, Preview, Print or Cancel before finalisation — Preview
+            and Print are DocumentActions, below. */}
         <div className="flex flex-wrap items-center gap-2">
+          <ViewChallanDialog challan={challan} />
           {challan.challanNumber === null && (
-            <button
-              type="button"
-              onClick={approve}
-              disabled={busy}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-            >
-              <CheckCircle2 className="size-3.5" /> Approve
-            </button>
+            <>
+              <EditChallanDialog challan={challan} onDone={onChanged} />
+              <button
+                type="button"
+                onClick={approve}
+                disabled={busy}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <CheckCircle2 className="size-3.5" /> Approve
+              </button>
+            </>
           )}
           {challan.challanNumber !== null && challan.status === "pending" && (
-            <DispatchDialog challan={challan} onDone={onChanged} />
+            <>
+              <SendChallanButton challan={challan} />
+              <DispatchDialog challan={challan} onDone={onChanged} />
+            </>
           )}
           {challan.status === "dispatched" && (
             <DeliverDialog challan={challan} onDone={onChanged} />
