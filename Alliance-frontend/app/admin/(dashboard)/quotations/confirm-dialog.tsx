@@ -28,7 +28,7 @@ import {
   defaultSubject,
   generateRefNumber,
 } from "@/app/lib/order-confirmation";
-import { downloadQuotationPdf, quotationPdfToBase64 } from "@/app/lib/quotation-pdf";
+import { quotationPdfToBase64 } from "@/app/lib/quotation-pdf";
 import { apiFetch, apiUpload, ApiError } from "@/app/lib/api-browser";
 import type { Quotation, QuotationTerms } from "@/app/lib/types";
 
@@ -250,19 +250,18 @@ export function ConfirmQuotationPanel({
     try {
       const saved = await issueConfirmation(false);
       if (!saved) return;
-      toast.success(`Quotation ${refNumber} saved.`, {
-        description: "Marked PDF downloaded — use Confirm to accept it as an order.",
+      // Item 4 is Save alone: "the prepared quotation will then be
+      // transferred automatically to the Pending list." Downloading a PDF
+      // here forced a file on an admin who only wanted to save a draft, and
+      // item 8's Generate/preview is a separate option on the Pending row.
+      toast.success(`Quotation ${refNumber} saved to Pending.`, {
+        description: "Preview or send it from the Pending list.",
       });
       // Deliberately not refreshing the Quotations list here: this
       // quotation no longer matches the Pending tab once issued, so an
       // immediate refresh would drop its row (and this open panel with it)
       // out from under the admin. The list re-syncs when onClose fires —
       // see quotations-client.tsx, where onClose also calls onChanged.
-      try {
-        await downloadQuotationPdf(saved);
-      } catch {
-        toast.warning("Confirmation saved, but the PDF could not be generated.");
-      }
     } catch {
       toast.error("Could not issue the order confirmation.");
     } finally {
@@ -625,11 +624,13 @@ export function ConfirmQuotationPanel({
                   className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <FileCheck2 className="size-4" />
+                  {/* The same action at every stage now: save the prepared
+                      offer. Preview and Send are their own options. */}
                   {submitting
                     ? "Saving..."
                     : quotation.status === "inbox"
                       ? "Save to Pending"
-                      : "Save & Download PDF"}
+                      : "Save"}
                 </button>
                 {quotation.status !== "inbox" && (
                   <button
