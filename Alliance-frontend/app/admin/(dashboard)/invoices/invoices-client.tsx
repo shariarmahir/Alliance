@@ -474,8 +474,12 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
         body: { status },
       });
       onChanged();
-    } catch {
-      toast.error("Could not update the invoice.");
+    } catch (error) {
+      // The backend refuses moves the workflow does not allow, and its
+      // reason is more use than "could not update".
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not update the invoice."
+      );
     } finally {
       setBusy(false);
     }
@@ -540,7 +544,10 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
             path={`/api/admin/invoices/${encodeURIComponent(invoice.id)}/pdf`}
             fileName={`${invoice.invoiceNumber ?? "invoice-draft"}.pdf`}
           />
-          {invoice.status !== "cancelled" && invoice.status !== "completed" && (
+          {/* Only before money arrives. Once a receipt is recorded against
+              an invoice, that invoice is what the receipt reconciles to —
+              cancelling it would leave the payment pointing at nothing. */}
+          {(invoice.status === "pending" || invoice.status === "submitted") && (
             <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
               Cancel
             </RowButton>

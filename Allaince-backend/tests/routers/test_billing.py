@@ -497,3 +497,121 @@ async def test_challan_send_requires_approval_and_leaves_status_alone(
     r = await client.post(f"/api/admin/challans/{challan['id']}/send")
     assert r.status_code == 200
     assert r.json()["status"] == "pending"
+
+
+# ---------------------------------------------------------------------------
+# Workflow ordering. The client's document is a chain of arrows, not a set of
+# buttons: "Approve -> Generate -> Send -> Submitted -> Payment -> Completed".
+# A status that can be set to anything from anything is not that chain.
+# ---------------------------------------------------------------------------
+
+
+async def test_invoice_cannot_be_completed_before_it_is_paid(client, db):
+    """Section A item 24: Completed means "fully paid and all transactions
+    completed". An unpaid invoice moved to Completed leaves money owed that
+    no longer appears on any outstanding list."""
+    quotation_id = await _confirmed(client)
+    invoice = (await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                         "unitPrice": 100.0}]},
+    )).json()
+
+    r = await client.patch(
+        f"/api/admin/invoices/{invoice['id']}/status", json={"status": "completed"}
+    )
+    assert r.status_code == 409
+
+
+async def test_invoice_cannot_be_cancelled_after_payment(client, db):
+    """Money has been received against this document. Cancelling it destroys
+    the record the receipt is reconciled against."""
+    quotation_id = await _confirmed(client)
+    invoice = (await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                         "unitPrice": 100.0}]},
+    )).json()
+    await client.post(f"/api/admin/invoices/{invoice['id']}/approve")
+    await client.post(
+        f"/api/admin/invoices/{invoice['id']}/payments", json={"amount": 500.0}
+    )
+
+    r = await client.patch(
+        f"/api/admin/invoices/{invoice['id']}/status", json={"status": "cancelled"}
+    )
+    assert r.status_code == 409
+
+
+async def test_invoice_payment_status_cannot_be_set_by_hand(client, db):
+    """Unpaid -> Partially Paid -> Paid is derived from the payments recorded.
+    Setting it directly makes the badge disagree with the arithmetic."""
+    quotation_id = await _confirmed(client)
+    invoice = (await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                         "unitPrice": 100.0}]},
+    )).json()
+    await client.post(f"/api/admin/invoices/{invoice['id']}/approve")
+
+    r = await client.patch(
+        f"/api/admin/invoices/{invoice['id']}/status", json={"status": "paid"}
+    )
+    assert r.status_code == 409
+
+
+async def test_challan_cannot_skip_dispatch(client, db):
+    """Section B: Approve -> Dispatch -> Delivered. A challan marked Delivered
+    without a dispatch has no vehicle, driver or delivery date recorded."""
+    quotation_id = await _confirmed(client)
+    challan = (await client.post(
+        "/api/admin/challans",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 4}]},
+    )).json()
+
+    r = await client.patch(
+        f"/api/admin/challans/{challan['id']}/status", json={"status": "delivered"}
+    )
+    assert r.status_code == 409
+
+
+async def test_challan_cannot_be_cancelled_once_delivered(client, db):
+    """The goods are with the customer. Cancelling returns the quantity to the
+    balance, so the order would show stock still owed that has already gone."""
+    quotation_id = await _confirmed(client)
+    challan = (await client.post(
+        "/api/admin/challans",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 4}]},
+    )).json()
+    await client.post(f"/api/admin/challans/{challan['id']}/approve")
+    await client.post(
+        f"/api/admin/challans/{challan['id']}/dispatch",
+        json={"vehicleNumber": "DHK-1", "driverInfo": "Karim", "receiverName": "Store"},
+    )
+    await client.post(f"/api/admin/challans/{challan['id']}/deliver")
+
+    r = await client.patch(
+        f"/api/admin/challans/{challan['id']}/status", json={"status": "cancelled"}
+    )
+    assert r.status_code == 409
+
+
+async def test_challan_cannot_be_dispatched_before_approval(client, db):
+    """The dispatch endpoint guards this; the status endpoint must not be a
+    way around it."""
+    quotation_id = await _confirmed(client)
+    challan = (await client.post(
+        "/api/admin/challans",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 4}]},
+    )).json()
+
+    r = await client.patch(
+        f"/api/admin/challans/{challan['id']}/status", json={"status": "dispatched"}
+    )
+    assert r.status_code == 409

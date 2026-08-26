@@ -465,8 +465,12 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
       });
       toast.success("Challan cancelled. Its quantities are back on the order.");
       onChanged();
-    } catch {
-      toast.error("Could not cancel the challan.");
+    } catch (error) {
+      // The backend refuses moves the workflow does not allow, and its
+      // reason is more use than "could not cancel".
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not cancel the challan."
+      );
     } finally {
       setBusy(false);
     }
@@ -534,7 +538,10 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
             fileName={`${challan.challanNumber ?? "challan-draft"}.pdf`}
             label="Challan PDF"
           />
-          {challan.status !== "cancelled" && challan.status !== "delivered" && (
+          {/* Only while the goods are still here. Once a challan is
+              dispatched the stock has left the building, so cancelling it
+              would put quantity back on the order that nobody can ship. */}
+          {challan.status === "pending" && (
             <RowButton tone="danger" disabled={busy} onClick={cancel}>
               Cancel
             </RowButton>

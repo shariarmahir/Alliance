@@ -384,7 +384,10 @@ async def set_invoice_status(
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found.")
-    updated = await svc.set_invoice_status(db, invoice, payload.status)
+    try:
+        updated = await svc.set_invoice_status(db, invoice, payload.status)
+    except svc.TransitionRefused as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     quotation = await ops.get_quotation(db, updated.quotation_id)
     return _invoice_out(updated, quotation)
 
@@ -612,6 +615,9 @@ async def set_challan_status(
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
         raise HTTPException(status_code=404, detail="Challan not found.")
-    updated = await svc.set_challan_status(db, challan, payload.status)
+    try:
+        updated = await svc.set_challan_status(db, challan, payload.status)
+    except svc.TransitionRefused as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     quotation = await ops.get_quotation(db, updated.quotation_id)
     return _challan_out(updated, quotation)

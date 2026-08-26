@@ -12,6 +12,11 @@ Audited 2026-08-26 against commit `10a9fc5`.
 **All three are now closed — 54 of 54.** The fixes are described under
 "The three gaps" below; each entry names what was wrong and what replaced it.
 
+> **Second pass, same date — a further audit found a defect class the first
+> pass could not see.** The tables below check that each clause has a
+> *feature*. They do not check that the **arrows between them are enforced**.
+> They were not. See "Pass 2 — the workflow arrows" at the end of this file.
+
 ---
 
 ## Document 1 — Price Request & Quotation Management
@@ -179,3 +184,61 @@ All three closed in `order-summary.tsx` and `order-history-dialog.tsx`:
 successful.
 
 Nothing else in either document is outstanding.
+
+---
+
+# Pass 2 — the workflow arrows
+
+The audit above asks, for each clause, *does this feature exist?* Every answer
+was yes. But both documents specify a **chain**, not a set of buttons:
+
+```
+Approve → Generate Invoice → Send/Print → Submitted → Payment Status → Completed
+Approve → Generate Challan → Dispatch → Delivered → Completed
+```
+
+The arrows are part of the specification. Nothing was enforcing them.
+
+`PATCH /invoices/{id}/status` and `PATCH /challans/{id}/status` wrote the new
+status straight to the column. Pydantic checked that the value was one of the
+six spelled correctly — not that the move was legal. Every transition below
+returned **200 OK**, confirmed by running them:
+
+| Illegal move | What it costs |
+|---|---|
+| pending → `completed` | An unpaid invoice filed as Completed. The money is still owed and now appears on no outstanding list. |
+| partially_paid → `cancelled` | Receipts recorded against a document that no longer exists. |
+| pending → `paid` | The badge says Paid; the payments table says nothing was received. Item 21's chain becomes decorative. |
+| pending → `delivered` (challan) | Delivered with no dispatch: no vehicle, no driver, no delivery date. Section B items for Dispatch are simply skipped. |
+| delivered → `cancelled` | The goods are with the customer, and the quantity returns to the order balance — so the order shows stock still owed that has already gone. |
+
+The last one is the worst: it corrupts the quantity arithmetic that Section B
+item 8 exists to protect.
+
+## Why the first pass missed it
+
+Feature-presence auditing cannot see this. "Can an invoice be cancelled?" —
+yes, there is a button and an endpoint. The question that finds the defect is
+"**can it be cancelled when it must not be?**", which only a written test
+answers.
+
+## The fix
+
+`_guard_transition()` in `app/services/billing.py`, applied in the service
+rather than the router so no future caller can route around it.
+
+Two statuses are deliberately unreachable by hand: **`partially_paid` and
+`paid` are conclusions drawn from the payments recorded**, never assertions an
+admin makes. `record_payment()` already derived them correctly; now nothing
+else can overwrite what it derived.
+
+Dispatch and delivery are likewise not settable through the status field —
+they carry evidence (vehicle, driver, signed copy) and are recorded through
+their own endpoints, which collect it.
+
+The two Cancel buttons were corrected to match: the invoice's now appears only
+on Pending and Submitted, the challan's only on Pending. Both screens now show
+the backend's own refusal message instead of a generic failure.
+
+**Six tests added, each one failing with 200 OK before the fix and passing
+after. 345 backend tests, typecheck clean, lint 0 errors, build successful.**

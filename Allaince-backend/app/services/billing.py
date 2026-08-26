@@ -42,6 +42,55 @@ INVOICE_STATUSES = (
 CHALLAN_STATUSES = ("pending", "dispatched", "delivered", "cancelled")
 
 
+class TransitionRefused(Exception):
+    """A status move the client's workflow does not allow.
+
+    The specification is a chain of arrows, not a list of states: "Approve →
+    Generate → Send/Print → Submitted → Payment Status → Completed". Without
+    this, the status column is a free-text field with a dropdown in front of
+    it, and any document can be dragged to any state regardless of what
+    actually happened to it.
+    """
+
+
+# Which statuses may be reached by hand, and from where.
+#
+# Two statuses are deliberately absent as destinations: `partially_paid` and
+# `paid` are conclusions drawn from the payments recorded, never assertions an
+# admin makes. Allowing them here would let the badge disagree with the money.
+INVOICE_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "submitted": ("pending",),
+    # "fully paid and all required transactions completed" — so completion is
+    # reachable only once the arithmetic says the invoice is settled.
+    "completed": ("paid",),
+    # A document with receipts against it is what those receipts reconcile to.
+    "cancelled": ("pending", "submitted"),
+}
+
+CHALLAN_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    # Dispatch and delivery carry evidence (vehicle, driver, signed copy) and
+    # are recorded through their own endpoints, which collect it. Reaching
+    # those states through the status field would skip the evidence.
+    "cancelled": ("pending",),
+}
+
+
+def _guard_transition(
+    current: str, target: str, allowed: dict[str, tuple[str, ...]], noun: str
+) -> None:
+    if current == target:
+        return
+    sources = allowed.get(target)
+    if sources is None:
+        raise TransitionRefused(
+            f"{noun} status '{target}' is set by the workflow, not by hand."
+        )
+    if current not in sources:
+        raise TransitionRefused(
+            f"A {noun.lower()} cannot go from '{current}' to '{target}'."
+        )
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -397,6 +446,7 @@ async def record_payment(
 
 
 async def set_invoice_status(db: AsyncSession, invoice: Invoice, status: str) -> Invoice:
+    _guard_transition(invoice.status, status, INVOICE_TRANSITIONS, "Invoice")
     invoice.status = status
     if status == "completed":
         invoice.completed_at = _now()
@@ -582,6 +632,7 @@ async def deliver_challan(
 
 
 async def set_challan_status(db: AsyncSession, challan: Challan, status: str) -> Challan:
+    _guard_transition(challan.status, status, CHALLAN_TRANSITIONS, "Challan")
     challan.status = status
     await db.commit()
     return await get_challan(db, challan.id)
