@@ -85,3 +85,42 @@ async def test_the_price_can_be_corrected(client, db):
     )
     assert r.status_code == 200
     assert r.json()["price"] == 999.5
+
+
+async def test_the_edit_dialog_payload_updates_every_field_it_sends(client, db):
+    """The Edit Product dialog PATCHes exactly these fields. If the endpoint
+    silently ignored one, an admin would correct a price on screen, see a
+    success toast, and find the old figure still there on refresh."""
+    product = await _create(client)
+    _auth(client)
+
+    cat = await client.post("/api/admin/categories", json={"name": "Sensors"})
+    new_category = cat.json()["slug"]
+
+    r = await client.patch(
+        f"/api/admin/products/{product['slug']}",
+        json={
+            "name": "Renamed Drive",
+            "partNumber": "PN-PRICE-2",
+            "categorySlug": new_category,
+            "brand": "omron",
+            "price": 4321.0,
+            "stockQty": 12,
+            "warrantyYears": 3,
+        },
+    )
+    assert r.status_code == 200, r.text
+    updated = r.json()
+    assert updated["name"] == "Renamed Drive"
+    assert updated["partNumber"] == "PN-PRICE-2"
+    assert updated["categorySlug"] == new_category
+    assert updated["brand"] == "omron"
+    assert updated["price"] == 4321.0
+    assert updated["stockQty"] == 12
+    assert updated["warrantyYears"] == 3
+
+    # And it survives a re-read rather than only echoing back.
+    again = await client.get("/api/admin/products")
+    row = next(x for x in again.json()["items"] if x["slug"] == product["slug"])
+    assert row["price"] == 4321.0
+    assert row["stockQty"] == 12

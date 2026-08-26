@@ -19,6 +19,7 @@ import { formatPrice } from "@/app/lib/utils";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
 import { CategoriesTab } from "./categories-tab";
+import { EditProductDialog } from "./edit-product-dialog";
 import { PageHeader, Panel, EmptyState, Pill, TH, TD, ROW, type PillTone } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import type { Brand, Category, Product, StockStatus } from "@/app/lib/types";
@@ -159,7 +160,15 @@ export function ProductsClient({
                           </div>
                         </td>
                         <td className={TD}>
-                          <DeleteProductButton product={p} onDeleted={refresh} />
+                          <div className="flex items-center justify-end gap-2">
+                            <EditProductDialog
+                              product={p}
+                              categories={initialCategories}
+                              brands={brands}
+                              onSaved={refresh}
+                            />
+                            <DeleteProductButton product={p} onDeleted={refresh} />
+                          </div>
                         </td>
                       </tr>
                     ))}
