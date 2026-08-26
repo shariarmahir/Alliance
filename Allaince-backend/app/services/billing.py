@@ -221,10 +221,14 @@ async def get_invoice(db: AsyncSession, invoice_id: str) -> Invoice | None:
     )
 
 
-async def list_invoices(db: AsyncSession, *, status: str | None = None) -> list[Invoice]:
+async def list_invoices(
+    db: AsyncSession, *, status: str | None = None, quotation_id: str | None = None
+) -> list[Invoice]:
     stmt = select(Invoice).options(selectinload(Invoice.lines), selectinload(Invoice.payments))
     if status and status != "all":
         stmt = stmt.where(Invoice.status == status)
+    if quotation_id:
+        stmt = stmt.where(Invoice.quotation_id == quotation_id)
     stmt = stmt.order_by(Invoice.created_at.desc())
     return list((await db.execute(stmt)).scalars().all())
 
@@ -416,10 +420,14 @@ async def get_challan(db: AsyncSession, challan_id: str) -> Challan | None:
     )
 
 
-async def list_challans(db: AsyncSession, *, status: str | None = None) -> list[Challan]:
+async def list_challans(
+    db: AsyncSession, *, status: str | None = None, quotation_id: str | None = None
+) -> list[Challan]:
     stmt = select(Challan).options(selectinload(Challan.lines))
     if status and status != "all":
         stmt = stmt.where(Challan.status == status)
+    if quotation_id:
+        stmt = stmt.where(Challan.quotation_id == quotation_id)
     stmt = stmt.order_by(Challan.created_at.desc())
     return list((await db.execute(stmt)).scalars().all())
 

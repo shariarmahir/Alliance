@@ -787,3 +787,95 @@ async def test_contact_request_handled_toggle(client):
         f"/api/admin/contact-requests/{listed[0]['id']}/handled", json={"handled": True}
     )
     assert r.status_code == 200 and r.json()["handled"] is True
+
+
+# --- Workflow stages --------------------------------------------------------
+#
+# The client's specification is Inbox -> Pending -> Submitted -> Order
+# Confirmed. Each stage must be reachable and, more importantly, must not be
+# skippable: the whole point of the intermediate stages is the audit trail
+# they leave behind.
+
+
+async def test_prepare_moves_inbox_to_pending_not_confirmed(client, db):
+    """Prepare saves the priced offer and stops. Accepting it as an order is
+    a separate decision the customer makes, not a side effect of pricing."""
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    assert (await client.get(f"/api/admin/quotations/{quotation_id}")).json()["status"] == "inbox"
+
+    r = await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={
+            "confirm": False,
+            "refNumber": "Q-2026-001",
+            "subject": "Drive supply",
+            "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10, "unitPrice": 100.0}],
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "pending"
+    # Priced, so the row shows a quoted total rather than a dash.
+    assert r.json()["confirmation"]["grandTotal"] == 1000.0
+
+
+async def test_preparing_twice_keeps_it_pending(client, db):
+    """Editing a prepared quotation must not advance it — a correction before
+    sending is still a quotation awaiting a send."""
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    body = {
+        "confirm": False,
+        "refNumber": "Q-2026-002",
+        "subject": "Drive supply",
+        "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10, "unitPrice": 100.0}],
+    }
+    await client.post(f"/api/admin/quotations/{quotation_id}/confirm", json=body)
+
+    body["lines"][0]["unitPrice"] = 120.0
+    r = await client.post(f"/api/admin/quotations/{quotation_id}/confirm", json=body)
+    assert r.json()["status"] == "pending"
+    assert r.json()["confirmation"]["grandTotal"] == 1200.0
+
+
+async def test_confirm_accepts_a_prepared_quotation_as_an_order(client, db):
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    body = {
+        "confirm": False,
+        "refNumber": "Q-2026-003",
+        "subject": "Drive supply",
+        "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10, "unitPrice": 100.0}],
+    }
+    await client.post(f"/api/admin/quotations/{quotation_id}/confirm", json=body)
+
+    body["confirm"] = True
+    r = await client.post(f"/api/admin/quotations/{quotation_id}/confirm", json=body)
+    assert r.json()["status"] == "confirmed"
+
+
+async def test_work_order_is_stored_against_the_confirmed_order(client, db):
+    """Step 13: the customer's own PO, kept with the order it authorised."""
+    quotation_id = (await client.post("/api/quotations", json=QUOTE_PAYLOAD)).json()["id"]
+    _auth(client)
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={
+            "confirm": True,
+            "refNumber": "Q-2026-004",
+            "subject": "Drive supply",
+            "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10, "unitPrice": 100.0}],
+        },
+    )
+
+    r = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/work-order",
+        json={"poNumber": "PO-778"},
+    )
+    assert r.status_code == 200
+    assert r.json()["poNumber"] == "PO-778"
+
+    # And it survives a re-read, rather than only echoing back in the response.
+    assert (
+        await client.get(f"/api/admin/quotations/{quotation_id}")
+    ).json()["poNumber"] == "PO-778"

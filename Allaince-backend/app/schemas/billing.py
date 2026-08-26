@@ -169,3 +169,35 @@ class OrderBalanceLine(CamelModel):
     invoiced: int
     balance: int
     uninvoiced: int
+
+
+class HistoryEvent(CamelModel):
+    """One dated entry in an order's paper trail.
+
+    `kind` drives the icon and colour; `reference` is the document number a
+    person would quote on the phone, so it stays first in the rendered row.
+    """
+
+    kind: Literal["request", "quotation", "email", "confirmed", "po", "invoice", "challan"]
+    label: str
+    reference: str = ""
+    detail: str = ""
+    status: str = ""
+    amount: float | None = None
+    at: datetime | None = None
+
+
+class OrderHistory(CamelModel):
+    """Everything raised against one order, oldest first.
+
+    The combined document flow the client's specification asks for: request →
+    quotation → submitted → confirmed → work order → invoices → challans, in
+    one place rather than spread over four screens.
+    """
+
+    quotation_id: str
+    customer_name: str
+    ref_number: str = ""
+    po_number: str = ""
+    po_document_url: str | None = None
+    events: list[HistoryEvent]

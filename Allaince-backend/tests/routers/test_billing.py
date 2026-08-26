@@ -1,5 +1,19 @@
+import pytest
+
+from app.core.rate_limit import reset_in_memory_buckets
 from app.core.session_token import ADMIN_SESSION_COOKIE, create_session_token
 from app.schemas.session import AdminSession
+
+
+# Every test here raises its order through the public storefront endpoint,
+# which is rate limited because anyone on the internet can reach it. Without
+# this the suite trips its own throttle partway through and the failures
+# look like billing bugs.
+@pytest.fixture(autouse=True)
+def _clear_rate_limits():
+    reset_in_memory_buckets()
+    yield
+    reset_in_memory_buckets()
 
 QUOTE_PAYLOAD = {
     "items": [
@@ -204,3 +218,157 @@ async def test_invoice_list_filters_by_status(client, db):
     assert len(pending) == 1
     paid = (await client.get("/api/admin/invoices?status_filter=paid")).json()
     assert paid == []
+
+
+# --- Documents and history --------------------------------------------------
+
+
+async def test_invoice_pdf_renders(client, db):
+    """The formal Invoice document, which the client's specification requires
+    to be printable, downloadable and e-mailable."""
+    quotation_id = await _confirmed(client)
+    invoice = (
+        await client.post(
+            "/api/admin/invoices",
+            json={
+                "quotationId": quotation_id,
+                "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                           "unitPrice": 100.0}],
+                "taxRate": 15.0,
+            },
+        )
+    ).json()
+
+    r = await client.get(f"/api/admin/invoices/{invoice['id']}/pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    # A real PDF, not an error page rendered with the wrong content type.
+    assert r.content[:4] == b"%PDF"
+
+
+async def test_challan_pdf_excludes_its_own_lines_from_previously_delivered(client, db):
+    """The quantity-control table reads
+    Ordered -> Previously Delivered -> This Delivery -> Balance.
+
+    'Previously delivered' must mean prior challans. Counting the document's
+    own lines would make every printed balance short by exactly the quantity
+    on the page, which is the figure a driver checks the load against.
+    """
+    quotation_id = await _confirmed(client)
+
+    first = (
+        await client.post(
+            "/api/admin/challans",
+            json={"quotationId": quotation_id,
+                  "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 4}]},
+        )
+    ).json()
+    await client.post(f"/api/admin/challans/{first['id']}/approve")
+    await client.post(f"/api/admin/challans/{first['id']}/dispatch", json={"vehicleNumber": "V1"})
+    await client.post(f"/api/admin/challans/{first['id']}/deliver", json={})
+
+    second = (
+        await client.post(
+            "/api/admin/challans",
+            json={"quotationId": quotation_id,
+                  "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 3}]},
+        )
+    ).json()
+
+    r = await client.get(f"/api/admin/challans/{second['id']}/pdf")
+    assert r.status_code == 200
+    assert r.content[:4] == b"%PDF"
+
+    # Asserting on the renderer's own inputs, not on a sibling endpoint that
+    # happens to agree with it: the figures printed on the page are the ones
+    # under test, so this reads them the way the endpoint builds them.
+    from app.integrations import pdf as pdf_module
+    from app.models.operations import Challan
+    from app.services import billing as billing_svc
+    from app.services import operations as ops_svc
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    challan = (
+        await db.execute(
+            select(Challan)
+            .options(selectinload(Challan.lines))
+            .where(Challan.id == second["id"])
+        )
+    ).scalar_one()
+    quotation = await ops_svc.get_quotation(db, quotation_id)
+    rows = await billing_svc.order_balances(db, quotation, exclude_challan=challan.id)
+    balances = {row["slug"]: row for row in rows}
+
+    # 10 ordered, 4 shipped on the first challan. This challan's own 3 must
+    # not count as prior delivery.
+    assert balances["drive-1"]["ordered"] == 10
+    assert balances["drive-1"]["delivered"] == 4
+
+    captured: dict = {}
+    original = pdf_module._render_html
+    pdf_module._render_html = lambda html: captured.setdefault("html", html) and b"%PDF"
+    try:
+        pdf_module.render_challan_document_pdf(challan, quotation, balances)
+    finally:
+        pdf_module._render_html = original
+
+    # Ordered 10, previously 4, this delivery 3, so 3 still owed after it.
+    row_cells = captured["html"].split("<tbody>")[1].split("</tbody>")[0]
+    assert ">10<" in row_cells  # ordered
+    assert ">4<" in row_cells  # previously delivered
+    assert "<strong>3</strong>" in row_cells  # this delivery
+    assert ">3<" in row_cells  # balance remaining
+
+
+async def test_order_history_assembles_the_whole_paper_trail(client, db):
+    """Section C: complete traceability from enquiry to delivery, in one
+    place rather than spread over four screens."""
+    quotation_id = await _confirmed(client)
+
+    await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "quantity": 10, "unitPrice": 100.0}]},
+    )
+    await client.post(
+        "/api/admin/challans",
+        json={"quotationId": quotation_id,
+              "lines": [{"slug": "drive-1", "quantity": 5}]},
+    )
+    await client.patch(
+        f"/api/admin/quotations/{quotation_id}/work-order",
+        json={"poNumber": "PO-2026-0142"},
+    )
+
+    history = (await client.get(f"/api/admin/quotations/{quotation_id}/history")).json()
+    kinds = [e["kind"] for e in history["events"]]
+
+    assert "request" in kinds
+    assert "quotation" in kinds
+    assert "confirmed" in kinds
+    assert "po" in kinds
+    assert "invoice" in kinds
+    assert "challan" in kinds
+    assert history["poNumber"] == "PO-2026-0142"
+
+
+async def test_order_history_only_covers_its_own_order(client, db):
+    """Two orders running at once must not show each other's documents."""
+    first = await _confirmed(client)
+    second = await _confirmed(client)
+
+    await client.post(
+        "/api/admin/invoices",
+        json={"quotationId": first,
+              "lines": [{"slug": "drive-1", "quantity": 1, "unitPrice": 100.0}]},
+    )
+
+    history = (await client.get(f"/api/admin/quotations/{second}/history")).json()
+    assert [e for e in history["events"] if e["kind"] == "invoice"] == []
+
+
+async def test_document_pdfs_require_authentication(client, db):
+    assert (await client.get("/api/admin/invoices/x/pdf")).status_code == 401
+    assert (await client.get("/api/admin/challans/x/pdf")).status_code == 401
+    assert (await client.get("/api/admin/quotations/x/history")).status_code == 401

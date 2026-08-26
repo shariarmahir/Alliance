@@ -34,6 +34,7 @@ import {
   ROW,
   type PillTone,
 } from "../admin-ui";
+import { DocumentActions } from "../document-actions";
 import type { Challan, ChallanStatus, OrderBalanceLine } from "@/app/lib/admin-data";
 import type { Quotation } from "@/app/lib/types";
 
@@ -477,6 +478,14 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
               Signed copy
             </a>
           )}
+          {/* The challan travels with the goods, so Print matters more here
+              than on the invoice — and it must be printable before dispatch,
+              which is why a draft renders too. */}
+          <DocumentActions
+            path={`/api/admin/challans/${encodeURIComponent(challan.id)}/pdf`}
+            fileName={`${challan.challanNumber ?? "challan-draft"}.pdf`}
+            label="Challan PDF"
+          />
           {challan.status !== "cancelled" && challan.status !== "delivered" && (
             <RowButton tone="danger" disabled={busy} onClick={cancel}>
               Cancel

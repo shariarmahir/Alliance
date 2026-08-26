@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
 from app.core.deps import DbSession, require_area
+from app.integrations import pdf as pdf_integration
 from app.integrations.object_storage import (
     ImageRejected,
     safe_filename,
@@ -15,12 +17,14 @@ from app.schemas.billing import (
     ChallanOut,
     ChallanStatusUpdate,
     ChallanUpdate,
+    HistoryEvent,
     InvoiceCreate,
     InvoiceOut,
     InvoicePaymentIn,
     InvoiceStatusUpdate,
     InvoiceUpdate,
     OrderBalanceLine,
+    OrderHistory,
 )
 from app.schemas.session import AdminSession
 from app.services import billing as svc
@@ -90,6 +94,114 @@ async def order_balances(
     return [OrderBalanceLine.model_validate(r) for r in rows]
 
 
+@router.get("/quotations/{quotation_id}/history", response_model=OrderHistory)
+async def order_history(
+    quotation_id: str, db: DbSession, session: AdminSession = OrdersArea
+):
+    """The whole paper trail for one order, oldest first.
+
+    Assembled from timestamps that already exist rather than an events table:
+    a log written alongside the records could disagree with them, and the
+    records are the thing an auditor actually checks.
+    """
+    quotation = await ops.get_quotation(db, quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Quotation not found.")
+
+    details = quotation.details or {}
+    confirmation = quotation.confirmation
+    events: list[HistoryEvent] = []
+
+    events.append(
+        HistoryEvent(
+            kind="request",
+            label="Price request received",
+            detail=f"{len(details.get('items') or [])} item(s) requested",
+            at=quotation.submitted_at,
+        )
+    )
+
+    if confirmation is not None:
+        events.append(
+            HistoryEvent(
+                kind="quotation",
+                label="Quotation prepared",
+                reference=confirmation.ref_number or "",
+                amount=confirmation.grand_total,
+                at=confirmation.issued_at,
+            )
+        )
+
+    if quotation.quoted_sent_at is not None:
+        events.append(
+            HistoryEvent(
+                kind="email",
+                label="Quotation e-mailed to customer",
+                detail=details.get("email") or "",
+                at=quotation.quoted_sent_at,
+            )
+        )
+
+    if quotation.status == "confirmed":
+        events.append(
+            HistoryEvent(
+                kind="confirmed",
+                label="Order confirmed by customer",
+                reference=confirmation.ref_number if confirmation else "",
+                at=confirmation.issued_at if confirmation else None,
+            )
+        )
+
+    if quotation.po_uploaded_at is not None or quotation.po_number:
+        events.append(
+            HistoryEvent(
+                kind="po",
+                label="Work Order / PO received",
+                reference=quotation.po_number or "",
+                detail="Document attached" if quotation.po_document_url else "",
+                at=quotation.po_uploaded_at,
+            )
+        )
+
+    for invoice in await svc.list_invoices(db, quotation_id=quotation_id):
+        events.append(
+            HistoryEvent(
+                kind="invoice",
+                label="Invoice raised",
+                reference=invoice.invoice_number or "Draft",
+                status=invoice.status,
+                amount=invoice.grand_total,
+                at=invoice.created_at,
+            )
+        )
+
+    for challan in await svc.list_challans(db, quotation_id=quotation_id):
+        shipped = sum(line.quantity for line in challan.lines or [])
+        events.append(
+            HistoryEvent(
+                kind="challan",
+                label="Challan raised",
+                reference=challan.challan_number or "Draft",
+                detail=f"{shipped} unit(s)",
+                status=challan.status,
+                at=challan.created_at,
+            )
+        )
+
+    # Undated events (a PO number typed without a file, say) sort last rather
+    # than crashing the comparison or jumping to the top of the timeline.
+    events.sort(key=lambda e: (e.at is None, e.at or datetime.min))
+
+    return OrderHistory(
+        quotation_id=quotation.id,
+        customer_name=details.get("companyName") or details.get("fullName") or "",
+        ref_number=confirmation.ref_number if confirmation else "",
+        po_number=quotation.po_number or "",
+        po_document_url=quotation.po_document_url,
+        events=events,
+    )
+
+
 # --- Invoices ---------------------------------------------------------------
 
 
@@ -129,6 +241,29 @@ async def get_invoice(invoice_id: str, db: DbSession, session: AdminSession = Or
         raise HTTPException(status_code=404, detail="Invoice not found.")
     quotation = await ops.get_quotation(db, invoice.quotation_id)
     return _invoice_out(invoice, quotation)
+
+
+@router.get("/invoices/{invoice_id}/pdf")
+async def invoice_pdf(invoice_id: str, db: DbSession, session: AdminSession = OrdersArea):
+    """The formal Invoice document — printed, saved as PDF, or e-mailed."""
+    invoice = await svc.get_invoice(db, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found.")
+    quotation = await ops.get_quotation(db, invoice.quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Linked order not found.")
+
+    try:
+        pdf_bytes = pdf_integration.render_invoice_document_pdf(invoice, quotation)
+    except pdf_integration.PdfUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    name = (invoice.invoice_number or f"invoice-draft-{invoice.id[:8]}").replace("/", "-")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
+    )
 
 
 @router.patch("/invoices/{invoice_id}", response_model=InvoiceOut)
@@ -251,6 +386,35 @@ async def get_challan(challan_id: str, db: DbSession, session: AdminSession = Or
         raise HTTPException(status_code=404, detail="Challan not found.")
     quotation = await ops.get_quotation(db, challan.quotation_id)
     return _challan_out(challan, quotation)
+
+
+@router.get("/challans/{challan_id}/pdf")
+async def challan_pdf(challan_id: str, db: DbSession, session: AdminSession = OrdersArea):
+    """The Delivery Challan document, carrying the quantity-control table."""
+    challan = await svc.get_challan(db, challan_id)
+    if challan is None:
+        raise HTTPException(status_code=404, detail="Challan not found.")
+    quotation = await ops.get_quotation(db, challan.quotation_id)
+    if quotation is None:
+        raise HTTPException(status_code=404, detail="Linked order not found.")
+
+    # Excluding this challan is what makes "Previously Delivered" mean prior
+    # challans. Include it and every line counts itself, so the printed
+    # balance is short by exactly the quantity on the page.
+    rows = await svc.order_balances(db, quotation, exclude_challan=challan.id)
+    balances = {row["slug"]: row for row in rows}
+
+    try:
+        pdf_bytes = pdf_integration.render_challan_document_pdf(challan, quotation, balances)
+    except pdf_integration.PdfUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    name = (challan.challan_number or f"challan-draft-{challan.id[:8]}").replace("/", "-")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
+    )
 
 
 @router.patch("/challans/{challan_id}", response_model=ChallanOut)

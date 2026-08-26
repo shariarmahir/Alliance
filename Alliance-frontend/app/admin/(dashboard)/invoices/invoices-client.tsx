@@ -35,6 +35,7 @@ import {
   ROW,
   type PillTone,
 } from "../admin-ui";
+import { DocumentActions } from "../document-actions";
 import type {
   Invoice,
   InvoiceStatus,
@@ -484,6 +485,13 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
               )}
             </>
           )}
+          {/* Available on a draft too, so the figures can be checked on
+              paper before a number is committed to. The document says
+              DRAFT across it until then. */}
+          <DocumentActions
+            path={`/api/admin/invoices/${encodeURIComponent(invoice.id)}/pdf`}
+            fileName={`${invoice.invoiceNumber ?? "invoice-draft"}.pdf`}
+          />
           {invoice.status !== "cancelled" && invoice.status !== "completed" && (
             <RowButton tone="danger" disabled={busy} onClick={() => setStatus("cancelled")}>
               Cancel

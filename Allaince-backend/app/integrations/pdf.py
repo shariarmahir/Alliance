@@ -238,6 +238,200 @@ def _render_request_pdf(quotation) -> bytes:
     return _render_html(html)
 
 
+def render_invoice_document_pdf(invoice, quotation) -> bytes:
+    """The formal Invoice raised against a confirmed order.
+
+    Distinct from render_invoice_pdf below, which prints a storefront Order.
+    This one prints an Invoice row with its own number, tax breakdown and
+    payment history.
+    """
+    details = quotation.details or {}
+
+    rows = ""
+    for i, line in enumerate(invoice.lines or [], start=1):
+        rows += (
+            f"<tr><td>{i}</td>"
+            f"<td><strong>{escape(line.name)}</strong></td>"
+            f"<td>{escape(line.specifications)}</td>"
+            f"<td class='num'>{line.quantity}</td>"
+            f"<td>{escape(line.unit)}</td>"
+            f"<td class='num'>{line.unit_price:,.2f}</td>"
+            f"<td class='num'>{line.total:,.2f}</td></tr>"
+        )
+
+    # Subtotal -> Discount -> Tax -> Other Charges -> Grand Total, the order
+    # the specification lists and the order billing.compute_totals applies
+    # them: tax is charged on the discounted figure, not the gross.
+    totals = f'<tr><td>Subtotal</td><td class="num">{invoice.subtotal:,.2f}</td></tr>'
+    if invoice.discount:
+        totals += f'<tr><td>Discount</td><td class="num">-{invoice.discount:,.2f}</td></tr>'
+    if invoice.tax_amount:
+        totals += (
+            f'<tr><td>VAT / Tax ({invoice.tax_rate:g}%)</td>'
+            f'<td class="num">{invoice.tax_amount:,.2f}</td></tr>'
+        )
+    if invoice.other_charges:
+        totals += (
+            f'<tr><td>Other Charges</td>'
+            f'<td class="num">{invoice.other_charges:,.2f}</td></tr>'
+        )
+    totals += (
+        f'<tr class="grand"><td>Grand Total</td>'
+        f'<td class="num">BDT {invoice.grand_total:,.2f}</td></tr>'
+    )
+
+    # Only once something has been received: an untouched invoice showing a
+    # zero-paid line reads as a failed payment rather than a fresh bill.
+    payment_block = ""
+    if invoice.payments:
+        paid_rows = "".join(
+            f"<tr><td>{str(p.received_at)[:10]}</td>"
+            f"<td>{escape(p.method or '—')}</td>"
+            f"<td>{escape(p.reference or '—')}</td>"
+            f'<td class="num">{p.amount:,.2f}</td></tr>'
+            for p in invoice.payments
+        )
+        outstanding = invoice.grand_total - invoice.amount_paid
+        payment_block = f"""
+        <div class="terms"><h2>Payments Received</h2>
+        <table class="items">
+          <thead><tr><th style="width:18%">Date</th><th style="width:24%">Method</th>
+          <th style="width:38%">Reference</th><th style="width:20%" class="num">Amount</th></tr></thead>
+          <tbody>{paid_rows}</tbody>
+        </table>
+        <table class="totals">
+          <tr><td>Total Received</td><td class="num">{invoice.amount_paid:,.2f}</td></tr>
+          <tr class="grand"><td>Outstanding</td>
+              <td class="num">BDT {outstanding:,.2f}</td></tr>
+        </table></div>"""
+
+    meta = [("Invoice No", invoice.invoice_number or "DRAFT")]
+    if invoice.invoice_date:
+        meta.append(("Date", invoice.invoice_date))
+    if quotation.po_number:
+        meta.append(("Work Order / PO", quotation.po_number))
+    if quotation.confirmation:
+        meta.append(("Quotation Ref", quotation.confirmation.ref_number))
+
+    # A draft carries no formal number, so say so on the page rather than
+    # letting an unapproved document pass for a real one.
+    watermark = (
+        ""
+        if invoice.invoice_number
+        else '<div class="subject"><strong>DRAFT</strong> — not yet approved. '
+        "No invoice number has been assigned.</div>"
+    )
+
+    html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
+    {_header("INVOICE", meta)}
+    {_customer_block(details)}
+    {watermark}
+    <table class="items">
+      <thead><tr><th style="width:5%">SL</th><th style="width:27%">Description</th>
+      <th style="width:26%">Specifications</th><th style="width:8%" class="num">Qty</th>
+      <th style="width:8%">Unit</th><th style="width:13%" class="num">Unit Price</th>
+      <th style="width:13%" class="num">Total</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table>
+    <table class="totals">{totals}</table>
+    <div class="words">In words: {escape(amount_in_words(invoice.grand_total))}</div>
+    {payment_block}
+    <div class="sign"><div>Authorised Signature</div></div>
+    {_footer()}
+    </body></html>"""
+    return _render_html(html)
+
+
+def render_challan_document_pdf(challan, quotation, balances: dict) -> bytes:
+    """The delivery Challan, with the specification's quantity control table:
+    Ordered -> Previously Delivered -> This Delivery -> Balance.
+
+    `balances` must be computed with this challan excluded, or each line counts
+    its own quantity as prior delivery and every balance reads low.
+
+    Carries no prices. A challan travels with the goods, and putting values on
+    it invites arguments about stock in transit.
+    """
+    details = quotation.details or {}
+
+    rows = ""
+    for i, line in enumerate(challan.lines or [], start=1):
+        bal = balances.get(line.slug, {})
+        ordered = int(bal.get("ordered", 0))
+        previously = int(bal.get("delivered", 0))
+        balance = max(0, ordered - previously - line.quantity)
+        rows += (
+            f"<tr><td>{i}</td>"
+            f"<td><strong>{escape(line.name)}</strong><br>"
+            f'<span style="color:#667085;font-size:9px">{escape(line.specifications)}</span></td>'
+            f"<td>{escape(line.unit)}</td>"
+            f"<td class='num'>{ordered}</td>"
+            f"<td class='num'>{previously}</td>"
+            f"<td class='num'><strong>{line.quantity}</strong></td>"
+            f"<td class='num'>{balance}</td></tr>"
+        )
+
+    dispatch_rows = "".join(
+        f"<tr><td>{escape(label)}</td><td>{escape(str(value))}</td></tr>"
+        for label, value in [
+            ("Delivery Date", str(challan.dispatched_at)[:10] if challan.dispatched_at else ""),
+            ("Vehicle Number", challan.vehicle_number),
+            ("Driver / Transport", challan.driver_info),
+            ("Receiver", challan.receiver_name),
+            ("Remarks", challan.remarks),
+        ]
+        if value
+    )
+    dispatch_block = (
+        f'<div class="terms"><h2>Dispatch Details</h2><table>{dispatch_rows}</table></div>'
+        if dispatch_rows
+        else ""
+    )
+
+    meta = [("Challan No", challan.challan_number or "DRAFT")]
+    if challan.challan_date:
+        meta.append(("Date", challan.challan_date))
+    if quotation.po_number:
+        meta.append(("Work Order / PO", quotation.po_number))
+
+    watermark = (
+        ""
+        if challan.challan_number
+        else '<div class="subject"><strong>DRAFT</strong> — not yet approved. '
+        "No challan number has been assigned.</div>"
+    )
+
+    address = challan.delivery_address or details.get("companyName") or ""
+    address_block = (
+        f'<div style="font-size:9.5px;margin-bottom:10px">'
+        f'<span style="color:#667085">Deliver to:</span><br>'
+        f"{escape(address).replace(chr(10), '<br>')}</div>"
+        if address
+        else ""
+    )
+
+    html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{BASE_CSS}</style></head><body>
+    {_header("DELIVERY CHALLAN", meta)}
+    {_customer_block(details)}
+    {address_block}
+    {watermark}
+    <table class="items">
+      <thead><tr><th style="width:5%">SL</th><th style="width:35%">Description</th>
+      <th style="width:9%">Unit</th><th style="width:12%" class="num">Ordered</th>
+      <th style="width:14%" class="num">Prev. Delivered</th>
+      <th style="width:13%" class="num">This Delivery</th>
+      <th style="width:12%" class="num">Balance</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table>
+    {dispatch_block}
+    <div class="sign" style="justify-content:space-between">
+      <div>Delivered By</div><div>Received By (Signature &amp; Date)</div>
+    </div>
+    {_footer()}
+    </body></html>"""
+    return _render_html(html)
+
+
 def render_invoice_pdf(order) -> bytes:
     address = order.address or {}
     rows = ""

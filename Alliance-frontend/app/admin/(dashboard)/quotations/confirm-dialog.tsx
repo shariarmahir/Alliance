@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FileCheck2, ChevronUp, Mail, CheckCircle2, Upload } from "lucide-react";
+import {
+  FileCheck2,
+  FilePlus2,
+  Pencil,
+  ChevronUp,
+  Mail,
+  CheckCircle2,
+  Upload,
+} from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -84,13 +92,31 @@ export function ConfirmQuotationTrigger({
       </button>
     );
   }
+  // The label names the stage's own next step, per the client's workflow:
+  // an untouched request is Prepared, a prepared one is Edited, and a
+  // submitted one is Confirmed as an order. One button labelled "Accept"
+  // everywhere is what made Inbox jump straight to Order Confirmed.
+  const { label, Icon, accent } =
+    quotation.status === "inbox"
+      ? { label: "Prepare", Icon: FilePlus2, accent: "primary" as const }
+      : quotation.status === "submitted"
+        ? { label: "Confirm Order", Icon: FileCheck2, accent: "ok" as const }
+        : { label: "Edit", Icon: Pencil, accent: "muted" as const };
+
+  const style =
+    accent === "ok"
+      ? "border-ok bg-ok-bg text-ok hover:bg-ok hover:text-white"
+      : accent === "primary"
+        ? "border-primary bg-[#eaf4fb] text-primary hover:bg-primary hover:text-white"
+        : "border-[#dde3ea] text-ink-soft hover:border-primary hover:text-primary";
+
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-ok bg-ok-bg px-2.5 py-1.5 text-[11.5px] font-semibold text-ok transition-colors hover:bg-ok hover:text-white"
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors ${style}`}
     >
-      <FileCheck2 className="size-3.5" /> {quotation.confirmation ? "Re-issue" : "Accept"}
+      <Icon className="size-3.5" /> {label}
     </button>
   );
 }
@@ -577,11 +603,19 @@ export function ConfirmQuotationPanel({
               </div>
             </div>
 
+            {/* Footer actions follow the stage, matching the row buttons.
+                Confirm is deliberately absent from Inbox: the workflow is
+                prepare, send, then accept, and offering all three at once
+                is what let the middle two stages be skipped entirely. */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
               <p className="text-[11.5px] text-[#8a94a6]">
-                {allPriced
-                  ? "Download or email the quotation while it stays pending. Confirm accepts it as an order."
-                  : "Enter a price for every line to issue this quotation."}
+                {!allPriced
+                  ? "Enter a price for every line to issue this quotation."
+                  : quotation.status === "inbox"
+                    ? "Save moves this to Pending, ready to send to the customer."
+                    : quotation.status === "submitted"
+                      ? "Already sent. Confirm accepts it as an order."
+                      : "Send the quotation to move it to Submitted."}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -591,26 +625,34 @@ export function ConfirmQuotationPanel({
                   className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
                 >
                   <FileCheck2 className="size-4" />
-                  {submitting ? "Saving..." : "Save & Download PDF"}
+                  {submitting
+                    ? "Saving..."
+                    : quotation.status === "inbox"
+                      ? "Save to Pending"
+                      : "Save & Download PDF"}
                 </button>
-                <button
-                  type="button"
-                  onClick={saveAndEmail}
-                  disabled={busyAny || !allPriced}
-                  className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-                >
-                  <Mail className="size-4" />
-                  {emailing ? "Sending..." : sentTo ? "Send again" : "Send Email"}
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmOffer}
-                  disabled={busyAny || !allPriced}
-                  className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
-                >
-                  <CheckCircle2 className="size-4" />
-                  {confirming ? "Confirming..." : "Confirm"}
-                </button>
+                {quotation.status !== "inbox" && (
+                  <button
+                    type="button"
+                    onClick={saveAndEmail}
+                    disabled={busyAny || !allPriced}
+                    className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                  >
+                    <Mail className="size-4" />
+                    {emailing ? "Sending..." : sentTo ? "Send again" : "Send Email"}
+                  </button>
+                )}
+                {quotation.status !== "inbox" && (
+                  <button
+                    type="button"
+                    onClick={confirmOffer}
+                    disabled={busyAny || !allPriced}
+                    className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="size-4" />
+                    {confirming ? "Confirming..." : "Confirm Order"}
+                  </button>
+                )}
                 {sentTo && (
                   <button
                     type="button"

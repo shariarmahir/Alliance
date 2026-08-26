@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Eye, Download, Trash2 } from "lucide-react";
+import { Eye, Download, Trash2, Receipt, Truck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,9 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
+import { WorkOrderDialog } from "./work-order-dialog";
+import { OrderHistoryDialog } from "./order-history-dialog";
+import { SendQuotationButton } from "./send-quotation-button";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { useClientNow } from "@/app/lib/use-client-now";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
@@ -353,9 +357,20 @@ function QuotationRow({
         )}
       </td>
       <td className={TD}>
+        {/* Actions are stage-specific, per the client's workflow document.
+            Showing every action on every row is what let a request jump
+            from Inbox straight to Order Confirmed, leaving Pending and
+            Submitted permanently empty and the audit trail with a hole in
+            it. Each stage now offers only its own next step. */}
         <div className="flex flex-wrap items-center gap-2">
           <QuotationDetailDialog quotation={quotation} />
-          {quotation.status !== "cancelled" && (
+
+          {/* Inbox: Prepare. Pending/Submitted: Edit the prepared offer.
+              The same panel serves both — what differs is that Prepare
+              saves to Pending, and only Confirm accepts the order. */}
+          {(quotation.status === "inbox" ||
+            quotation.status === "pending" ||
+            quotation.status === "submitted") && (
             <ConfirmQuotationTrigger
               quotation={quotation}
               open={panelOpen}
@@ -368,6 +383,9 @@ function QuotationRow({
               }}
             />
           )}
+
+          {/* Once prepared, the formal document can be previewed at any
+              stage — before sending, and after confirmation. */}
           {quotation.confirmation && (
             <button
               type="button"
@@ -375,9 +393,40 @@ function QuotationRow({
               disabled={downloading}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
             >
-              <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
+              <Download className="size-3.5" />
+              {downloading ? "..." : quotation.status === "pending" ? "Preview PDF" : "Quotation PDF"}
             </button>
           )}
+
+          {/* Pending only: a prepared offer that has not gone out yet. A
+              successful send is what moves it to Submitted. */}
+          {quotation.status === "pending" && quotation.confirmation && (
+            <SendQuotationButton quotation={quotation} onSent={onChanged} />
+          )}
+
+          {/* Order Confirmed: the customer's own paperwork, and the two
+              documents raised against it. */}
+          {quotation.status === "confirmed" && (
+            <>
+              <WorkOrderDialog quotation={quotation} />
+              <Link
+                href="/admin/invoices"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+              >
+                <Receipt className="size-3.5" /> Invoice
+              </Link>
+              <Link
+                href="/admin/challans"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+              >
+                <Truck className="size-3.5" /> Challan
+              </Link>
+            </>
+          )}
+
+          {/* The full paper trail, once there is one worth reading. */}
+          {quotation.confirmation && <OrderHistoryDialog quotation={quotation} />}
+
           {open && (
             <CancelConfirmDialog
               quotation={quotation}
