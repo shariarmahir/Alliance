@@ -11,6 +11,7 @@ from app.models import (
     DeletedOrder,
     Invoice,
     InvoiceLine,
+    InvoicePayment,
     Order,
     OrderConfirmation,
     Product,
@@ -310,6 +311,25 @@ async def payment_position(db: AsyncSession, quotation: Quotation) -> dict:
         "amount_outstanding": round(max(0.0, invoiced - paid), 2),
         "payment_status": "received" if settled else "pending",
     }
+
+
+async def payments_against(db: AsyncSession, quotation: Quotation) -> list[InvoicePayment]:
+    """Every receipt recorded against an order's live invoices.
+
+    Separate from payment_position, which answers "how much" — this answers
+    "when", which the Overview's received chart needs. A receipt carries its
+    own date, so two instalments in different months land in the months they
+    actually arrived rather than both in whichever one the order carries.
+
+    Cancelled invoices are excluded on the same reasoning as the totals: a
+    withdrawn document's receipts belong to whatever replaced it.
+    """
+    rows = await db.execute(
+        select(InvoicePayment)
+        .join(Invoice, Invoice.id == InvoicePayment.invoice_id)
+        .where(Invoice.quotation_id == quotation.id, Invoice.status != "cancelled")
+    )
+    return list(rows.scalars().all())
 
 
 async def delivered_in_full(db: AsyncSession, quotation: Quotation) -> bool:

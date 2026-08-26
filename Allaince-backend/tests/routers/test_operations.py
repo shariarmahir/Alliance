@@ -416,6 +416,39 @@ async def _issued_quotation(client, db):
     return quotation_id
 
 
+async def _paid_through_an_invoice(client, quotation_id, amount=5.0):
+    """Money in, the way it actually arrives.
+
+    A receipt asserts that payment was received, and that is now derived from
+    the invoices raised against the order rather than a flag on it. Setting
+    the old payment_status endpoint no longer makes an order look paid, which
+    is the point -- it is what let the dashboard read zero collected while
+    every row claimed RECEIVED.
+    """
+    # An invoice can only be raised against a confirmed order, and
+    # _issued_quotation stops at the priced offer.
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": True,
+              "lines": [{"slug": "drive-1", "name": "D", "quantity": 1,
+                         "unitPrice": amount}]},
+    )
+    raised = await client.post("/api/admin/invoices",
+                               json={"quotationId": quotation_id,
+                                     "lines": [{"slug": "drive-1", "name": "D",
+                                                "quantity": 1,
+                                                "unitPrice": amount}]})
+    # Surfaced rather than a bare KeyError on the next line: the invoice
+    # guards reject by message, and a silent 400 here reads as the receipt
+    # test failing for its own reasons.
+    assert raised.status_code == 201, raised.text
+    inv = raised.json()
+    await client.post(f"/api/admin/invoices/{inv['id']}/approve")
+    await client.post(f"/api/admin/invoices/{inv['id']}/payments",
+                      json={"amount": amount, "method": "bank", "reference": "TRX"})
+    return inv
+
+
 async def test_confirming_an_order_emails_the_customer_once(client, db):
     """Moving an order to the confirmed stage tells the customer.
 
@@ -464,29 +497,39 @@ async def test_moving_an_order_back_to_pending_sends_no_email(client, db):
         assert send.await_count == 0
 
 
-async def test_payment_status_stamps_and_clears_the_received_time(client, db):
-    """The receipt prints when payment was recorded, so the timestamp is set
-    on the way into "received" and cleared if that is reversed — a receipt
-    must never carry a date for money that is no longer marked as received."""
+async def test_setting_payment_by_hand_is_refused(client, db):
+    """The endpoint that used to set payment status now refuses.
+
+    Payment is derived from the order's invoices. Leaving this route
+    accepting writes would let a caller believe it had recorded money that
+    no screen would ever show -- the drift that had the Overview reporting
+    zero collected while every row read RECEIVED.
+    """
     _auth(client)
     quotation_id = await _issued_quotation(client, db)
 
     before = await client.get(f"/api/admin/quotations/{quotation_id}")
     assert before.json()["confirmation"]["paymentStatus"] == "pending"
-    assert before.json()["confirmation"]["paymentReceivedAt"] is None
 
-    paid = await client.patch(
+    refused = await client.patch(
         f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
     )
-    assert paid.status_code == 200
-    assert paid.json()["confirmation"]["paymentStatus"] == "received"
-    assert paid.json()["confirmation"]["paymentReceivedAt"] is not None
+    assert refused.status_code == 409
+    assert "invoice" in refused.json()["detail"].lower()
 
-    reversed_ = await client.patch(
-        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "pending"}
-    )
-    assert reversed_.json()["confirmation"]["paymentStatus"] == "pending"
-    assert reversed_.json()["confirmation"]["paymentReceivedAt"] is None
+    # And nothing moved: a refusal that half-applied would be worse than none.
+    after = await client.get(f"/api/admin/quotations/{quotation_id}")
+    assert after.json()["confirmation"]["paymentStatus"] == "pending"
+
+
+async def test_payment_becomes_received_once_an_invoice_is_paid(client, db):
+    """The replacement path, so the refusal above is not a dead end."""
+    _auth(client)
+    quotation_id = await _issued_quotation(client, db)
+    await _paid_through_an_invoice(client, quotation_id)
+
+    after = await client.get(f"/api/admin/quotations/{quotation_id}")
+    assert after.json()["confirmation"]["paymentStatus"] == "received"
 
 
 async def test_payment_status_rejects_an_unknown_value(client, db):
@@ -590,9 +633,7 @@ async def test_receipt_email_sends_the_supplied_pdf_once_paid(client, db):
 
     _auth(client)
     quotation_id = await _issued_quotation(client, db)
-    await client.patch(
-        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
-    )
+    await _paid_through_an_invoice(client, quotation_id)
     supplied = b"%PDF-1.4 receipt"
 
     with patch(
@@ -611,9 +652,7 @@ async def test_receipt_email_sends_the_supplied_pdf_once_paid(client, db):
 async def test_receipt_email_requires_a_pdf(client, db):
     _auth(client)
     quotation_id = await _issued_quotation(client, db)
-    await client.patch(
-        f"/api/admin/quotations/{quotation_id}/payment", json={"status": "received"}
-    )
+    await _paid_through_an_invoice(client, quotation_id)
     r = await client.post(f"/api/admin/quotations/{quotation_id}/receipt/email", json={})
     assert r.status_code == 422
 

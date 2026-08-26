@@ -2,7 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.models import Category, OrderConfirmation, Product, Quotation
+from app.models import (
+    Category,
+    Invoice,
+    InvoicePayment,
+    OrderConfirmation,
+    Product,
+    Quotation,
+)
 from app.services.analytics import (
     bucket_starts,
     delta_pct,
@@ -29,10 +36,17 @@ async def _order(
     paid_days_ago: float | None = None,
     country="Bangladesh",
 ):
-    """A confirmed order: a quotation plus the confirmation carrying its money.
+    """A confirmed order: a quotation, its confirmation, and the paperwork.
 
-    Revenue and payments both read confirmations rather than the `orders`
-    table, so the fixtures build what the services actually aggregate.
+    Revenue reads confirmations. Payments read the invoices raised against the
+    order, because that is where money actually lands -- so an order that is
+    meant to read as paid needs a real invoice with a real receipt behind it,
+    not a flag.
+
+    These fixtures used to set payment_status directly and raise no invoice at
+    all, which is precisely the state the dashboard bug lived in: every row
+    claiming RECEIVED while nothing had been billed or collected. Setting the
+    flag alone can no longer make an order look paid, and that is the point.
     """
     global _seq
     _seq += 1
@@ -56,12 +70,44 @@ async def _order(
             grand_total=total,
             terms={},
             issued_at=NOW - timedelta(days=days_ago),
-            payment_status=payment_status,
-            payment_received_at=(
-                None if paid_days_ago is None else NOW - timedelta(days=paid_days_ago)
-            ),
         )
     )
+
+    # An order is only owed once it has been invoiced, so every confirmed
+    # order here carries one for its full value.
+    if status == "confirmed":
+        invoice = Invoice(
+            quotation_id=quotation.id,
+            invoice_number=f"AIT/M/I-{_seq:04d}/2026",
+            invoice_date="2026-08-01",
+            status="submitted",
+            subtotal=total,
+            grand_total=total,
+            # Maintained by record_payment in the service; set here because
+            # these fixtures build rows directly. payment_position reads this
+            # column, so leaving it at zero would make a paid order look
+            # unpaid and the fixture would be testing nothing.
+            amount_paid=(total if payment_status == "received" else 0.0),
+            created_at=NOW - timedelta(days=days_ago),
+        )
+        db.add(invoice)
+        await db.flush()
+        if payment_status == "received":
+            db.add(
+                InvoicePayment(
+                    invoice_id=invoice.id,
+                    amount=total,
+                    method="bank",
+                    reference=f"TRX-{_seq}",
+                    # No date recorded is a real case the service handles: the
+                    # money counts toward the total but cannot be bucketed.
+                    received_at=(
+                        None
+                        if paid_days_ago is None
+                        else NOW - timedelta(days=paid_days_ago)
+                    ),
+                )
+            )
     return quotation
 
 
@@ -300,17 +346,18 @@ async def test_cancelled_orders_count_as_neither_received_nor_owed(db):
     assert result.received == 0.0
 
 
-async def test_payment_marked_received_without_a_timestamp_still_counts(db):
-    """Rows marked paid before the timestamp column existed carry real money;
-    dropping them from the total would understate what was collected, even
-    though they cannot be placed in a bucket."""
+async def test_a_receipt_without_an_explicit_date_still_counts(db):
+    """Every receipt carries a date -- InvoicePayment.received_at defaults to
+    now -- so unlike the old nullable flag on the confirmation, a payment can
+    no longer exist outside the chart. It counts toward the total and lands in
+    today's bucket rather than being silently dropped from one of them."""
     await _order(db, 1, 400.0, payment_status="received", paid_days_ago=None)
     await db.commit()
 
     result = await read_payment_analytics(db, "week")
     assert result.received == 400.0
     assert result.received_count == 1
-    assert sum(p.value for p in result.received_trend) == 0.0
+    assert sum(p.value for p in result.received_trend) == 400.0
 
 
 async def test_received_delta_compares_against_the_previous_window(db):

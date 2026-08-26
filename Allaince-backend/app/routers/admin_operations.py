@@ -278,18 +278,32 @@ async def update_payment(
     db: DbSession,
     session: AdminSession = OrdersArea,
 ):
-    """Records payment against a confirmed order.
+    """Retired. Payment is derived from the order's invoices.
 
-    No customer email here, deliberately: the money receipt is the document
-    that acknowledges payment, and an admin sends it when they choose to.
+    This used to set a flag on the confirmation. That flag is no longer read
+    by anything -- the Orders screen, the Overview panel and the receipt gate
+    all compute payment from the receipts recorded against the order's
+    invoices, because a hand-set status and a pile of receipts are two
+    answers to one question and they drifted apart.
+
+    Kept as an explicit refusal rather than deleted: a route that accepts the
+    write and returns 200 while changing nothing observable is worse than one
+    that is gone, and 409 tells an old client exactly where the money goes
+    now. Deleting it outright would give a 405 that explains nothing.
     """
-    updated = await svc.update_payment_status(db, quotation_id, payload.status)
-    if updated is None:
+    quotation = await svc.get_quotation(db, quotation_id)
+    if quotation is None or quotation.confirmation is None:
         raise HTTPException(
             status_code=404, detail="No issued confirmation for this quotation."
         )
-    logger.info("%s marked payment %s for %s", session.email, payload.status, quotation_id)
-    return _out(updated)
+    raise HTTPException(
+        status_code=409,
+        detail=(
+            "Payment is derived from this order's invoices. Record the receipt "
+            "against the invoice instead — amount, date, method and reference "
+            "are kept there."
+        ),
+    )
 
 
 @router.post("/quotations/{quotation_id}/email")
@@ -475,10 +489,18 @@ async def email_receipt(
         raise HTTPException(
             status_code=400, detail="Confirm the order before sending a receipt."
         )
-    if quotation.confirmation.payment_status != "received":
+    # Derived from the invoices, like everywhere else. Reading the stored
+    # payment_status refused a receipt for an order paid in full through its
+    # invoices, and told the admin to "mark the payment received" using a
+    # control that no longer exists.
+    position = await svc.payment_position(db, quotation)
+    if position["amount_paid"] <= 0.005:
         raise HTTPException(
             status_code=400,
-            detail="Mark the payment received before sending a receipt.",
+            detail=(
+                "No payment has been recorded against this order's invoices, "
+                "so there is nothing to receipt."
+            ),
         )
 
     pdf_bytes = _decode_pdf(payload.pdf_base64 if payload else None)

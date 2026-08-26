@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import DeletedOrder, OrderConfirmation, Product, Quotation
+from app.services import operations as ops
 from app.schemas.analytics import (
     AnalyticsRange,
     CountryBreakdown,
@@ -245,33 +246,53 @@ async def read_payment_analytics(db: AsyncSession, range_: AnalyticsRange) -> Pa
         if confirmation is None or quotation.status != "confirmed":
             continue
 
-        if confirmation.payment_status == "received":
-            ts = _as_utc(confirmation.payment_received_at)
-            # Marked paid before this column existed: the money is real, so it
-            # belongs in the total even though it cannot be placed in a bucket.
+        # Both figures come from the invoices raised against the order, the
+        # same source the Orders screen and the row's PAYMENT pill read. This
+        # used to read confirmation.payment_status, a stored flag nothing has
+        # written since payment became derived — so every row could show
+        # RECEIVED while this panel reported zero collected.
+        #
+        # Deriving also lets a part-paid order be told the truth. The flag
+        # was binary, so an order with 400 of 1000 paid put its whole value
+        # on one side and nothing on the other.
+        position = await ops.payment_position(db, quotation)
+        pending += position["amount_outstanding"]
+        if position["amount_outstanding"] > 0.005:
+            pending_count += 1
+        if position["amount_paid"] > 0.005:
+            received_count += 1
+
+        # Outstanding money is a running balance, not a windowed figure: an
+        # invoice issued last year is still owed today, so the total counts
+        # every unpaid order while only the chart is windowed.
+        issued = _as_utc(confirmation.issued_at)
+        if (
+            position["amount_outstanding"] > 0.005
+            and issued is not None
+            and issued >= window_from
+        ):
+            i = _bucket_index_for(issued, starts)
+            if i >= 0:
+                pending_trend[i].value += position["amount_outstanding"]
+
+        # Received is bucketed per receipt rather than per order, because a
+        # receipt is what a bank statement records: two instalments in
+        # different months belong in the months they arrived, not both in
+        # whichever one the order happens to carry.
+        for payment in await ops.payments_against(db, quotation):
+            ts = _as_utc(payment.received_at)
             if ts is None:
-                received += confirmation.grand_total
-                received_count += 1
+                # No date recorded: the money is real, so it belongs in the
+                # total even though it cannot be placed in a bucket.
+                received += payment.amount
                 continue
             if ts >= window_from:
                 i = _bucket_index_for(ts, starts)
                 if i >= 0:
-                    received_trend[i].value += confirmation.grand_total
-                received += confirmation.grand_total
-                received_count += 1
+                    received_trend[i].value += payment.amount
+                received += payment.amount
             elif prev_from <= ts < prev_to:
-                prev_received += confirmation.grand_total
-        else:
-            # Outstanding money is a running balance, not a windowed figure:
-            # an invoice issued last year is still owed today, so the total
-            # counts every unpaid order while only the chart is windowed.
-            pending += confirmation.grand_total
-            pending_count += 1
-            issued = _as_utc(confirmation.issued_at)
-            if issued is not None and issued >= window_from:
-                i = _bucket_index_for(issued, starts)
-                if i >= 0:
-                    pending_trend[i].value += confirmation.grand_total
+                prev_received += payment.amount
 
     return PaymentAnalytics(
         range=range_,
