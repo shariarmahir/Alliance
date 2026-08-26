@@ -583,3 +583,51 @@ Multi-line, because dispatch notes are instructions to whoever receives the
 goods rather than a short value.
 
 **377 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 10 — the Orders screen was a second, parallel system
+
+The client marked "Create Challan" and "Create Invoice" on the Orders screen
+and asked for them to be wired to the Challans and Invoices pages. They were
+not merely unlinked. **They were a duplicate implementation that bypassed the
+entire specification.**
+
+Both opened a dialog that rendered a PDF in the browser and emailed it. No
+Invoice row, no Challan row, no record on either screen. Section A items 8-24
+and Section B's whole chain — Pending, Review/Edit, Approve, Dispatch,
+Delivered, payment tracking — were unreachable through them.
+
+## The numbering collision
+
+`invoiceRefNumber()` built its number by rewriting the quotation reference:
+
+```
+AIT/M/Q-0003/2026  ->  AIT/M/I-0003/2026
+```
+
+The real series is assigned at approval from its own sequence — `I-0001`,
+`I-0002`, `I-0003` — and takes no account of which quotation it came from.
+So the third quotation's ad-hoc invoice and the third *real* invoice both
+read `AIT/M/I-0003/2026`. **Two different invoices, same number, both sent to
+customers.** Section A item 16 requires the system to assign the final
+number; here the browser invented one.
+
+## The fix
+
+Both buttons are now links carrying the order id:
+
+```
+/admin/challans?order=<id>     /admin/invoices?order=<id>
+```
+
+Identical to Section C's quick options on the Quotations screen, and both
+target pages already read `?order=` and open their Prepare window on that
+order. They are labelled **Prepare Challan** and **Prepare Invoice**, so the
+same action reads the same way wherever it appears.
+
+The two dialogs and their six PDF helpers are deleted rather than left in
+place — a dormant second invoice generator is exactly the kind of thing that
+gets re-wired by accident later.
+
+**377 backend tests, typecheck clean, lint 0 errors, build successful.**

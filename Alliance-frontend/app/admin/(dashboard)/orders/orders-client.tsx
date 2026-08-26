@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, FileText, Mail, ReceiptText, BadgeCheck, Wallet } from "lucide-react";
@@ -25,19 +26,8 @@ import {
   ROW,
 } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
-import {
-  downloadQuotationPdf,
-  downloadConfirmedOrderInvoice,
-  invoicePdfToBase64,
-  invoiceRefNumber,
-} from "@/app/lib/quotation-pdf";
-import {
-  downloadChallanPdf,
-  challanPdfToBase64,
-  quotationToChallan,
-  downloadReceiptPdf,
-  receiptPdfToBase64,
-} from "@/app/lib/challan-pdf";
+import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
+import { downloadReceiptPdf, receiptPdfToBase64 } from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import { PaymentsPanel } from "./payments-panel";
 import type { PaymentAnalytics } from "@/app/lib/admin-data";
@@ -48,253 +38,6 @@ import type { Quotation, PaymentStatus } from "@/app/lib/types";
 // backend compares to decide whether to email the customer. Carried as a
 // string here because FilterBar is keyed on strings.
 type StageFilter = string;
-
-// The invoice is the quotation document retitled and issued against the
-// confirmed order, so there is nothing to fill in here either — the dialog
-// shows what will be sent and keeps the two actions apart, since an emailed
-// invoice cannot be recalled.
-function CreateInvoiceDialog({ quotation }: { quotation: Quotation }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<"download" | "email" | null>(null);
-
-  const confirmation = quotation.confirmation;
-  if (!confirmation) return null;
-  const ref = invoiceRefNumber(quotation);
-
-  async function download() {
-    setBusy("download");
-    try {
-      await downloadConfirmedOrderInvoice(quotation);
-    } catch {
-      toast.error("Could not generate the invoice.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sendEmail() {
-    setBusy("email");
-    const toastId = toast.loading("Preparing the invoice...");
-    try {
-      const { base64, fileName } = await invoicePdfToBase64(quotation);
-      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/invoice/email`,
-        { method: "POST", body: { pdfBase64: base64, fileName } }
-      );
-      toast.success("Invoice sent", {
-        id: toastId,
-        description: `${ref} delivered to ${quotation.details.email}.`,
-        duration: 7000,
-      });
-      setOpen(false);
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not send the invoice.",
-        { id: toastId }
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <button
-            type="button"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <ReceiptText className="size-3.5" /> Create Invoice
-          </button>
-        }
-      />
-      <DialogContent className="max-h-[85vh] w-full max-w-lg overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-[17px] font-bold text-ink">Invoice</DialogTitle>
-          <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
-            {ref} &middot; {quotation.details.companyName || quotation.details.fullName}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="overflow-hidden rounded-[10px] border border-slate-line">
-          {confirmation.lines.map((line, i) => (
-            <div
-              key={`${line.slug}-${i}`}
-              className="flex items-center justify-between gap-4 border-b border-[#f2f4f7] px-3.5 py-2.5 last:border-b-0"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-[12.5px] font-semibold text-ink">{line.name}</p>
-                <p className="font-mono text-[11px] text-[#8a94a6]">
-                  {line.quantity} {line.unit} &times; {formatPrice(line.unitPrice)}
-                </p>
-              </div>
-              <span className="shrink-0 font-mono text-[12.5px] font-semibold text-ink">
-                {formatPrice(line.total)}
-              </span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between gap-4 border-t border-slate-line bg-surface px-3.5 py-2.5">
-            <span className="text-[12.5px] font-bold text-ink">Grand total</span>
-            <span className="font-mono text-[13px] font-bold text-ink">
-              {formatPrice(confirmation.grandTotal)}
-            </span>
-          </div>
-        </div>
-
-        <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
-          Emailing sends this invoice to{" "}
-          <strong className="text-ink">{quotation.details.email}</strong>.
-        </p>
-
-        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
-          <button
-            type="button"
-            onClick={download}
-            disabled={busy !== null}
-            className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-          >
-            <Download className="size-4" />
-            {busy === "download" ? "Preparing..." : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={sendEmail}
-            disabled={busy !== null}
-            className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-4 py-2.5 text-[13px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
-          >
-            <Mail className="size-4" />
-            {busy === "email" ? "Sending..." : "Send Email"}
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// The challan is produced from the confirmed order's own lines, so there is
-// nothing to fill in — the dialog exists to show what will be sent and to
-// separate the two actions, since emailing one is not undoable.
-function CreateChallanDialog({ quotation }: { quotation: Quotation }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<"download" | "email" | null>(null);
-
-  const spec = quotationToChallan(quotation);
-
-  async function download() {
-    setBusy("download");
-    try {
-      await downloadChallanPdf(quotation);
-    } catch {
-      toast.error("Could not generate the challan.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sendEmail() {
-    setBusy("email");
-    const toastId = toast.loading("Preparing the challan...");
-    try {
-      // Rendered here and posted, so the customer receives the same file the
-      // download button produces rather than a server-side approximation.
-      const { base64, fileName } = await challanPdfToBase64(quotation);
-      toast.loading(`Sending to ${quotation.details.email}...`, { id: toastId });
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/challan/email`,
-        { method: "POST", body: { pdfBase64: base64, fileName } }
-      );
-      toast.success("Challan sent", {
-        id: toastId,
-        description: `${spec.refNumber} delivered to ${quotation.details.email}.`,
-        duration: 7000,
-      });
-      setOpen(false);
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not send the challan.",
-        { id: toastId }
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <button
-            type="button"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <FileText className="size-3.5" /> Create Challan
-          </button>
-        }
-      />
-      <DialogContent className="max-h-[85vh] w-full max-w-lg overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-[17px] font-bold text-ink">Delivery challan</DialogTitle>
-          <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
-            {spec.refNumber} &middot; {spec.recipient.company}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="overflow-hidden rounded-[10px] border border-slate-line">
-          {spec.lines.map((line, i) => (
-            <div
-              key={`${line.name}-${i}`}
-              className="flex items-start justify-between gap-4 border-b border-[#f2f4f7] px-3.5 py-3 last:border-b-0"
-            >
-              <div className="min-w-0">
-                <p className="text-[12.5px] font-semibold text-ink">{line.name}</p>
-                {line.bullets.length > 0 && (
-                  <ul className="mt-1 space-y-0.5">
-                    {line.bullets.map((b) => (
-                      <li key={b} className="text-[11.5px] leading-[1.5] text-ink-muted">
-                        &bull; {b}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <span className="shrink-0 font-mono text-[12.5px] font-semibold text-ink">
-                {line.quantity}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
-          No prices appear on a challan. Emailing sends this document to{" "}
-          <strong className="text-ink">{quotation.details.email}</strong>.
-        </p>
-
-        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
-          <button
-            type="button"
-            onClick={download}
-            disabled={busy !== null}
-            className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-          >
-            <Download className="size-4" />
-            {busy === "download" ? "Preparing..." : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={sendEmail}
-            disabled={busy !== null}
-            className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-4 py-2.5 text-[13px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
-          >
-            <Mail className="size-4" />
-            {busy === "email" ? "Sending..." : "Send Email"}
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // Payment is three related actions — record it, then produce or send the
 // receipt — so they live behind one control rather than three competing for
@@ -627,8 +370,25 @@ function OrderRow({
             <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
           </button>
           <PaymentDialog quotation={quotation} onChanged={onChanged} />
-          <CreateChallanDialog quotation={quotation} />
-          <CreateInvoiceDialog quotation={quotation} />
+          {/* These open the real Prepare windows on the Challans and Invoices
+              screens, carrying this order so the window opens on it.
+              They used to render a client-side PDF instead, which created no
+              record on either screen and numbered itself by rewriting the
+              quotation ref -- AIT/M/Q-0003 became AIT/M/I-0003, while the
+              real series issues I-0001 upward, so two different invoices
+              could carry the same number. */}
+          <Link
+            href={`/admin/challans?order=${encodeURIComponent(quotation.id)}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <FileText className="size-3.5" /> Prepare Challan
+          </Link>
+          <Link
+            href={`/admin/invoices?order=${encodeURIComponent(quotation.id)}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <ReceiptText className="size-3.5" /> Prepare Invoice
+          </Link>
           <RowButton tone="danger" disabled={busy} onClick={cancel}>
             Cancel
           </RowButton>
