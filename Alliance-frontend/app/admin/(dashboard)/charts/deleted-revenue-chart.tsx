@@ -47,7 +47,7 @@ export function DeletedRevenueChart({
   const hasData = points.some((p) => p.deleted > 0);
 
   return (
-    <div className="rounded-[10px] border border-slate-line bg-white p-5">
+    <div className="min-w-0 rounded-[10px] border border-slate-line bg-white p-5">
       <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="mb-0.5 text-[15px] font-bold text-ink">Deleted order revenue</p>

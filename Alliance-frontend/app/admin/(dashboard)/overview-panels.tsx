@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { readOrderRatio, readTopDestinations, readLowStock } from "@/app/lib/admin-data";
 
-const PANEL = "rounded-[10px] border border-slate-line bg-white p-5";
+// min-w-0: these are grid/flex children, which default to min-width:auto
+// and so refuse to shrink below their content. Any chart or wide row inside
+// then widens the column and scrolls the whole page sideways.
+const PANEL = "min-w-0 rounded-[10px] border border-slate-line bg-white p-5";
 const HEADING = "text-[15px] font-bold text-ink";
 const EMPTY = "text-[12px] leading-[1.6] text-[#8a94a6]";
 

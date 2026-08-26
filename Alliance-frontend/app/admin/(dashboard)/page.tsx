@@ -81,7 +81,7 @@ export default async function AdminOverviewPage({
         <RangeToggle active={range} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Revenue"
           value={formatPrice(analytics.revenue)}
@@ -112,8 +112,8 @@ export default async function AdminOverviewPage({
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.55fr_1fr]">
-        <div className="space-y-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[1.55fr_1fr]">
+        <div className="min-w-0 space-y-4">
           <RevenueChart
             data={revenueChartData}
             caption={`${RANGE_LABEL[range][0].toUpperCase()}${RANGE_LABEL[range].slice(1)} · BDT`}
@@ -147,12 +147,12 @@ export default async function AdminOverviewPage({
         <OrderRatioPanel />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <div className="flex flex-col gap-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[1.3fr_1fr]">
+        <div className="flex min-w-0 flex-col gap-4">
           <PendingQuotationsPanel />
           <TopDestinationsPanel />
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <BestSellersCard />
           <WarehouseAlertsPanel />
         </div>

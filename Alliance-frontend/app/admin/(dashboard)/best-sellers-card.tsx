@@ -6,7 +6,7 @@ export async function BestSellersCard() {
   const items = await getTopSellers("month", 4);
 
   return (
-    <div className="rounded-[10px] border border-slate-line bg-white p-5">
+    <div className="min-w-0 rounded-[10px] border border-slate-line bg-white p-5">
       <p className="mb-3.5 text-[15px] font-bold text-ink">Best sellers</p>
       {items.length === 0 ? (
         <p className="text-[12.5px] text-[#8a94a6]">No orders issued in the last 30 days.</p>

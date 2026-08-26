@@ -29,7 +29,7 @@ export async function PendingQuotationsPanel() {
     .slice(0, 5);
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-slate-line bg-white">
+    <div className="min-w-0 overflow-hidden rounded-[10px] border border-slate-line bg-white">
       <div className="flex items-center justify-between border-b border-slate-line px-5 py-4">
         <p className="text-[15px] font-bold text-ink">Price requests needing an answer</p>
         <Link href="/admin/quotations" className="text-xs font-semibold text-primary hover:underline">

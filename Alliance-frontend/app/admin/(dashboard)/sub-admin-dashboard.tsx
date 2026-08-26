@@ -92,8 +92,8 @@ export async function SubAdminDashboard({ session }: { session: AdminSession }) 
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-4">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[1fr_300px]">
+        <div className="min-w-0 space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               { label: "Assigned", value: myTasks.length, tone: "text-ink" },
@@ -112,7 +112,7 @@ export async function SubAdminDashboard({ session }: { session: AdminSession }) 
           <WeeklyHoursChart reports={[...weeklyReports]} />
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {employeeId ? (
             <DailyReportInline defaultHours={lastHours} />
           ) : (
