@@ -257,8 +257,16 @@ function OrderRow({
       );
       toast.success(`Order ${confirmation!.refNumber} cancelled.`);
       onChanged();
-    } catch {
-      toast.error("Could not cancel this order.");
+    } catch (error) {
+      // The backend refuses while invoices or challans stand against the
+      // order and names them, including when they are past withdrawal and
+      // the order can never be cancelled. Swallowing that left an admin
+      // clicking a button that silently did nothing, with no way to learn
+      // which document was in the way. Matches the Quotations screen.
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not cancel this order.",
+        { duration: 8000 }
+      );
     } finally {
       setBusy(false);
     }

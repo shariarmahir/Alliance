@@ -244,6 +244,36 @@ async def _documents_against(db: AsyncSession, quotation_id: str) -> tuple[int, 
     return int(invoices or 0), int(challans or 0)
 
 
+# Documents an admin can still withdraw themselves. Past these states the
+# document carries receipts or delivered goods and is refused by
+# billing._guard_transition, which means the order behind it can never be
+# withdrawn either -- so the refusal must say which of the two situations
+# the admin is in rather than sending them to retry something impossible.
+_WITHDRAWABLE_INVOICE = ("pending", "submitted")
+_WITHDRAWABLE_CHALLAN = ("pending",)
+
+
+async def _settled_documents(db: AsyncSession, quotation_id: str) -> tuple[int, int]:
+    """Live documents that are past the point of being cancelled."""
+    invoices = await db.scalar(
+        select(func.count())
+        .select_from(Invoice)
+        .where(
+            Invoice.quotation_id == quotation_id,
+            Invoice.status.notin_(("cancelled", *_WITHDRAWABLE_INVOICE)),
+        )
+    )
+    challans = await db.scalar(
+        select(func.count())
+        .select_from(Challan)
+        .where(
+            Challan.quotation_id == quotation_id,
+            Challan.status.notin_(("cancelled", *_WITHDRAWABLE_CHALLAN)),
+        )
+    )
+    return int(invoices or 0), int(challans or 0)
+
+
 async def payment_position(db: AsyncSession, quotation: Quotation) -> dict:
     """What an order has been invoiced for and what has been received.
 
@@ -353,9 +383,21 @@ async def update_quotation_status(
     if status != "confirmed" and quotation.confirmation is not None:
         invoices, challans = await _documents_against(db, quotation_id)
         if invoices or challans:
+            settled_inv, settled_chl = await _settled_documents(db, quotation_id)
+            if settled_inv or settled_chl:
+                # These cannot be withdrawn at all, so telling the admin to
+                # "cancel those documents first" would send them in a circle.
+                raise ConfirmationInUse(
+                    f"This order has {settled_inv} paid/completed invoice(s) and "
+                    f"{settled_chl} dispatched/delivered challan(s) against it. "
+                    "Those are a permanent record and cannot be withdrawn, so "
+                    "this order cannot be cancelled. Raise a credit note or "
+                    "record a return instead."
+                )
             raise ConfirmationInUse(
                 f"This order has {invoices} invoice(s) and {challans} challan(s) "
-                "raised against it. Cancel those documents first."
+                "raised against it. Cancel those documents first, then cancel "
+                "the order."
             )
         await db.delete(quotation.confirmation)
         quotation.confirmation = None

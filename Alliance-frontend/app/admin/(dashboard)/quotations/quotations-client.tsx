@@ -307,7 +307,8 @@ function QuotationRow({
       // challans were built from, and names them. That reason is far more
       // use to an admin than a generic failure.
       toast.error(
-        error instanceof ApiError ? error.message : "Could not update quotation status."
+        error instanceof ApiError ? error.message : "Could not update quotation status.",
+        { duration: 8000 }
       );
     } finally {
       setBusy(false);

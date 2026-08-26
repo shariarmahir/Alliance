@@ -86,6 +86,20 @@ def _guard_transition(
             f"{noun} status '{target}' is set by the workflow, not by hand."
         )
     if current not in sources:
+        # Cancelling a document that has already been paid or dispatched is
+        # refused on purpose: receipts and delivered goods are facts, and a
+        # cancelled document is not where they can be reconciled. But an
+        # admin reaching this hits it while trying to withdraw an order, so
+        # the refusal has to name the way forward instead of only saying no.
+        # Without this the order is a dead end -- the invoice cannot be
+        # cancelled, so the order it blocks cannot be cancelled either.
+        if target == "cancelled":
+            raise TransitionRefused(
+                f"This {noun.lower()} is '{current}', so it can no longer be "
+                f"cancelled. Raise a credit note or record a return against it "
+                f"instead -- a {noun.lower()} with receipts or delivered goods "
+                f"behind it stays on the record."
+            )
         raise TransitionRefused(
             f"A {noun.lower()} cannot go from '{current}' to '{target}'."
         )
