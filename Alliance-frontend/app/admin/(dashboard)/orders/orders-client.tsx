@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileText, Mail, ReceiptText, BadgeCheck, Wallet } from "lucide-react";
+import { Download, FileText, Mail, ReceiptText, Wallet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,46 +44,14 @@ type StageFilter = string;
 // room in the row. Recording is a real decision (it gates the receipt, and a
 // receipt asserts money arrived), which a dropdown that fires on change makes
 // too easy to do by mistake.
-function PaymentDialog({
-  quotation,
-  onChanged,
-}: {
-  quotation: Quotation;
-  onChanged: () => void;
-}) {
+function PaymentDialog({ quotation }: { quotation: Quotation }) {
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<"save" | "download" | "email" | null>(null);
+  const [busy, setBusy] = useState<"download" | "email" | null>(null);
   const confirmation = quotation.confirmation;
   const saved: PaymentStatus = confirmation?.paymentStatus ?? "pending";
-  const [choice, setChoice] = useState<PaymentStatus>(saved);
-
   if (!confirmation) return null;
+  // Derived server-side from the invoices; nothing on this screen sets it.
   const paid = saved === "received";
-  const dirty = choice !== saved;
-
-  async function save() {
-    setBusy("save");
-    try {
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/payment`,
-        { method: "PATCH", body: { status: choice } }
-      );
-      toast.success(
-        choice === "received" ? "Payment marked received." : "Payment marked pending.",
-        {
-          description:
-            choice === "received"
-              ? "The money receipt is now available to download or send."
-              : undefined,
-        }
-      );
-      onChanged();
-    } catch {
-      toast.error("Could not update the payment status.");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   async function download() {
     setBusy("download");
@@ -127,11 +95,7 @@ function PaymentDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={(next) => {
-        // Reopening must show what is stored, not an abandoned edit.
-        if (next) setChoice(saved);
-        setOpen(next);
-      }}
+      onOpenChange={setOpen}
     >
       <DialogTrigger
         render={
@@ -159,43 +123,50 @@ function PaymentDialog({
           </span>
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="mb-2 text-[12.5px] font-semibold text-ink">Payment status</legend>
-          {(
-            [
-              { value: "pending", label: "Pending", hint: "Payment has not arrived yet." },
-              {
-                value: "received",
-                label: "Received",
-                hint: "Records the payment date and unlocks the money receipt.",
-              },
-            ] as const
-          ).map((option) => (
-            <label
-              key={option.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-[10px] border px-3.5 py-3 transition-colors ${
-                choice === option.value
-                  ? "border-primary bg-tint"
-                  : "border-slate-line hover:border-[#c8d0da]"
-              }`}
+        {/* Derived from the order's invoices, not set here. The Orders
+            screen used to carry its own payment status, which knew nothing
+            about the receipts recorded against the invoices -- so an order
+            paid in full still read PENDING. Payments are recorded where the
+            money actually lands: on the invoice. */}
+        <dl className="space-y-1.5 rounded-[10px] border border-slate-line px-3.5 py-3 text-[12.5px]">
+          <div className="flex justify-between gap-4">
+            <dt className="text-ink-muted">Invoiced</dt>
+            <dd className="font-mono font-semibold text-ink">
+              {formatPrice(confirmation.amountInvoiced ?? 0)}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-ink-muted">Received</dt>
+            <dd className="font-mono font-semibold text-ok">
+              {formatPrice(confirmation.amountPaid ?? 0)}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-hairline pt-1.5">
+            <dt className="font-semibold text-ink">Outstanding</dt>
+            <dd className="font-mono font-bold text-ink">
+              {formatPrice(confirmation.amountOutstanding ?? 0)}
+            </dd>
+          </div>
+        </dl>
+
+        {(confirmation.amountInvoiced ?? 0) === 0 ? (
+          <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
+            Nothing has been invoiced against this order yet, so there is no
+            payment to record. Raise an invoice first.
+          </p>
+        ) : (
+          <p className="text-[11.5px] leading-[1.6] text-[#8a94a6]">
+            Record receipts on the invoice itself, where the amount, date,
+            method and reference are kept.{" "}
+            <Link
+              href={`/admin/invoices?order=${encodeURIComponent(quotation.id)}`}
+              className="font-semibold text-primary hover:underline"
             >
-              <input
-                type="radio"
-                name={`payment-${quotation.id}`}
-                value={option.value}
-                checked={choice === option.value}
-                onChange={() => setChoice(option.value)}
-                className="mt-0.5 size-3.5 accent-primary"
-              />
-              <span className="min-w-0">
-                <span className="block text-[12.5px] font-semibold text-ink">{option.label}</span>
-                <span className="block text-[11.5px] leading-normal text-[#8a94a6]">
-                  {option.hint}
-                </span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
+              Open this order&rsquo;s invoices
+            </Link>
+            .
+          </p>
+        )}
 
         {paid && confirmation.paymentReceivedAt && (
           <p className="text-[11.5px] text-[#8a94a6]">
@@ -237,15 +208,6 @@ function PaymentDialog({
               </button>
             </>
           )}
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy !== null || !dirty}
-            className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-4 py-2.5 text-[13px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:translate-y-0 disabled:opacity-60"
-          >
-            <BadgeCheck className="size-4" />
-            {busy === "save" ? "Saving..." : dirty ? "Save" : "Saved"}
-          </button>
         </div>
       </DialogContent>
     </Dialog>
@@ -369,7 +331,7 @@ function OrderRow({
           >
             <Download className="size-3.5" /> {downloading ? "..." : "Download PDF"}
           </button>
-          <PaymentDialog quotation={quotation} onChanged={onChanged} />
+          <PaymentDialog quotation={quotation} />
           {/* These open the real Prepare windows on the Challans and Invoices
               screens, carrying this order so the window opens on it.
               They used to render a client-side PDF instead, which created no

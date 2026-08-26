@@ -244,6 +244,43 @@ async def _documents_against(db: AsyncSession, quotation_id: str) -> tuple[int, 
     return int(invoices or 0), int(challans or 0)
 
 
+async def payment_position(db: AsyncSession, quotation: Quotation) -> dict:
+    """What an order has been invoiced for and what has been received.
+
+    Derived from the invoices on every read rather than stored on the order.
+    The Orders screen used to carry its own payment_status, set by hand, which
+    knew nothing about the receipts recorded against the invoices -- so an
+    order paid in full through its invoices still read PENDING, and one marked
+    RECEIVED could have unpaid invoices behind it. Two numbers for one debt is
+    one number too many.
+
+    A cancelled invoice is excluded: it is not owed, and its receipts (if any)
+    belong to the document that replaced it.
+    """
+    invoiced = await db.scalar(
+        select(func.sum(Invoice.grand_total)).where(
+            Invoice.quotation_id == quotation.id, Invoice.status != "cancelled"
+        )
+    )
+    paid = await db.scalar(
+        select(func.sum(Invoice.amount_paid)).where(
+            Invoice.quotation_id == quotation.id, Invoice.status != "cancelled"
+        )
+    )
+    invoiced = round(float(invoiced or 0), 2)
+    paid = round(float(paid or 0), 2)
+
+    # Nothing billed means nothing can have been received, so an order with no
+    # invoice reads pending rather than settled by vacuous truth.
+    settled = invoiced > 0 and paid + 0.01 >= invoiced
+    return {
+        "amount_invoiced": invoiced,
+        "amount_paid": paid,
+        "amount_outstanding": round(max(0.0, invoiced - paid), 2),
+        "payment_status": "received" if settled else "pending",
+    }
+
+
 async def delivered_in_full(db: AsyncSession, quotation: Quotation) -> bool:
     """Section B's Completed: every confirmed line delivered in full.
 

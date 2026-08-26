@@ -90,6 +90,11 @@ class OrderConfirmationOut(CamelModel):
     delivery_complete: bool = False
     payment_status: PaymentStatus = "pending"
     payment_received_at: datetime | None = None
+    # Derived from the order's invoices on every read, so the Orders screen
+    # and the Invoices screen cannot disagree about one debt.
+    amount_invoiced: float = 0.0
+    amount_paid: float = 0.0
+    amount_outstanding: float = 0.0
 
 
 class ConfirmQuotationRequest(CamelModel):

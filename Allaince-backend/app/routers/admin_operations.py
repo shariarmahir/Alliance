@@ -71,17 +71,29 @@ def _decode_pdf(pdf_base64: str | None) -> bytes | None:
     return pdf_bytes
 
 
-def _out(quotation, *, delivery_complete: bool = False) -> QuotationOut:
-    """`delivery_complete` is passed by callers that have a DB session to
-    derive it; the rest fall back to False rather than claiming completion
-    they have not checked."""
+async def _derived(db, quotation) -> dict:
+    """Delivery completion and the payment position, both computed from the
+    documents raised against the order rather than stored beside it."""
+    if quotation.confirmation is None:
+        return {}
+    return {
+        "delivery_complete": await svc.delivered_in_full(db, quotation),
+        **await svc.payment_position(db, quotation),
+    }
+
+
+def _out(quotation, *, derived: dict | None = None) -> QuotationOut:
+    """`derived` carries fields computed from other tables -- delivery
+    completion and the payment position -- which callers with a DB session
+    supply. Callers without one omit them and get the schema defaults rather
+    than claiming a position they have not checked."""
     confirmation = quotation.confirmation
-    if confirmation is not None and delivery_complete:
-        # Pydantic reads it off the ORM object, which has no such column.
+    if confirmation is not None and derived:
+        # Pydantic reads these off the ORM object, which has no such columns.
         confirmation = {
             **{c.name: getattr(confirmation, c.name)
                for c in confirmation.__table__.columns},
-            "delivery_complete": True,
+            **derived,
         }
     return QuotationOut.model_validate(
         {
@@ -110,15 +122,7 @@ async def list_quotations(
     # One query per confirmed order rather than a join: the Orders screen
     # needs Section B's Completed state per row, and only confirmed rows can
     # have challans at all.
-    return [
-        _out(
-            q,
-            delivery_complete=(
-                await svc.delivered_in_full(db, q) if q.confirmation else False
-            ),
-        )
-        for q in rows
-    ]
+    return [_out(q, derived=await _derived(db, q)) for q in rows]
 
 
 @router.get("/quotations/{quotation_id}", response_model=QuotationOut)
@@ -128,10 +132,7 @@ async def get_quotation(
     quotation = await svc.get_quotation(db, quotation_id)
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
-    return _out(
-        quotation,
-        delivery_complete=await svc.delivered_in_full(db, quotation),
-    )
+    return _out(quotation, derived=await _derived(db, quotation))
 
 
 @router.delete("/quotations/cancelled", status_code=status.HTTP_200_OK)
