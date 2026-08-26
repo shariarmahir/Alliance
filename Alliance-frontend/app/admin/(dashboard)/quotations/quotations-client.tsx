@@ -28,6 +28,7 @@ import {
 import { ConfirmQuotationTrigger, ConfirmQuotationPanel } from "./confirm-dialog";
 import { WorkOrderDialog } from "./work-order-dialog";
 import { OrderHistoryDialog } from "./order-history-dialog";
+import { OrderDocumentsDialog } from "./order-documents-dialog";
 import { SendQuotationButton } from "./send-quotation-button";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { useClientNow } from "@/app/lib/use-client-now";
@@ -409,17 +410,22 @@ function QuotationRow({
           {quotation.status === "confirmed" && (
             <>
               <WorkOrderDialog quotation={quotation} />
+              <OrderDocumentsDialog quotation={quotation} />
+              {/* Carries the order id, so the prepare window opens on this
+                  order rather than leaving the admin to find it again in a
+                  list — which is how an invoice ends up against the wrong
+                  customer once there are more than a few confirmed orders. */}
               <Link
-                href="/admin/invoices"
+                href={`/admin/invoices?order=${encodeURIComponent(quotation.id)}`}
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
               >
-                <Receipt className="size-3.5" /> Invoice
+                <Receipt className="size-3.5" /> Prepare Invoice
               </Link>
               <Link
-                href="/admin/challans"
+                href={`/admin/challans?order=${encodeURIComponent(quotation.id)}`}
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
               >
-                <Truck className="size-3.5" /> Challan
+                <Truck className="size-3.5" /> Prepare Challan
               </Link>
             </>
           )}

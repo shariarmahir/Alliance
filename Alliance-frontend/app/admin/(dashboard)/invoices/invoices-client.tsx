@@ -69,7 +69,19 @@ type LineDraft = {
 
 // Prepare Invoice: loads the confirmed order's lines, defaults each quantity
 // to what is still unbilled, and computes the money as the admin types.
-function PrepareInvoiceDialog({ orders }: { orders: Quotation[] }) {
+//
+// `presetOrderId` comes from the ?order= deep link on a confirmed row, so
+// Section C's "Prepare Invoice" opens on that order rather than dropping the
+// admin on a list to find it again. With one order that is a small
+// convenience; with fifty it is what stops an invoice being raised against
+// the wrong customer.
+function PrepareInvoiceDialog({
+  orders,
+  presetOrderId,
+}: {
+  orders: Quotation[];
+  presetOrderId?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -80,6 +92,18 @@ function PrepareInvoiceDialog({ orders }: { orders: Quotation[] }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Tracks which preset has been consumed, so closing the dialog does not
+  // reopen it — the query string stays in the URL after the first open.
+  const [consumed, setConsumed] = useState<string | null>(null);
+
+  // Derived during render rather than set from an effect: React 19 flags
+  // setState-in-effect, and an effect would also flash the closed dialog for
+  // one frame before opening it.
+  if (presetOrderId && consumed !== presetOrderId) {
+    setConsumed(presetOrderId);
+    setOpen(true);
+    void pickOrder(presetOrderId);
+  }
 
   async function pickOrder(id: string) {
     setOrderId(id);
@@ -523,9 +547,11 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
 export function InvoicesClient({
   initialInvoices,
   orders,
+  presetOrderId,
 }: {
   initialInvoices: Invoice[];
   orders: Quotation[];
+  presetOrderId?: string;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | InvoiceStatus>("pending");
@@ -555,11 +581,15 @@ export function InvoicesClient({
               { value: "submitted", label: "Submitted", count: count("submitted") },
               { value: "partially_paid", label: "Partially Paid", count: count("partially_paid") },
               { value: "paid", label: "Paid", count: count("paid") },
+              // Not in the specification's tab list, but item 24 keeps
+              // completed invoices "for future documentation and audit
+              // purposes" — which needs somewhere to find them other than All.
+              { value: "completed", label: "Completed", count: count("completed") },
               { value: "cancelled", label: "Cancelled", count: count("cancelled") },
               { value: "all", label: "All", count: initialInvoices.length },
             ]}
           />
-          <PrepareInvoiceDialog orders={orders} />
+          <PrepareInvoiceDialog orders={orders} presetOrderId={presetOrderId} />
         </div>
       </PageHeader>
 

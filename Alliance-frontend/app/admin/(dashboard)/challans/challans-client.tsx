@@ -64,7 +64,16 @@ type LineDraft = {
 // Prepare Challan. The quantity columns are the point: ordered, already
 // delivered, and what is left, so an admin shipping the second of three
 // partial deliveries can see exactly what remains.
-function PrepareChallanDialog({ orders }: { orders: Quotation[] }) {
+// `presetOrderId` comes from the ?order= deep link on a confirmed row, so
+// Section C's "Prepare Challan" opens on that order instead of dropping the
+// admin on a list to find it again.
+function PrepareChallanDialog({
+  orders,
+  presetOrderId,
+}: {
+  orders: Quotation[];
+  presetOrderId?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -73,6 +82,15 @@ function PrepareChallanDialog({ orders }: { orders: Quotation[] }) {
   const [remarks, setRemarks] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Tracks which preset has been consumed, so closing the dialog does not
+  // reopen it — the query string stays in the URL after the first open.
+  const [consumed, setConsumed] = useState<string | null>(null);
+
+  if (presetOrderId && consumed !== presetOrderId) {
+    setConsumed(presetOrderId);
+    setOpen(true);
+    void pickOrder(presetOrderId);
+  }
 
   async function pickOrder(id: string) {
     setOrderId(id);
@@ -514,9 +532,11 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
 export function ChallansClient({
   initialChallans,
   orders,
+  presetOrderId,
 }: {
   initialChallans: Challan[];
   orders: Quotation[];
+  presetOrderId?: string;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | ChallanStatus>("pending");
@@ -545,7 +565,7 @@ export function ChallansClient({
               { value: "all", label: "All", count: initialChallans.length },
             ]}
           />
-          <PrepareChallanDialog orders={orders} />
+          <PrepareChallanDialog orders={orders} presetOrderId={presetOrderId} />
         </div>
       </PageHeader>
 
