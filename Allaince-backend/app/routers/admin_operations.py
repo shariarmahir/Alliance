@@ -147,16 +147,19 @@ async def confirm_quotation(
     db: DbSession,
     session: AdminSession = QuotationsArea,
 ):
-    quotation = await svc.confirm_quotation(
-        db,
-        quotation_id,
-        lines=[line.model_dump(by_alias=True) for line in payload.lines],
-        terms=payload.terms.model_dump(by_alias=True),
-        ref_number=payload.ref_number,
-        subject=payload.subject,
-        issued_date=payload.issued_date,
-        confirm=payload.confirm,
-    )
+    try:
+        quotation = await svc.confirm_quotation(
+            db,
+            quotation_id,
+            lines=[line.model_dump(by_alias=True) for line in payload.lines],
+            terms=payload.terms.model_dump(by_alias=True),
+            ref_number=payload.ref_number,
+            subject=payload.subject,
+            issued_date=payload.issued_date,
+            confirm=payload.confirm,
+        )
+    except svc.WorkflowRefused as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if quotation is None:
         raise HTTPException(status_code=404, detail="Quotation not found.")
     return _out(quotation)

@@ -207,6 +207,15 @@ async def delete_cancelled_quotations(db: AsyncSession) -> int:
     return len(rows)
 
 
+class WorkflowRefused(Exception):
+    """Raised when a move would skip or reverse the client's workflow chain.
+
+    Inbox -> Prepare -> Save -> Pending -> Send E-mail -> Submitted ->
+    Customer Confirmation -> Verify/Revise -> Work Order/PO -> Confirmed.
+    The stages all existed; nothing enforced the arrows between them.
+    """
+
+
 class ConfirmationInUse(Exception):
     """Raised when retracting a confirmation would orphan real paperwork.
 
@@ -288,6 +297,14 @@ async def confirm_quotation(
     if quotation is None:
         return None
 
+    # The Recommended Workflow is a chain, and these are the arrows into it.
+    #
+    # A cancelled request is out of the workflow entirely: re-pricing or
+    # confirming one revives a dead record mid-chain.
+    if quotation.status == "cancelled":
+        raise WorkflowRefused(
+            "This request was cancelled. Reopen it before preparing a quotation."
+        )
     priced: list[dict] = []
     grand_total = 0.0
     for line in lines:

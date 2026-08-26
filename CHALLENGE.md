@@ -324,3 +324,51 @@ it still cancels normally — covered by its own test.
 
 **Verified strict by sabotage** (disabling the guard fails both tests).
 **354 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 5 — Document 1's arrows
+
+The client pointed at the Recommended Workflow line itself:
+
+```
+Inbox -> View Request -> Prepare Quotation -> Save -> Pending -> Review/Edit
+-> Send E-mail -> Submitted -> Customer Confirmation -> Verify/Revise
+-> Upload Work Order/PO -> Order Confirmed -> Documentation & Record
+```
+
+Pass 2 asked this of the billing documents. This asks it of Document 1.
+
+`confirm_quotation()` guards backwards movement -- its own comment says a
+submitted or confirmed request "must not be dragged backwards" -- but nothing
+guarded entry into the chain from outside it.
+
+**A cancelled request could be re-priced, or confirmed outright.** Both
+returned 200. Cancelling is how an admin closes a dead enquiry; confirming
+one revives it directly into Order Confirmed, from where an invoice and a
+challan can be raised against a customer who withdrew.
+
+**Fix:** `WorkflowRefused` in `app/services/operations.py`, returned as 409,
+with the Quotations screen showing the reason.
+
+## Two things this pass got wrong first
+
+Recorded because both shaped the final result.
+
+**An over-strict guard.** The first version also refused confirming straight
+from Inbox, reasoning that an unquoted request has no offer to accept. That
+broke **50 tests**. Reading `confirm-dialog.tsx` showed why: `confirmOffer()`
+prices the lines and confirms in one call, so the offer arrives in the request
+body rather than being stored first. The stored state before that save is the
+wrong thing to test. Confirming from Inbox is legitimate.
+
+**A guard that could never run.** The narrowed version refused confirming with
+no priced lines. The test still failed -- with **422, not 409**: the schema's
+`lines: list[ConfirmedLine] = Field(min_length=1)` already rejects it. The
+service check was unreachable, so it was deleted rather than left to imply a
+protection that never fires. The test stays, asserting 422, so a later schema
+change that relaxed `min_length` would not pass unnoticed.
+
+**361 backend tests, typecheck clean, lint 0 errors, build successful.**
+Verified strict by sabotage: disabling the cancelled-status check fails both
+tests that cover it.
