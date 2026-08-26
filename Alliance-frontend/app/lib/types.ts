@@ -116,7 +116,16 @@ export type AdminRole = "super" | "sub";
 // in proxy.ts) but can be individually granted per employee. Products,
 // stock, tasks, leave etc. are NOT here — those are already open to every
 // sub-admin and aren't gated by this list.
-export type AccessArea = "quotations" | "orders" | "emails" | "contact-requests";
+// "invoices" and "challans" were split out of "orders": billing and dispatch
+// are separate jobs. The backend still treats "orders" as implying both, so
+// accounts created before the split keep the access they had.
+export type AccessArea =
+  | "quotations"
+  | "orders"
+  | "invoices"
+  | "challans"
+  | "emails"
+  | "contact-requests";
 
 export type AdminSession = {
   role: AdminRole;

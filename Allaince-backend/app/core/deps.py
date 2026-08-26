@@ -11,7 +11,7 @@ from app.core.session_token import (
     parse_session_claims,
 )
 from app.db import get_db
-from app.schemas.session import AccessArea, AdminSession
+from app.schemas.session import IMPLIED_AREAS, AccessArea, AdminSession
 from app.services.sessions import account_is_active, is_session_revoked
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -80,9 +80,40 @@ def require_area(area: AccessArea):
     async def dependency(
         session: Annotated[AdminSession, Depends(require_admin)],
     ) -> AdminSession:
-        if session.role == "super":
+        if _holds(session, area):
             return session
-        if area in (session.access_options or []):
+        raise _forbidden()
+
+    return dependency
+
+
+def _holds(session: AdminSession, area: AccessArea) -> bool:
+    """Whether this session reaches one area. Super admin passes everything.
+
+    A broader grant covers the areas split out of it, so accounts that held
+    "orders" before invoices and challans became separate keep reaching both.
+    """
+    if session.role == "super":
+        return True
+    granted = session.access_options or []
+    if area in granted:
+        return True
+    return any(area in IMPLIED_AREAS.get(held, ()) for held in granted)
+
+
+def require_any_area(*areas: AccessArea):
+    """Any one of several grants is enough.
+
+    For reads that several jobs legitimately need -- per-line balances are
+    the case: whoever is about to invoice or dispatch needs the figures that
+    stop them over-billing or over-shipping, and gating those behind a single
+    area hides the guard rails from the person relying on them.
+    """
+
+    async def dependency(
+        session: Annotated[AdminSession, Depends(require_admin)],
+    ) -> AdminSession:
+        if any(_holds(session, area) for area in areas):
             return session
         raise _forbidden()
 

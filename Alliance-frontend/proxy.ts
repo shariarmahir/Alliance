@@ -41,12 +41,18 @@ const SUB_ADMIN_ALLOWED_EXACT = ["/admin"];
 const SUB_ADMIN_GRANTABLE_PREFIXES: { prefix: string; area: AccessArea }[] = [
   { prefix: "/admin/quotations", area: "quotations" },
   { prefix: "/admin/orders", area: "orders" },
-  // Invoices and challans are order fulfilment, so they ride the same grant.
-  { prefix: "/admin/invoices", area: "orders" },
-  { prefix: "/admin/challans", area: "orders" },
+  { prefix: "/admin/invoices", area: "invoices" },
+  { prefix: "/admin/challans", area: "challans" },
   { prefix: "/admin/emails", area: "emails" },
   { prefix: "/admin/contact-requests", area: "contact-requests" },
 ];
+
+// Grants that carry others with them. Mirrors IMPLIED_AREAS in the backend's
+// schemas/session.py — "orders" predates the invoices/challans split, so it
+// still opens both rather than silently revoking them on deploy.
+const IMPLIED_AREAS: Partial<Record<AccessArea, AccessArea[]>> = {
+  orders: ["invoices", "challans"],
+};
 
 // Confirms with the API that this exact session is still live. A network
 // failure denies rather than admits: an unreachable API is not evidence that a
@@ -82,11 +88,19 @@ export async function proxy(request: NextRequest) {
     const matches = (prefix: string) =>
       pathname === prefix || pathname.startsWith(`${prefix}/`);
 
+    const granted = session.accessOptions ?? [];
+    // Mirrors IMPLIED_AREAS in the backend's schemas/session.py. Without it
+    // this gate would redirect an existing "orders" sub-admin away from
+    // /admin/invoices that the API would still have served them.
+    const holds = (area: AccessArea) =>
+      granted.includes(area) ||
+      granted.some((held) => (IMPLIED_AREAS[held] ?? []).includes(area));
+
     const allowed =
       SUB_ADMIN_ALLOWED_EXACT.includes(pathname) ||
       SUB_ADMIN_ALLOWED_PREFIXES.some(matches) ||
       SUB_ADMIN_GRANTABLE_PREFIXES.some(
-        ({ prefix, area }) => matches(prefix) && (session.accessOptions ?? []).includes(area)
+        ({ prefix, area }) => matches(prefix) && holds(area)
       );
     if (!allowed) {
       return NextResponse.redirect(new URL(ADMIN_LANDING, request.url));

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 
 from app.config import settings
-from app.schemas.session import AdminSession
+from app.schemas.session import ACCESS_AREAS, AdminSession
 
 ADMIN_SESSION_COOKIE = "autolink_admin_session"
 
@@ -68,9 +68,11 @@ def parse_session_claims(raw: str | None) -> SessionClaims | None:
         return None
 
     access_options = payload.get("accessOptions")
-    valid_areas = {"quotations", "orders", "emails", "contact-requests"}
+    # Derived from the AccessArea literal rather than repeated here: this
+    # filter silently drops anything it does not recognise, so a hardcoded
+    # copy that falls behind revokes a real grant with no error anywhere.
     if isinstance(access_options, list):
-        access_options = [a for a in access_options if a in valid_areas]
+        access_options = [a for a in access_options if a in ACCESS_AREAS]
     else:
         access_options = None
 

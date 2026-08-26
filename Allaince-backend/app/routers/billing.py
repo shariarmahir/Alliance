@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
-from app.core.deps import DbSession, require_area
+from app.core.deps import DbSession, require_any_area, require_area
 from app.integrations import email as email_integration
 from app.integrations import pdf as pdf_integration
 from app.integrations.object_storage import (
@@ -35,9 +35,16 @@ logger = logging.getLogger("app.billing")
 
 router = APIRouter(prefix="/api/admin", tags=["billing"])
 
-# Invoices and challans belong to fulfilling an accepted order, so they sit
-# behind the orders grant rather than quotations.
+# Billing and dispatch are separate jobs: someone who updates delivery status
+# has no business approving an invoice. The "orders" grant still implies both
+# (see IMPLIED_AREAS), so accounts that predate the split keep their access.
 OrdersArea = Depends(require_area("orders"))
+InvoicesArea = Depends(require_area("invoices"))
+ChallansArea = Depends(require_area("challans"))
+# Reads that any of the three jobs legitimately needs.
+AnyBillingArea = Depends(require_any_area("orders", "invoices", "challans"))
+# The History button lives on the Quotations screen, so that grant reads it too.
+AnyOrderArea = Depends(require_any_area("quotations", "orders", "invoices", "challans"))
 
 
 def _customer(quotation) -> dict:
@@ -83,12 +90,17 @@ async def order_balances(
     quotation_id: str,
     db: DbSession,
     exclude_challan: str | None = None,
-    session: AdminSession = OrdersArea,
+    session: AdminSession = AnyBillingArea,
 ):
     """What is ordered, delivered, invoiced and still outstanding per line.
 
     This is what the prepare screens read to stop an admin over-shipping or
     double-billing, so it is derived on every call rather than cached.
+
+    Readable with any of the three grants: an admin who can prepare an
+    invoice needs these figures to prepare it safely, and gating them behind
+    "orders" alone would leave the guard rails invisible to exactly the
+    person about to bill.
     """
     quotation = await _confirmed_order(db, quotation_id)
     rows = await svc.order_balances(db, quotation, exclude_challan=exclude_challan)
@@ -97,9 +109,13 @@ async def order_balances(
 
 @router.get("/quotations/{quotation_id}/history", response_model=OrderHistory)
 async def order_history(
-    quotation_id: str, db: DbSession, session: AdminSession = OrdersArea
+    quotation_id: str, db: DbSession, session: AdminSession = AnyOrderArea
 ):
     """The whole paper trail for one order, oldest first.
+
+    Opened to the quotations grant as well, because the History button that
+    reads this lives on the Quotations screen -- gating it behind "orders"
+    put a 403 behind a button the same grant had already rendered.
 
     Assembled from timestamps that already exist rather than an events table:
     a log written alongside the records could disagree with them, and the
@@ -208,7 +224,7 @@ async def order_history(
 
 @router.get("/invoices", response_model=list[InvoiceOut])
 async def list_invoices(
-    db: DbSession, status_filter: str | None = None, session: AdminSession = OrdersArea
+    db: DbSession, status_filter: str | None = None, session: AdminSession = InvoicesArea
 ):
     invoices = await svc.list_invoices(db, status=status_filter)
     out: list[InvoiceOut] = []
@@ -220,7 +236,7 @@ async def list_invoices(
 
 
 @router.post("/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
-async def create_invoice(payload: InvoiceCreate, db: DbSession, session: AdminSession = OrdersArea):
+async def create_invoice(payload: InvoiceCreate, db: DbSession, session: AdminSession = InvoicesArea):
     quotation = await _confirmed_order(db, payload.quotation_id)
     try:
         invoice = await svc.create_invoice(
@@ -239,7 +255,7 @@ async def create_invoice(payload: InvoiceCreate, db: DbSession, session: AdminSe
 
 
 @router.get("/invoices/{invoice_id}", response_model=InvoiceOut)
-async def get_invoice(invoice_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def get_invoice(invoice_id: str, db: DbSession, session: AdminSession = InvoicesArea):
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found.")
@@ -248,7 +264,7 @@ async def get_invoice(invoice_id: str, db: DbSession, session: AdminSession = Or
 
 
 @router.get("/invoices/{invoice_id}/pdf")
-async def invoice_pdf(invoice_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def invoice_pdf(invoice_id: str, db: DbSession, session: AdminSession = InvoicesArea):
     """The formal Invoice document — printed, saved as PDF, or e-mailed."""
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
@@ -272,7 +288,7 @@ async def invoice_pdf(invoice_id: str, db: DbSession, session: AdminSession = Or
 
 @router.patch("/invoices/{invoice_id}", response_model=InvoiceOut)
 async def update_invoice(
-    invoice_id: str, payload: InvoiceUpdate, db: DbSession, session: AdminSession = OrdersArea
+    invoice_id: str, payload: InvoiceUpdate, db: DbSession, session: AdminSession = InvoicesArea
 ):
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
@@ -306,7 +322,7 @@ async def update_invoice(
 
 
 @router.post("/invoices/{invoice_id}/approve", response_model=InvoiceOut)
-async def approve_invoice(invoice_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def approve_invoice(invoice_id: str, db: DbSession, session: AdminSession = InvoicesArea):
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found.")
@@ -319,7 +335,7 @@ async def approve_invoice(invoice_id: str, db: DbSession, session: AdminSession 
 
 @router.post("/invoices/{invoice_id}/send", response_model=InvoiceOut)
 async def send_invoice_email(
-    invoice_id: str, db: DbSession, session: AdminSession = OrdersArea
+    invoice_id: str, db: DbSession, session: AdminSession = InvoicesArea
 ):
     """Item 17-19: e-mail the approved invoice, then mark it Submitted.
 
@@ -361,7 +377,7 @@ async def send_invoice_email(
 
 @router.post("/invoices/{invoice_id}/payments", response_model=InvoiceOut)
 async def add_payment(
-    invoice_id: str, payload: InvoicePaymentIn, db: DbSession, session: AdminSession = OrdersArea
+    invoice_id: str, payload: InvoicePaymentIn, db: DbSession, session: AdminSession = InvoicesArea
 ):
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
@@ -386,7 +402,7 @@ async def add_payment(
 
 @router.patch("/invoices/{invoice_id}/status", response_model=InvoiceOut)
 async def set_invoice_status(
-    invoice_id: str, payload: InvoiceStatusUpdate, db: DbSession, session: AdminSession = OrdersArea
+    invoice_id: str, payload: InvoiceStatusUpdate, db: DbSession, session: AdminSession = InvoicesArea
 ):
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
@@ -404,7 +420,7 @@ async def set_invoice_status(
 
 @router.get("/challans", response_model=list[ChallanOut])
 async def list_challans(
-    db: DbSession, status_filter: str | None = None, session: AdminSession = OrdersArea
+    db: DbSession, status_filter: str | None = None, session: AdminSession = ChallansArea
 ):
     challans = await svc.list_challans(db, status=status_filter)
     out: list[ChallanOut] = []
@@ -416,7 +432,7 @@ async def list_challans(
 
 
 @router.post("/challans", response_model=ChallanOut, status_code=status.HTTP_201_CREATED)
-async def create_challan(payload: ChallanCreate, db: DbSession, session: AdminSession = OrdersArea):
+async def create_challan(payload: ChallanCreate, db: DbSession, session: AdminSession = ChallansArea):
     quotation = await _confirmed_order(db, payload.quotation_id)
     try:
         challan = await svc.create_challan(
@@ -433,7 +449,7 @@ async def create_challan(payload: ChallanCreate, db: DbSession, session: AdminSe
 
 
 @router.get("/challans/{challan_id}", response_model=ChallanOut)
-async def get_challan(challan_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def get_challan(challan_id: str, db: DbSession, session: AdminSession = ChallansArea):
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
         raise HTTPException(status_code=404, detail="Challan not found.")
@@ -442,7 +458,7 @@ async def get_challan(challan_id: str, db: DbSession, session: AdminSession = Or
 
 
 @router.get("/challans/{challan_id}/pdf")
-async def challan_pdf(challan_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def challan_pdf(challan_id: str, db: DbSession, session: AdminSession = ChallansArea):
     """The Delivery Challan document, carrying the quantity-control table."""
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
@@ -472,7 +488,7 @@ async def challan_pdf(challan_id: str, db: DbSession, session: AdminSession = Or
 
 @router.patch("/challans/{challan_id}", response_model=ChallanOut)
 async def update_challan(
-    challan_id: str, payload: ChallanUpdate, db: DbSession, session: AdminSession = OrdersArea
+    challan_id: str, payload: ChallanUpdate, db: DbSession, session: AdminSession = ChallansArea
 ):
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
@@ -503,7 +519,7 @@ async def update_challan(
 
 @router.post("/challans/{challan_id}/send", response_model=ChallanOut)
 async def send_challan_email(
-    challan_id: str, db: DbSession, session: AdminSession = OrdersArea
+    challan_id: str, db: DbSession, session: AdminSession = ChallansArea
 ):
     """E-mails the approved challan, so the customer knows what is coming
     before the vehicle arrives.
@@ -541,7 +557,7 @@ async def send_challan_email(
 
 
 @router.post("/challans/{challan_id}/approve", response_model=ChallanOut)
-async def approve_challan(challan_id: str, db: DbSession, session: AdminSession = OrdersArea):
+async def approve_challan(challan_id: str, db: DbSession, session: AdminSession = ChallansArea):
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
         raise HTTPException(status_code=404, detail="Challan not found.")
@@ -554,7 +570,7 @@ async def approve_challan(challan_id: str, db: DbSession, session: AdminSession 
 
 @router.post("/challans/{challan_id}/dispatch", response_model=ChallanOut)
 async def dispatch_challan(
-    challan_id: str, payload: ChallanDispatch, db: DbSession, session: AdminSession = OrdersArea
+    challan_id: str, payload: ChallanDispatch, db: DbSession, session: AdminSession = ChallansArea
 ):
     challan = await svc.get_challan(db, challan_id)
     if challan is None:
@@ -581,7 +597,7 @@ async def deliver_challan(
     challan_id: str,
     db: DbSession,
     file: UploadFile | None = File(default=None),
-    session: AdminSession = OrdersArea,
+    session: AdminSession = ChallansArea,
 ):
     """Marks delivery confirmed, optionally attaching the customer's signed copy."""
     challan = await svc.get_challan(db, challan_id)
@@ -617,7 +633,7 @@ async def deliver_challan(
 
 @router.patch("/challans/{challan_id}/status", response_model=ChallanOut)
 async def set_challan_status(
-    challan_id: str, payload: ChallanStatusUpdate, db: DbSession, session: AdminSession = OrdersArea
+    challan_id: str, payload: ChallanStatusUpdate, db: DbSession, session: AdminSession = ChallansArea
 ):
     challan = await svc.get_challan(db, challan_id)
     if challan is None:

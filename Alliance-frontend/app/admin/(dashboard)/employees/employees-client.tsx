@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import { EditEmployeeDialog } from "./edit-employee-dialog";
 import { Button } from "@/app/components/ui/button";
 import {
   Dialog,
@@ -36,9 +37,13 @@ function designationLabel(e: SafeEmployee): string {
   return DESIGNATION_LABEL[e.designation];
 }
 
+// Exhaustive by type: a new AccessArea that isn't labelled here fails the
+// build rather than rendering an "undefined" pill in the roster.
 const ACCESS_LABEL: Record<AccessArea, string> = {
   quotations: "Quotations",
   orders: "Orders",
+  invoices: "Invoices",
+  challans: "Challans",
   emails: "Emails",
   "contact-requests": "Contact",
 };
@@ -141,11 +146,17 @@ function RosterTab({
                         {ds?.label ?? "—"}
                       </td>
                       <td className={TD}>
-                        <DeleteEmployeeButton
-                          employee={e}
-                          openTasks={open}
-                          onDeleted={() => router.refresh()}
-                        />
+                        <div className="flex items-center gap-1.5">
+                          <EditEmployeeDialog
+                            employee={e}
+                            onSaved={() => router.refresh()}
+                          />
+                          <DeleteEmployeeButton
+                            employee={e}
+                            openTasks={open}
+                            onDeleted={() => router.refresh()}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

@@ -19,24 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/app/components/ui/switch";
 import type { AccessArea, Designation } from "@/app/lib/types";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
-
-const DESIGNATIONS: { value: Designation; label: string }[] = [
-  { value: "sales-associate", label: "Sales Associate" },
-  { value: "warehouse-staff", label: "Warehouse Staff" },
-  { value: "support-agent", label: "Support Agent" },
-  { value: "catalog-manager", label: "Catalog Manager" },
-  { value: "other", label: "Other" },
-];
-
-// Areas a sub-admin can't reach by default (see SUB_ADMIN_ALLOWED_PREFIXES
-// in proxy.ts) — products/stock/tasks/leave etc. are already open to every
-// sub-admin and aren't listed here since there's nothing to grant.
-const ACCESS_OPTIONS: { value: AccessArea; label: string; hint: string }[] = [
-  { value: "quotations", label: "Quotations", hint: "Review, price and issue order confirmations" },
-  { value: "orders", label: "Orders", hint: "View and update order status" },
-  { value: "contact-requests", label: "Contact requests", hint: "Handle incoming contact form submissions" },
-  { value: "emails", label: "Emails", hint: "View the mock inbox preview" },
-];
+import { ACCESS_OPTIONS, DESIGNATIONS } from "./employee-fields";
 
 export function AddEmployeeDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
