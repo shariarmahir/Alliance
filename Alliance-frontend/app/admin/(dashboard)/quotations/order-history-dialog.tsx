@@ -53,10 +53,10 @@ const MARK: Record<HistoryEvent["kind"], { icon: typeof Inbox; tint: string }> =
   request: { icon: Inbox, tint: "text-[#8a94a6] bg-[#f1f4f8]" },
   quotation: { icon: FileText, tint: "text-primary bg-[#eaf4fb]" },
   email: { icon: Mail, tint: "text-[#8a6400] bg-[#fff8e6]" },
-  confirmed: { icon: CheckCircle2, tint: "text-[#12a366] bg-[#e9f7f0]" },
+  confirmed: { icon: CheckCircle2, tint: "text-ok-dot bg-[#e9f7f0]" },
   po: { icon: FileUp, tint: "text-[#8a6400] bg-[#fff8e6]" },
   invoice: { icon: Receipt, tint: "text-primary bg-[#eaf4fb]" },
-  challan: { icon: Truck, tint: "text-[#12a366] bg-[#e9f7f0]" },
+  challan: { icon: Truck, tint: "text-ok-dot bg-[#e9f7f0]" },
 };
 
 function when(at: string | null): string {
@@ -68,6 +68,78 @@ function when(at: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Section C's combined document flow, as a progress strip. The timeline
+// below says what happened; this says where the order sits now and what
+// comes next, which is the "better control" the section asks for.
+const FLOW = [
+  "Price Request",
+  "Quotation",
+  "Submitted",
+  "Order Confirmed",
+  "Work Order/PO",
+  "Invoice",
+  "Challan",
+  "Payment/Delivery",
+  "Completed",
+] as const;
+
+// Derived from the events already fetched rather than from a stored stage:
+// a stage column could disagree with the documents, and the documents are
+// what an auditor reads.
+function reachedThrough(history: OrderHistory | null): number {
+  if (!history) return 0;
+  const kinds = new Set(history.events.map((e) => e.kind));
+  let reached = 1; // the request itself always exists
+  if (kinds.has("quotation")) reached = 2;
+  if (kinds.has("email")) reached = 3;
+  if (kinds.has("confirmed")) reached = 4;
+  if (kinds.has("po")) reached = 5;
+  if (kinds.has("invoice")) reached = 6;
+  if (kinds.has("challan")) reached = 7;
+
+  const paid = history.events.some(
+    (e) => e.kind === "invoice" && (e.status === "paid" || e.status === "completed")
+  );
+  const delivered = history.events.some(
+    (e) => e.kind === "challan" && e.status === "delivered"
+  );
+  if (paid || delivered) reached = 8;
+  if (paid && delivered) reached = 9;
+  return reached;
+}
+
+function FlowStrip({ history }: { history: OrderHistory | null }) {
+  const reached = reachedThrough(history);
+
+  return (
+    <ol className="mb-4 flex flex-wrap items-center gap-1 rounded-md border border-[#e4ecf4] bg-[#f7fafd] p-2.5">
+      {FLOW.map((label, i) => {
+        const step = i + 1;
+        const done = step < reached;
+        const current = step === reached;
+        return (
+          <li key={label} className="flex items-center gap-1">
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10.5px] font-semibold ${
+                current
+                  ? "bg-primary text-white"
+                  : done
+                    ? "bg-[#e9f7f0] text-ok-dot"
+                    : "text-[#a8b2c1]"
+              }`}
+            >
+              {label}
+            </span>
+            {i < FLOW.length - 1 && (
+              <span className={done ? "text-ok-dot" : "text-[#d4dbe4]"}>›</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 export function OrderHistoryDialog({ quotation }: { quotation: Quotation }) {
@@ -115,7 +187,9 @@ export function OrderHistoryDialog({ quotation }: { quotation: Quotation }) {
         {loading ? (
           <p className="py-8 text-center text-[13px] text-ink-muted">Loading…</p>
         ) : (
-          <ol className="max-h-[60vh] space-y-0 overflow-y-auto">
+          <>
+          <FlowStrip history={history} />
+          <ol className="max-h-[55vh] space-y-0 overflow-y-auto">
             {(history?.events ?? []).map((event, i, all) => {
               const mark = MARK[event.kind];
               const Icon = mark.icon;
@@ -159,6 +233,7 @@ export function OrderHistoryDialog({ quotation }: { quotation: Quotation }) {
               );
             })}
           </ol>
+          </>
         )}
       </DialogContent>
     </Dialog>

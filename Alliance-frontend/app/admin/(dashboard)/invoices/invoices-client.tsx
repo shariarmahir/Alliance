@@ -36,6 +36,7 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { DocumentActions } from "../document-actions";
+import { OrderSummary } from "../order-summary";
 import {
   ViewInvoiceDialog,
   EditInvoiceDialog,
@@ -214,6 +215,12 @@ function PrepareInvoiceDialog({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Item 3: the PO number, quotation reference and commercial terms
+            load with the order, not just its lines. */}
+        {orderId && (
+          <OrderSummary order={orders.find((o) => o.id === orderId)} showTerms />
+        )}
 
         {loading && <p className="text-[12px] text-[#8a94a6]">Loading order lines...</p>}
 

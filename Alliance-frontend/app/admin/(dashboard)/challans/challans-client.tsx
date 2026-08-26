@@ -35,6 +35,7 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { DocumentActions } from "../document-actions";
+import { OrderSummary, composeDeliveryAddress } from "../order-summary";
 import {
   ViewChallanDialog,
   EditChallanDialog,
@@ -97,7 +98,11 @@ function PrepareChallanDialog({
     setLines([]);
     if (!id) return;
     const order = orders.find((o) => o.id === id);
-    setAddress(order?.details.country ?? "");
+    // Was the bare country, which put "Bangladesh" in the delivery address
+    // field — complete-looking enough to dispatch against, and useless to a
+    // driver. A price request collects no street address, so this composes
+    // what the record actually holds and leaves the rest to be typed.
+    setAddress(composeDeliveryAddress(order));
     setLoading(true);
     try {
       const balances = await apiFetch<OrderBalanceLine[]>(
@@ -195,6 +200,10 @@ function PrepareChallanDialog({
           </Select>
         </div>
 
+        {/* Item 3: customer, PO/WO reference and quotation ref load with the
+            order. Terms are omitted — a challan carries no prices. */}
+        {orderId && <OrderSummary order={orders.find((o) => o.id === orderId)} />}
+
         {loading && <p className="text-[12px] text-[#8a94a6]">Loading order lines...</p>}
 
         {lines.length > 0 && (
@@ -252,7 +261,14 @@ function PrepareChallanDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Delivery address</Label>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+                {/* Multi-line: a delivery address is several lines, and the
+                    single-line input silently hid everything past the first. */}
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-md border border-[#dde3ea] px-3 py-2 text-[13px] text-ink outline-none focus:border-primary"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Remarks</Label>
