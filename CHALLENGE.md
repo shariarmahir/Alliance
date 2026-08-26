@@ -416,3 +416,63 @@ block already sat directly above Confirm inside it. Two things read as gaps
 on a first pass through the row and were not, once the panel was read too.
 
 **362 backend tests, typecheck clean, lint 0 errors, build successful.**
+
+---
+
+# Pass 7 — Document 1 tested adversarially
+
+Not "does each item work?" but "what states can an admin reach in a working
+day that the happy path never visits?" Six edge cases across items 10, 12, 13
+and 14. **Five held. One did not.**
+
+## Held (recorded so a later pass does not re-investigate)
+
+- A failed send leaves the quotation in **Pending**, returning 502 — item 10's
+  "successfully sent" is honoured, so a mail failure never produces an offer
+  nobody chases because it looks delivered.
+- An unprepared request cannot be emailed (400) — no empty document goes out
+  over the company's name.
+- Revising a confirmed order keeps both its **ref number and tracking ID**;
+  the customer is holding a document with both printed on it.
+- Correcting a PO number does **not** detach the PO document already filed.
+- History survives a revision: request, quotation and confirmation all remain.
+
+## The defect: item 12 had no floor
+
+Item 12 allows a confirmed order to be corrected to the PO, and correcting
+downwards is normal — the PO often comes back for less than was quoted.
+Nothing stopped it going below what had already been **invoiced or shipped**.
+
+Measured on an order for 10, fully invoiced and fully delivered, then revised
+to 3:
+
+| | Before | After |
+|---|---|---|
+| Ordered | 10 | **3** |
+| Delivered | 10 | 10 |
+| Invoiced | 10 | 10 |
+| Approved invoice `AIT/MFL/I-0001/2026` | bills 1,000 | bills 1,000 |
+
+An order that says it was only ever for 300, with 700 invoiced and seven
+units shipped that it has no record of. Every balance on the record is then
+nonsense.
+
+## The fix
+
+`_committed_quantities()` takes the highest quantity any line has been
+invoiced or delivered in, across non-cancelled documents. A revision below
+that is refused with 409, naming the line and the committed figure.
+
+Deliberately narrow, each case under test:
+
+- Revising **up** (10 → 15) still works.
+- Re-pricing and changing terms stay open at any quantity.
+- Revising to **exactly** the committed quantity is allowed — it is not below.
+- **Cancelling the invoice releases the floor**, so the line can then be
+  reduced. A withdrawn document is not a commitment.
+
+The prepare panel already surfaces backend messages, so the admin sees which
+line blocks the revision and by how much, not a generic failure.
+
+**370 backend tests, typecheck clean, lint 0 errors, build successful.**
+Sabotage-verified: disabling the comparison fails both covering tests.

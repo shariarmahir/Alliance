@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     Challan,
+    ChallanLine,
     ContactRequest,
     Invoice,
+    InvoiceLine,
     Order,
     OrderConfirmation,
     Product,
@@ -242,6 +244,38 @@ async def _documents_against(db: AsyncSession, quotation_id: str) -> tuple[int, 
     return int(invoices or 0), int(challans or 0)
 
 
+async def _committed_quantities(db: AsyncSession, quotation_id: str) -> dict[str, int]:
+    """The most any line has already been invoiced or delivered.
+
+    Item 12 lets a confirmed order be corrected to the customer's PO, and
+    correcting downwards is normal -- the PO often comes back for less than
+    was quoted. What it cannot do is fall below what has already been billed
+    or shipped: the documents are facts that have left the building, and an
+    order smaller than its own paperwork makes every balance nonsense.
+    """
+    committed: dict[str, int] = {}
+
+    invoiced = await db.execute(
+        select(InvoiceLine.slug, func.sum(InvoiceLine.quantity))
+        .join(Invoice, Invoice.id == InvoiceLine.invoice_id)
+        .where(Invoice.quotation_id == quotation_id, Invoice.status != "cancelled")
+        .group_by(InvoiceLine.slug)
+    )
+    for slug, total in invoiced.all():
+        committed[slug] = max(committed.get(slug, 0), int(total or 0))
+
+    delivered = await db.execute(
+        select(ChallanLine.slug, func.sum(ChallanLine.quantity))
+        .join(Challan, Challan.id == ChallanLine.challan_id)
+        .where(Challan.quotation_id == quotation_id, Challan.status != "cancelled")
+        .group_by(ChallanLine.slug)
+    )
+    for slug, total in delivered.all():
+        committed[slug] = max(committed.get(slug, 0), int(total or 0))
+
+    return committed
+
+
 async def update_quotation_status(
     db: AsyncSession, quotation_id: str, status: str
 ) -> Quotation | None:
@@ -305,6 +339,23 @@ async def confirm_quotation(
         raise WorkflowRefused(
             "This request was cancelled. Reopen it before preparing a quotation."
         )
+
+    # Item 12: revising a confirmed order to match the PO is expected, and
+    # revising downwards is normal. It just cannot go below what invoices and
+    # challans have already committed -- those documents are with the customer.
+    if quotation.confirmation is not None:
+        committed = await _committed_quantities(db, quotation.id)
+        if committed:
+            revised = {
+                (line.get("slug") or ""): int(line.get("quantity", 0)) for line in lines
+            }
+            for slug, already in committed.items():
+                if revised.get(slug, 0) < already:
+                    raise WorkflowRefused(
+                        f"'{slug}' has already been invoiced or delivered in a "
+                        f"quantity of {already}. Cancel those documents before "
+                        "reducing this line."
+                    )
     priced: list[dict] = []
     grand_total = 0.0
     for line in lines:
