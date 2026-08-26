@@ -183,3 +183,34 @@ async def test_a_confirmed_order_can_still_be_revised(client, db):
     assert c["terms"]["payment"] == "30% advance"
     # The customer may already hold a document bearing this reference.
     assert c["refNumber"] == original_ref
+
+
+async def test_the_po_can_be_filed_before_the_order_is_confirmed(client, db):
+    """Item 13 sits between Customer Confirmation and Order Confirmed in the
+    chain, and the customer's PO normally arrives with their acceptance. It
+    must be fileable while the quotation is still Submitted, not only after
+    confirming -- otherwise the workflow forces the paperwork out of order."""
+    quotation_id = await _fresh_inbox_request(client)
+    await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": False, "lines": LINES, "terms": TERMS},
+    )
+    await client.patch(
+        f"/api/admin/quotations/{quotation_id}/status", json={"status": "submitted"}
+    )
+
+    r = await client.patch(
+        f"/api/admin/quotations/{quotation_id}/work-order",
+        json={"poNumber": "PO-2026-0091"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["poNumber"] == "PO-2026-0091"
+    assert r.json()["status"] == "submitted"   # filing it does not confirm
+
+    # And it survives the confirmation that follows.
+    c = await client.post(
+        f"/api/admin/quotations/{quotation_id}/confirm",
+        json={"confirm": True, "lines": LINES, "terms": TERMS},
+    )
+    assert c.json()["poNumber"] == "PO-2026-0091"
+    assert c.json()["status"] == "confirmed"

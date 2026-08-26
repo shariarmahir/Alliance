@@ -30,6 +30,7 @@ import { WorkOrderDialog } from "./work-order-dialog";
 import { OrderHistoryDialog } from "./order-history-dialog";
 import { OrderDocumentsDialog } from "./order-documents-dialog";
 import { SendQuotationButton } from "./send-quotation-button";
+import { NextStep } from "./workflow-stage";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { useClientNow } from "@/app/lib/use-client-now";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
@@ -42,8 +43,9 @@ const SLA_HOURS = 4;
 const STATUS_PILL: Record<QuotationStatus, { label: string; tone: PillTone }> = {
   // Untouched work: a warning tone because it is the queue that needs action.
   inbox: { label: "NEW", tone: "warn" },
-  // Prepared but not yet sent — a step further along, so informational.
-  pending: { label: "PREPARED", tone: "info" },
+  // Their tab says "Pending" and so does their workflow, so the pill says it
+  // too — PREPARED made one record look like two different things.
+  pending: { label: "PENDING", tone: "info" },
   submitted: { label: "SUBMITTED", tone: "info" },
   confirmed: { label: "CONFIRMED", tone: "ok" },
   cancelled: { label: "CANCELLED", tone: "danger" },
@@ -361,6 +363,9 @@ function QuotationRow({
         ) : (
           <Pill tone={pill.tone}>{pill.label}</Pill>
         )}
+        {/* The client's workflow is a chain; naming the next arrow means an
+            admin can read it off the row instead of knowing it by heart. */}
+        <NextStep quotation={quotation} />
       </td>
       <td className={TD}>
         {/* Actions are stage-specific, per the client's workflow document.
@@ -408,6 +413,14 @@ function QuotationRow({
               successful send is what moves it to Submitted. */}
           {quotation.status === "pending" && quotation.confirmation && (
             <SendQuotationButton quotation={quotation} onSent={onChanged} />
+          )}
+
+          {/* Item 13 sits between Customer Confirmation and Order Confirmed
+              in the client's chain, and the PO usually arrives with the
+              customer's acceptance -- so it can be filed while the quotation
+              is still Submitted, not only after confirming. */}
+          {quotation.status === "submitted" && (
+            <WorkOrderDialog quotation={quotation} />
           )}
 
           {/* Order Confirmed: the customer's own paperwork, and the two

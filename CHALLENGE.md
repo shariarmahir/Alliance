@@ -372,3 +372,47 @@ change that relaxed `min_length` would not pass unnoticed.
 **361 backend tests, typecheck clean, lint 0 errors, build successful.**
 Verified strict by sabotage: disabling the cancelled-status check fails both
 tests that cover it.
+
+---
+
+# Pass 6 — the workflow on screen
+
+The client said the workflow did not match. Every API test passed, so the
+mismatch had to be on the screen, and it was: **the stages were all reachable
+but the chain was invisible.** The row showed a set of buttons and left the
+admin to know which order they came in.
+
+## Three mismatches against the client's own wording
+
+**The Pending tab and the row disagreed.** The client's tab reads *Pending*;
+the row's pill read **PREPARED**. Same record, two names. Now both say
+Pending.
+
+**Item 13 was out of order.** Their chain runs Customer Confirmation ->
+Verify/Revise -> **Upload Work Order/PO** -> Order Confirmed. The row's Work
+Order button appeared only once status was already `confirmed`, so the PO
+could be filed only *after* the step it precedes. The customer's PO normally
+arrives *with* their acceptance. It is now available on Submitted too. The
+backend already allowed this -- only the button was missing, confirmed by a
+test that files a PO on a submitted quotation and checks it survives the
+confirmation that follows.
+
+**No stage named its next step.** `workflow-stage.tsx` maps each status to
+its stage name and the next arrow, in the client's vocabulary, shown under
+the pill: *Next: Prepare Quotation*, *Next: Send E-mail*, *Next: Customer
+Confirmation*, *Next: Upload Work Order/PO*.
+
+That last one is derived, not fixed: a confirmed order still missing its PO
+shows *Next: Upload Work Order/PO*, and shows nothing once filed. The chain
+is not finished at Order Confirmed -- item 13 has to happen too, and that was
+exactly the step with no prompt.
+
+## What was already correct
+
+Recorded so the next pass does not re-investigate it. The six tabs match the
+document exactly. The panel's buttons are already stage-labelled -- Prepare
+on Inbox, Edit on Pending, Confirm Order on Submitted -- and the Work Order
+block already sat directly above Confirm inside it. Two things read as gaps
+on a first pass through the row and were not, once the panel was read too.
+
+**362 backend tests, typecheck clean, lint 0 errors, build successful.**
