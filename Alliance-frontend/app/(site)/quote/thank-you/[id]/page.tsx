@@ -68,7 +68,7 @@ export default function QuoteThankYouPage() {
     <div className="mx-auto max-w-2xl px-4 py-16">
       <div className="mb-8 flex flex-col items-center text-center">
         <CheckCircle2 className="size-12 text-ok" />
-        <h1 className="mt-4 text-2xl font-bold text-ink">Thank you, {details.fullName.split(" ")[0]}</h1>
+        <h1 className="mt-4 text-2xl font-bold text-ink">Thank you</h1>
         <p className="mt-2 max-w-md text-[13.5px] leading-[1.7] text-ink-muted">
           Your request has been received. An engineer will price it and email your quotation to{" "}
           <strong className="text-ink">{details.email}</strong> shortly.
