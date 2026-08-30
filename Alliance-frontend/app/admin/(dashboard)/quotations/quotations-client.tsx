@@ -272,6 +272,7 @@ function QuotationRow({
   sequence,
   panelOpen,
   canPurge,
+  catalogPrices,
   onPanelOpenChange,
   onChanged,
 }: {
@@ -279,6 +280,7 @@ function QuotationRow({
   sequence: number;
   panelOpen: boolean;
   canPurge: boolean;
+  catalogPrices: Record<string, number>;
   onPanelOpenChange: (open: boolean) => void;
   onChanged: () => void;
 }) {
@@ -491,6 +493,7 @@ function QuotationRow({
       <ConfirmQuotationPanel
         quotation={quotation}
         sequence={sequence}
+        catalogPrices={catalogPrices}
         onClose={() => {
           onChanged();
           onPanelOpenChange(false);
@@ -598,9 +601,11 @@ function ClearCancelledBanner({
 export function QuotationsClient({
   initialQuotations,
   canPurge,
+  catalogPrices,
 }: {
   initialQuotations: Quotation[];
   canPurge: boolean;
+  catalogPrices: Record<string, number>;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | QuotationStatus>("inbox");
@@ -719,6 +724,7 @@ export function QuotationsClient({
                     sequence={nextSequence}
                     panelOpen={openPanelId === quotation.id}
                     canPurge={canPurge}
+                    catalogPrices={catalogPrices}
                     onPanelOpenChange={(open) =>
                       setOpenPanelId(open ? quotation.id : null)
                     }

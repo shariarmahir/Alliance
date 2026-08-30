@@ -128,10 +128,12 @@ export function ConfirmQuotationTrigger({
 export function ConfirmQuotationPanel({
   quotation,
   sequence,
+  catalogPrices,
   onClose,
 }: {
   quotation: Quotation;
   sequence: number;
+  catalogPrices: Record<string, number>;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -155,10 +157,15 @@ export function ConfirmQuotationPanel({
         specifications: prior?.specifications ?? item.partNumber,
         quantity: prior?.quantity ?? item.quantity,
         unit: prior?.unit ?? "Pcs",
-        // Deliberately NOT seeded from the catalogue: pricing is negotiated
-        // per quotation, so the admin enters every figure. Re-issuing an
-        // existing confirmation keeps what was previously quoted.
-        unitPrice: prior ? String(prior.unitPrice) : "",
+        // Re-issuing an existing confirmation keeps what was previously
+        // quoted. Otherwise default from the catalogue price so the total
+        // reflects quantity immediately — the admin can still edit it, since
+        // pricing is negotiated per quotation.
+        unitPrice: prior
+          ? String(prior.unitPrice)
+          : catalogPrices[item.slug] != null
+            ? String(catalogPrices[item.slug])
+            : "",
       };
     })
   );
