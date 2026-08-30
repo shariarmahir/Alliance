@@ -100,7 +100,7 @@ export function ConfirmQuotationTrigger({
     quotation.status === "inbox"
       ? { label: "Prepare", Icon: FilePlus2, accent: "primary" as const }
       : quotation.status === "submitted"
-        ? { label: "Confirm Order", Icon: FileCheck2, accent: "ok" as const }
+        ? { label: "Approve Order", Icon: FileCheck2, accent: "ok" as const }
         : { label: "Edit", Icon: Pencil, accent: "muted" as const };
 
   const style =
@@ -613,7 +613,7 @@ export function ConfirmQuotationPanel({
                   : quotation.status === "inbox"
                     ? "Save moves this to Pending, ready to send to the customer."
                     : quotation.status === "submitted"
-                      ? "Already sent. Confirm accepts it as an order."
+                      ? "Already sent. Approve accepts it as an order."
                       : "Send the quotation to move it to Submitted."}
               </p>
               <div className="flex items-center gap-2">
@@ -651,7 +651,7 @@ export function ConfirmQuotationPanel({
                     className="btn-sheen inline-flex items-center gap-2 rounded-[9px] border border-white/40 bg-accent/90 px-5 py-2.5 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-accent disabled:opacity-60"
                   >
                     <CheckCircle2 className="size-4" />
-                    {confirming ? "Confirming..." : "Confirm Order"}
+                    {confirming ? "Approving..." : "Approve Order"}
                   </button>
                 )}
                 {sentTo && (
