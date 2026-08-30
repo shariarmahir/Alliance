@@ -77,7 +77,7 @@ const FLOW = [
   "Price Request",
   "Quotation",
   "Submitted",
-  "Order Confirmed",
+  "Approved Order",
   "Work Order/PO",
   "Invoice",
   "Challan",

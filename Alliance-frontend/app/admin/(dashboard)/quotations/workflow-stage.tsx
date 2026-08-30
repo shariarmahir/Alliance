@@ -35,8 +35,8 @@ export function workflowStage(quotation: Quotation): Stage {
       // Item 13 sits between confirmation and the final record: until the
       // customer's PO is filed, the order is confirmed but not documented.
       return quotation.poNumber || quotation.poDocumentUrl
-        ? { label: "Order Confirmed", next: null }
-        : { label: "Order Confirmed", next: "Upload Work Order/PO" };
+        ? { label: "Approved Order", next: null }
+        : { label: "Approved Order", next: "Upload Work Order/PO" };
     case "cancelled":
       return { label: "Cancelled", next: null };
     default:

@@ -673,7 +673,7 @@ export function QuotationsClient({
             { value: "inbox", label: "Inbox", count: count("inbox") },
             { value: "pending", label: "Pending", count: count("pending") },
             { value: "submitted", label: "Submitted", count: count("submitted") },
-            { value: "confirmed", label: "Order Confirmed", count: count("confirmed") },
+            { value: "confirmed", label: "Approved Order", count: count("confirmed") },
             { value: "cancelled", label: "Cancelled", count: count("cancelled") },
             { value: "all", label: "All", count: initialQuotations.length },
           ]}
