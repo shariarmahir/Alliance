@@ -5,8 +5,10 @@ from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, 
 from fastapi.responses import JSONResponse
 
 from app.core.deps import AdminDep, DbSession
+from app.models import Brand
 from app.integrations.object_storage import (
     ImageRejected,
+    brand_logo_key,
     cache_busted,
     category_icon_key,
     hero_image_key,
@@ -16,6 +18,9 @@ from app.integrations.object_storage import (
     validate_image,
 )
 from app.schemas.catalog import (
+    BrandCreate,
+    BrandOut,
+    BrandUpdate,
     CategoryCreate,
     CategoryUpdate,
     CategoryOut,
@@ -227,6 +232,68 @@ async def upload_category_icon(
     await db.commit()
     await db.refresh(category)
     return CategoryOut.model_validate(category)
+
+
+# --- Brands -------------------------------------------------------------
+
+
+async def _brand_out(db: DbSession, brand) -> BrandOut:
+    return BrandOut(
+        slug=brand.slug,
+        name=brand.name,
+        logo=brand.logo,
+        product_count=await svc.brand_product_count(db, brand.name),
+    )
+
+
+@router.get("/brands", response_model=list[BrandOut])
+async def list_brands(session: AdminDep, db: DbSession):
+    return [await _brand_out(db, b) for b in await svc.list_brands(db)]
+
+
+@router.post("/brands", response_model=BrandOut, status_code=status.HTTP_201_CREATED)
+async def create_brand(payload: BrandCreate, session: AdminDep, db: DbSession):
+    brand = await svc.create_brand(db, payload.name)
+    return await _brand_out(db, brand)
+
+
+@router.patch("/brands/{slug}", response_model=BrandOut)
+async def rename_brand(slug: str, payload: BrandUpdate, session: AdminDep, db: DbSession):
+    brand = await svc.rename_brand(db, slug, payload.name)
+    if brand is None:
+        raise HTTPException(status_code=404, detail="Brand not found.")
+    return await _brand_out(db, brand)
+
+
+@router.delete("/brands/{slug}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_brand(slug: str, session: AdminDep, db: DbSession) -> Response:
+    try:
+        deleted = await svc.delete_brand(db, slug)
+    except svc.BrandInUse as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Brand not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/brands/{slug}/logo", response_model=BrandOut)
+async def upload_brand_logo(
+    slug: str, session: AdminDep, db: DbSession, file: UploadFile = File(...)
+):
+    brand = await db.get(Brand, slug)
+    if brand is None:
+        raise HTTPException(status_code=404, detail="Brand not found.")
+
+    content = await file.read()
+    try:
+        ext = validate_image(file.filename or "", content, file.content_type)
+        brand.logo = save_image(brand_logo_key(slug, ext), content, file.content_type)
+    except ImageRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await db.commit()
+    await db.refresh(brand)
+    return await _brand_out(db, brand)
 
 
 # --- Hero images ------------------------------------------------------------

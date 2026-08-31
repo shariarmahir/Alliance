@@ -1,15 +1,16 @@
-import { getBrands, getCategories } from "@/app/lib/catalog-data";
-import { readProducts } from "@/app/lib/admin-data";
+import { getCategories } from "@/app/lib/catalog-data";
+import { readProducts, readBrands } from "@/app/lib/admin-data";
 import { ProductsClient } from "./products-client";
 
 export default async function AdminProductsPage() {
-  // readProducts, not getProducts: the public catalogue endpoint omits the
-  // price, so fetching this screen through it showed every product as
-  // "Not set" no matter what had been saved.
+  // readProducts and readBrands, not getProducts/getBrands: the public
+  // catalogue endpoints omit price and productCount, so fetching this screen
+  // through them showed every product as "Not set" and gave the Brands tab
+  // nothing to gate deletion on.
   const [products, categories, brands] = await Promise.all([
     readProducts(),
     getCategories(),
-    getBrands(),
+    readBrands(),
   ]);
   return <ProductsClient initialProducts={products} initialCategories={categories} brands={brands} />;
 }

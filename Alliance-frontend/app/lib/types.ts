@@ -11,6 +11,10 @@ export type Brand = {
   slug: string;
   name: string;
   logo: string; // path under /images/brands
+  /** Admin-only, same reasoning as Product.price: the public /api/brands
+      endpoint omits it, since the storefront brand strip has no use for it
+      and it costs a query per brand to compute. */
+  productCount?: number;
 };
 
 export type Product = {

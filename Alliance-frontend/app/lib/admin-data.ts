@@ -1,5 +1,6 @@
 import { api, getOrDefault } from "@/app/lib/api-client";
 import type {
+  Brand,
   ContactRequest,
   DailyReport,
   LeaveRequest,
@@ -138,6 +139,12 @@ export async function readProducts(): Promise<Product[]> {
     { auth: true }
   );
   return data.items;
+}
+
+// readBrands, not getBrands: the public /api/brands endpoint omits
+// productCount, which the admin Brands tab needs to gate deletion.
+export async function readBrands(): Promise<Brand[]> {
+  return getOrDefault<Brand[]>("/api/admin/brands", [], { auth: true });
 }
 
 export async function readQuotations(): Promise<Quotation[]> {

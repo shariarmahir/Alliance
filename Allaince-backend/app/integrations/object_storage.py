@@ -167,6 +167,10 @@ def category_icon_key(slug: str, ext: str) -> str:
     return f"images/categories/{safe_filename(slug)}{ext}"
 
 
+def brand_logo_key(slug: str, ext: str) -> str:
+    return f"images/brands/{safe_filename(slug)}{ext}"
+
+
 def hero_image_key(slot: int, ext: str) -> str:
     return f"images/hero/image{int(slot)}{ext}"
 

@@ -25,10 +25,31 @@ class CategoryUpdate(CamelModel):
     name: str = Field(min_length=1, max_length=200)
 
 
-class BrandOut(CamelModel):
+class PublicBrandOut(CamelModel):
     slug: str
     name: str
     logo: str
+
+
+class BrandOut(CamelModel):
+    # Admin-only: product_count costs a query per brand, which the storefront
+    # brand strip has no use for — same reasoning as Product.price being
+    # absent from the public catalogue.
+    slug: str
+    name: str
+    logo: str
+    product_count: int
+
+
+class BrandCreate(CamelModel):
+    name: str = Field(min_length=1, max_length=200)
+
+
+class BrandUpdate(CamelModel):
+    # Name only, same reasoning as CategoryUpdate — but a brand's name is also
+    # copied onto every product that carries it (there is no FK), so renaming
+    # cascades to those rows. See rename_brand.
+    name: str = Field(min_length=1, max_length=200)
 
 
 class ProductOut(CamelModel):

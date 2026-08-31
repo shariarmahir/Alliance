@@ -180,7 +180,99 @@ async def test_category_writes_require_authentication(client, db):
     assert (await client.delete("/api/admin/categories/plc")).status_code == 401
 
 
+# --- brands -------------------------------------------------------------
+
+
+async def test_create_brand_slugifies_name(client):
+    _auth(client)
+    r = await client.post("/api/admin/brands", json={"name": "Siemens AG!"})
+    assert r.status_code == 201
+    assert r.json()["slug"] == "siemens-ag"
+    assert r.json()["productCount"] == 0
+
+
+async def test_admin_brand_list_reports_product_count(client, db):
+    await _seed(db)
+    _auth(client)
+    r = await client.post("/api/admin/brands", json={"name": "siemens"})
+    assert r.status_code == 201
+    listed = (await client.get("/api/admin/brands")).json()
+    siemens = next(b for b in listed if b["slug"] == r.json()["slug"])
+    assert siemens["productCount"] == 1
+
+
+async def test_rename_brand_cascades_to_its_products(client, db):
+    # Unlike a category, a brand's name is copied directly onto every product
+    # row (there is no foreign key), so a rename must update them too or the
+    # products silently fall off the renamed brand.
+    await _seed(db)
+    _auth(client)
+    created = await client.post("/api/admin/brands", json={"name": "siemens"})
+    slug = created.json()["slug"]
+
+    r = await client.patch(f"/api/admin/brands/{slug}", json={"name": "Siemens AG"})
+    assert r.status_code == 200
+    assert r.json()["slug"] == slug
+    assert r.json()["name"] == "Siemens AG"
+
+    product = (await client.get("/api/products/widget")).json()
+    assert product["brand"] == "Siemens AG"
+
+
+async def test_rename_unknown_brand_is_404(client):
+    _auth(client)
+    assert (
+        await client.patch("/api/admin/brands/nope", json={"name": "X"})
+    ).status_code == 404
+
+
+async def test_delete_brand_refuses_while_products_reference_it(client, db):
+    await _seed(db)
+    _auth(client)
+    created = await client.post("/api/admin/brands", json={"name": "siemens"})
+    slug = created.json()["slug"]
+
+    r = await client.delete(f"/api/admin/brands/{slug}")
+    assert r.status_code == 409
+    assert "1 product" in r.json()["detail"]
+
+
+async def test_delete_empty_brand(client, db):
+    _auth(client)
+    created = await client.post("/api/admin/brands", json={"name": "Omron"})
+    slug = created.json()["slug"]
+    assert (await client.delete(f"/api/admin/brands/{slug}")).status_code == 204
+    assert not any(b["slug"] == slug for b in (await client.get("/api/brands")).json())
+
+
+async def test_brand_writes_require_authentication(client, db):
+    assert (await client.post("/api/admin/brands", json={"name": "X"})).status_code == 401
+    assert (await client.get("/api/admin/brands")).status_code == 401
+
+
+async def test_public_brand_list_omits_product_count(client, db):
+    # The storefront brand strip has no use for the count, and it costs a
+    # query per brand to compute, so the public schema leaves it out.
+    _auth(client)
+    await client.post("/api/admin/brands", json={"name": "Omron"})
+    listed = (await client.get("/api/brands")).json()
+    assert listed and "productCount" not in listed[0]
+
+
 # --- uploads ----------------------------------------------------------------
+
+
+async def test_brand_logo_upload(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _auth(client)
+    created = await client.post("/api/admin/brands", json={"name": "Omron"})
+    slug = created.json()["slug"]
+    r = await client.post(
+        f"/api/admin/brands/{slug}/logo",
+        files={"file": ("logo.png", io.BytesIO(PNG), "image/png")},
+    )
+    assert r.status_code == 200
+    assert r.json()["logo"].endswith(".png")
 
 
 async def test_product_image_upload(client, db, tmp_path, monkeypatch):

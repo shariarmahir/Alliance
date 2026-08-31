@@ -18,6 +18,7 @@ import { Button } from "@/app/components/ui/button";
 import { formatPrice } from "@/app/lib/utils";
 import { AddProductDialog } from "./add-product-dialog";
 import { BulkImportTab } from "./bulk-import-tab";
+import { BrandsTab } from "./brands-tab";
 import { CategoriesTab } from "./categories-tab";
 import { EditProductDialog } from "./edit-product-dialog";
 import { PageHeader, Panel, EmptyState, Pill, TH, TD, ROW, type PillTone } from "../admin-ui";
@@ -66,7 +67,7 @@ export function ProductsClient({
     <div className="space-y-4">
       <PageHeader
         title="Products"
-        subtitle="Manage the product catalog, run bulk imports, and create categories."
+        subtitle="Manage the product catalog, run bulk imports, and create categories and brands."
       />
 
       <Tabs defaultValue="catalog">
@@ -74,6 +75,7 @@ export function ProductsClient({
           <TabsTrigger value="catalog">Catalog</TabsTrigger>
           <TabsTrigger value="bulk">Bulk import</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="brands">Brands</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalog" className="mt-4 space-y-4">
@@ -185,6 +187,10 @@ export function ProductsClient({
 
         <TabsContent value="categories" className="mt-4">
           <CategoriesTab categories={initialCategories} onCreated={refresh} />
+        </TabsContent>
+
+        <TabsContent value="brands" className="mt-4">
+          <BrandsTab brands={brands} onCreated={refresh} />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,11 +2,11 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.deps import DbSession
 from app.schemas.catalog import (
-    BrandOut,
     CategoryOut,
     HeroImageOut,
     ProductListOut,
     ProductOut,
+    PublicBrandOut,
     PublicProductListOut,
     PublicProductOut,
     TopSellerOut,
@@ -62,9 +62,9 @@ async def list_categories(db: DbSession):
     return [CategoryOut.model_validate(c) for c in await svc.list_categories(db)]
 
 
-@router.get("/brands", response_model=list[BrandOut])
+@router.get("/brands", response_model=list[PublicBrandOut])
 async def list_brands(db: DbSession):
-    return [BrandOut.model_validate(b) for b in await svc.list_brands(db)]
+    return [PublicBrandOut.model_validate(b) for b in await svc.list_brands(db)]
 
 
 @router.get("/hero-images", response_model=list[HeroImageOut])

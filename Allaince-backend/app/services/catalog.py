@@ -156,6 +156,83 @@ async def list_brands(db: AsyncSession) -> list[Brand]:
     return list((await db.execute(select(Brand).order_by(Brand.name))).scalars().all())
 
 
+async def brand_product_count(db: AsyncSession, name: str) -> int:
+    """Products carry the brand's name directly (there is no FK — see the
+    Brand model), so "in use" is a count against that name rather than a
+    join, matched case-insensitively the same way list_products' brand
+    filter and search already are."""
+    return int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(Product)
+                .where(func.lower(Product.brand) == name.lower())
+            )
+        ).scalar_one()
+    )
+
+
+async def create_brand(db: AsyncSession, name: str) -> Brand:
+    existing = {b.slug for b in await list_brands(db)}
+    brand = Brand(slug=unique_slug(slugify(name), existing), name=name.strip(), logo="")
+    db.add(brand)
+    await db.commit()
+    await db.refresh(brand)
+    return brand
+
+
+class BrandInUse(ValueError):
+    """Refused: products still reference this brand."""
+
+    def __init__(self, product_count: int) -> None:
+        self.product_count = product_count
+        super().__init__(
+            f"{product_count} product(s) still use this brand. "
+            "Move or delete them first."
+        )
+
+
+async def rename_brand(db: AsyncSession, slug: str, name: str) -> Brand | None:
+    """Changes the display name and, unlike a category rename, cascades it
+    onto every product carrying the old name — Product.brand is a copied
+    string, not a foreign key against Brand.slug, so leaving products behind
+    would silently detach them from the brand they were just renamed from."""
+    brand = await db.get(Brand, slug)
+    if brand is None:
+        return None
+    old_name = brand.name
+    new_name = name.strip()
+    brand.name = new_name
+    if old_name.lower() != new_name.lower():
+        products = (
+            await db.execute(
+                select(Product).where(func.lower(Product.brand) == old_name.lower())
+            )
+        ).scalars().all()
+        for product in products:
+            product.brand = new_name
+    await db.commit()
+    await db.refresh(brand)
+    return brand
+
+
+async def delete_brand(db: AsyncSession, slug: str) -> bool:
+    """Deletes a brand with no products against it. Raises BrandInUse
+    otherwise — there is no FK to rely on for this, so it is checked by hand
+    the same way delete_category checks the one Postgres would enforce."""
+    brand = await db.get(Brand, slug)
+    if brand is None:
+        return False
+
+    in_use = await brand_product_count(db, brand.name)
+    if in_use:
+        raise BrandInUse(in_use)
+
+    await db.delete(brand)
+    await db.commit()
+    return True
+
+
 async def ensure_brand(db: AsyncSession, name: str) -> Brand | None:
     """Brands are implied by products rather than managed directly, so a
     product referencing a new brand creates it.
