@@ -192,11 +192,19 @@ export async function searchAdmin(query: string): Promise<SearchResult[]> {
   );
 }
 
-export type GmailStatus = {
+// The shared mailbox can be read over Gmail OAuth or plain IMAP, decided by
+// what is configured on the server -- see Settings.mailbox_provider.
+export type MailProvider = "gmail" | "imap" | "none";
+
+export type MailboxStatus = {
   configured: boolean;
   connected: boolean;
+  provider: MailProvider;
   email: string | null;
   connectedAt?: string | null;
+  // Only set when an IMAP login failed, so the screen can say what the mail
+  // server actually objected to instead of a generic failure.
+  error?: string | null;
 };
 
 export type GmailThread = {
@@ -209,10 +217,10 @@ export type GmailThread = {
   unread: boolean;
 };
 
-export async function readGmailStatus(): Promise<GmailStatus> {
-  return getOrDefault<GmailStatus>(
+export async function readMailboxStatus(): Promise<MailboxStatus> {
+  return getOrDefault<MailboxStatus>(
     "/api/admin/emails/status",
-    { configured: false, connected: false, email: null },
+    { configured: false, connected: false, provider: "none", email: null },
     { auth: true }
   );
 }
@@ -343,25 +351,35 @@ export async function readChallans(): Promise<Challan[]> {
 
 // --- Market & stock -------------------------------------------------------
 
-// One week of trading, as the provider reports it. Field names are the
-// provider's own single letters; renaming them here would only add a mapping
-// layer between two places that both understand this shape.
-export type MarketBar = {
-  t: number; // epoch ms at the start of the week
-  o: number;
-  h: number;
-  l: number;
-  c: number;
-  v: number;
+export type MarketPoint = { label: string; value: number };
+
+// Columns and rows rather than named fields: CSE's four Top 10 tabs do not
+// share a shape (Gainers reports Change %, Volume reports a share count), so
+// each table carries its own headers and the cells stay strings, keeping
+// CSE's own formatting intact.
+export type MarketTable = { columns: string[]; rows: string[][] };
+
+export type MarketStats = {
+  issuesTraded: number;
+  advanced: number;
+  declined: number;
+  unchanged: number;
+  volume: number;
+  issuedCap: number;
+  valueInTaka: number;
+  contractNumber: number;
+  marketCap: number;
 };
 
-export type MarketSeries = {
-  ticker: string;
-  label: string;
-  bars: MarketBar[];
-  latestClose: number;
+export type MarketSnapshot = {
+  index: string;
+  indices: string[];
+  value: number;
+  change: number;
   changePct: number;
-  weekVolume: number;
+  points: MarketPoint[];
+  top: Record<string, MarketTable>;
+  stats: MarketStats;
   fetchedAt: string | null;
 };
 
@@ -373,11 +391,30 @@ export type StockStatusBreakdown = {
   stockValue: number;
 };
 
-// Both default to an empty/zero shape rather than throwing: these feed two
-// panels on the Overview, and a market API being unreachable must not take
-// the revenue figures beside them off the screen.
-export async function readMarketSeries(): Promise<MarketSeries[]> {
-  return getOrDefault<MarketSeries[]>("/api/admin/analytics/market", [], { auth: true });
+const EMPTY_MARKET = (index: string): MarketSnapshot => ({
+  index,
+  indices: [index],
+  value: 0,
+  change: 0,
+  changePct: 0,
+  points: [],
+  top: {},
+  stats: {
+    issuesTraded: 0, advanced: 0, declined: 0, unchanged: 0,
+    volume: 0, issuedCap: 0, valueInTaka: 0, contractNumber: 0, marketCap: 0,
+  },
+  fetchedAt: null,
+});
+
+// Defaults to an empty snapshot rather than throwing: this is scraped from a
+// third party, and CSE being unreachable must not take the Overview's own
+// revenue figures off the screen with it.
+export async function readMarketSnapshot(index = "CSE50"): Promise<MarketSnapshot> {
+  return getOrDefault<MarketSnapshot>(
+    `/api/admin/analytics/market?index=${encodeURIComponent(index)}`,
+    EMPTY_MARKET(index),
+    { auth: true }
+  );
 }
 
 export async function readStockStatus(): Promise<StockStatusBreakdown> {

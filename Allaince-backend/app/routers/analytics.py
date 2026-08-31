@@ -7,7 +7,7 @@ from app.schemas.analytics import (
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
-    MarketSeriesOut,
+    MarketSnapshot,
     SearchResult,
     StockAlert,
     StockStatusBreakdown,
@@ -20,7 +20,7 @@ from app.services.analytics import (
     read_range_analytics,
     top_destinations,
 )
-from app.services.market import refresh_market_series
+from app.services.market import INDICES, get_market_snapshot
 from app.services.search import search_admin
 
 router = APIRouter(prefix="/api/admin", tags=["analytics"])
@@ -80,15 +80,41 @@ async def stock_status(session: AdminDep, db: DbSession):
     return await stock_status_breakdown(db)
 
 
-@router.get("/analytics/market", response_model=list[MarketSeriesOut])
-async def market(session: SuperAdminDep, db: DbSession):
-    """Weekly share prices for the manufacturers this business trades.
+@router.get("/analytics/market", response_model=MarketSnapshot)
+async def market(
+    session: SuperAdminDep,
+    db: DbSession,
+    index: str = Query("CSE50"),
+):
+    """The CSE market summary shown on the Overview.
 
-    Served from the cache, refreshed only when stale -- the provider's free
-    tier allows five requests a minute, so a fetch per page load would fail
-    as soon as two admins opened the Overview at once.
+    Served from the cache and refreshed on a timer -- this is scraped from
+    CSE's public site, so a fetch per page load would mean hammering someone
+    else's server for figures that only move during trading hours.
+
+    An unreachable CSE returns the empty snapshot rather than an error: the
+    market panel is context beside the business's own numbers, and it must
+    not be able to take the Overview down with it.
     """
-    return await refresh_market_series(db)
+    row = await get_market_snapshot(db, index)
+    if row is None:
+        return MarketSnapshot(
+            index=index if index in INDICES else "CSE50",
+            indices=INDICES,
+            value=0, change=0, change_pct=0,
+            points=[], top={}, stats={},
+        )
+    return MarketSnapshot(
+        index=row.index,
+        indices=INDICES,
+        value=row.value,
+        change=row.change,
+        change_pct=row.change_pct,
+        points=row.points or [],
+        top=row.top or {},
+        stats=row.stats or {},
+        fetched_at=row.fetched_at,
+    )
 
 
 @router.get("/search", response_model=list[SearchResult])

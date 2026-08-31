@@ -1,36 +1,36 @@
 from datetime import datetime
 
-from sqlalchemy import Float, Integer, String
+from sqlalchemy import Float, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, JSONVariant, UTCDateTime, utcnow
 
 
 class MarketSeries(Base):
-    """A cached weekly price series for one ticker.
+    """A cached snapshot of one CSE index.
 
-    Stored rather than fetched per request because the provider's free tier
-    allows five requests a minute: the Overview would exhaust that on a single
-    reload with a handful of tickers, and every admin viewing the page would
-    compete for the same quota. One row per ticker, refreshed at most once
-    every settings.market_cache_hours, keeps the panel instant and the API
-    usage flat no matter how often the page is opened.
+    Cached rather than fetched per request because this is scraped from
+    someone else's public site: the numbers only move during trading hours,
+    and refetching on every Overview load would mean three requests to CSE
+    per page view for data that has not changed.
 
-    `bars` holds the provider's weekly aggregates as a JSON list of
-    {t, o, h, l, c, v} — the shape it returns — so a change of chart or a new
-    derived figure needs no migration and no refetch.
+    The nested shapes stay JSON. `points` is an intraday series, `top` is
+    four ranked tables and `stats` a handful of headline figures — nothing
+    queries inside them, the panel always reads a whole snapshot, and keeping
+    them opaque means a change to what CSE publishes needs no migration.
     """
 
     __tablename__ = "market_series"
 
-    ticker: Mapped[str] = mapped_column(String(20), primary_key=True)
-    # The manufacturer as this business knows it, not the issuer's legal name:
-    # the panel sits beside a catalogue of Siemens and Omron parts.
-    label: Mapped[str] = mapped_column(String(120), nullable=False)
-    bars: Mapped[list] = mapped_column(JSONVariant, default=list, nullable=False)
-    # Denormalised from the last two bars so the panel can rank and colour
-    # without re-deriving it on every read.
-    latest_close: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    # The index code, e.g. "CSE50" — one row per index, overwritten in place.
+    index: Mapped[str] = mapped_column(String(20), primary_key=True)
+    value: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    change: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     change_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    week_volume: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # [{label: "09:16", value: 1094.13}, ...] through the trading day.
+    points: Mapped[list] = mapped_column(JSONVariant, default=list, nullable=False)
+    # {gainers: [...], losers: [...], volume: [...], value: [...]}
+    top: Mapped[dict] = mapped_column(JSONVariant, default=dict, nullable=False)
+    # Issues traded, volume, turnover, market cap and so on.
+    stats: Mapped[dict] = mapped_column(JSONVariant, default=dict, nullable=False)
     fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, nullable=False)

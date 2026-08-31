@@ -1,196 +1,198 @@
-import Link from "next/link";
-import {
-  readMarketSeries,
-  readStockStatus,
-  type MarketSeries,
-} from "@/app/lib/admin-data";
-import { formatPrice } from "@/app/lib/utils";
-import { MarketChart, type MarketPoint } from "./charts/market-chart";
+"use client";
 
-// Matches overview-panels.tsx — see the note there on min-w-0.
-const PANEL = "min-w-0 rounded-[10px] border border-slate-line bg-white p-5";
-const HEADING = "text-[15px] font-bold text-ink";
-const EMPTY = "text-[12px] leading-[1.6] text-[#8a94a6]";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { MarketSnapshot } from "@/app/lib/admin-data";
+import { MarketChart } from "./charts/market-chart";
 
-function weekLabel(epochMs: number): string {
-  return new Date(epochMs).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-  });
+const TABS = [
+  { key: "gainers", label: "Gainers" },
+  { key: "losers", label: "Losers" },
+  { key: "volume", label: "Volume" },
+  { key: "value", label: "Value" },
+] as const;
+
+function formatInt(value: number): string {
+  return value.toLocaleString("en-US");
 }
 
-/**
- * Rebases each series to 100 at its first week and merges them onto shared
- * buckets. See MarketChart for why the chart is indexed rather than priced.
- *
- * Series are aligned by position, not by timestamp: every ticker is fetched
- * with the same weekly window, so bar `i` is the same week across all of
- * them. The shortest series sets the length, so a manufacturer with less
- * history shortens the chart rather than leaving gaps mid-line.
- */
-function toChartData(series: MarketSeries[]): { data: MarketPoint[]; names: string[] } {
-  const usable = series.filter((s) => s.bars.length > 1);
-  if (usable.length === 0) return { data: [], names: [] };
+// A cell is coloured only in the columns where a sign means something: a
+// price change, or a percentage. Colouring an LTP or a share volume by its
+// sign would be meaningless, since those are never negative.
+function isSignedColumn(column: string): boolean {
+  const c = column.toLowerCase();
+  return c.startsWith("change");
+}
 
-  const weeks = Math.min(...usable.map((s) => s.bars.length));
-  const names = usable.map((s) => s.label);
+export function MarketSummaryPanel({ snapshot }: { snapshot: MarketSnapshot }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("gainers");
 
-  const data: MarketPoint[] = [];
-  for (let i = 0; i < weeks; i += 1) {
-    // Each series is trimmed from the END, so the newest weeks always line up
-    // even when one manufacturer carries more history than another.
-    const point: MarketPoint = {
-      label: weekLabel(usable[0].bars[usable[0].bars.length - weeks + i].t),
-    };
-    for (const s of usable) {
-      const bars = s.bars.slice(-weeks);
-      const base = bars[0].c || 1;
-      point[s.label] = Number(((bars[i].c / base) * 100).toFixed(2));
-    }
-    data.push(point);
+  const down = snapshot.change < 0;
+  const table = snapshot.top?.[tab];
+  const stats = snapshot.stats;
+
+  // The index choice is a URL parameter rather than component state: the
+  // snapshot is fetched on the server, so switching index has to go back
+  // through it. Preserving the existing params keeps the range toggle's
+  // selection intact.
+  function selectIndex(next: string) {
+    const query = new URLSearchParams(params.toString());
+    query.set("index", next);
+    router.push(`/admin?${query.toString()}`);
   }
-  return { data, names };
-}
 
-export async function MarketWatchPanel() {
-  const series = await readMarketSeries();
-  const { data, names } = toChartData(series);
-
-  // Ranked by the week's move, so the panel leads with whatever actually
-  // happened rather than a fixed alphabetical order.
-  const ranked = [...series]
-    .filter((s) => s.bars.length > 0)
-    .sort((a, b) => b.changePct - a.changePct);
-
-  const asOf = data.length > 0 ? data[data.length - 1].label : null;
+  const hasData = snapshot.points.length > 0 || (table?.rows.length ?? 0) > 0;
 
   return (
-    <div className={PANEL}>
-      <div className="mb-1 flex items-start justify-between gap-3">
-        <p className={HEADING}>Manufacturer share prices</p>
-        {asOf && (
-          <span className="shrink-0 font-mono text-[10.5px] text-[#8a94a6]">
-            W/E {asOf}
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[1.6fr_1fr]">
+      {/* Index chart and the day's trade summary */}
+      <div className="min-w-0 rounded-[10px] border border-slate-line bg-white p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className="mono-label text-[10px] tracking-[0.06em] text-ink-muted">
+            SELECT
           </span>
+          <select
+            value={snapshot.index}
+            onChange={(e) => selectIndex(e.target.value)}
+            className="rounded-md border border-[#dde3ea] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink outline-none transition-colors hover:border-primary focus:border-primary"
+          >
+            {snapshot.indices.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+
+          {hasData && (
+            <span className="flex flex-wrap items-baseline gap-2 font-mono text-[13px] font-bold">
+              <span className="text-ink">{snapshot.value.toFixed(4)}</span>
+              <span className="text-[#c8d0da]">|</span>
+              <span className={down ? "text-[#c22]" : "text-ok"}>
+                {snapshot.change.toFixed(4)}
+              </span>
+              <span className="text-[#c8d0da]">|</span>
+              <span className={down ? "text-[#c22]" : "text-ok"}>
+                {down ? "↓" : "↑"} {snapshot.changePct.toFixed(4)} %
+              </span>
+            </span>
+          )}
+        </div>
+
+        {!hasData ? (
+          <p className="py-8 text-center text-[12px] leading-[1.6] text-[#8a94a6]">
+            Market data is unavailable right now. It is read from the
+            Chittagong Stock Exchange and will reappear on the next refresh.
+          </p>
+        ) : (
+          <>
+            <MarketChart data={snapshot.points} />
+
+            <div className="mt-4 grid gap-x-8 gap-y-2.5 border-t border-hairline pt-4 text-[12px] sm:grid-cols-2">
+              <Stat label="Issues Traded">
+                <span className="font-mono font-semibold text-[#8a7a00]">
+                  {formatInt(stats.issuesTraded)}
+                </span>
+                <span className="ml-2 font-mono text-ok">{stats.advanced} ↑</span>
+                <span className="ml-2 font-mono text-[#c22]">{stats.declined} ↓</span>
+                <span className="ml-2 font-mono text-primary">{stats.unchanged} ↔</span>
+              </Stat>
+              <Stat label="Value in Taka">{formatInt(stats.valueInTaka)}</Stat>
+              <Stat label="Volume">{formatInt(stats.volume)}</Stat>
+              <Stat label="Contract Number">{formatInt(stats.contractNumber)}</Stat>
+              <Stat label="Issued Cap.">{formatInt(stats.issuedCap)}</Stat>
+              <Stat label="Closing Market Cap.">{formatInt(stats.marketCap)}</Stat>
+            </div>
+          </>
         )}
       </div>
-      <p className="mb-3.5 text-[11.5px] text-[#8a94a6]">
-        Weekly close, indexed to the first week · US ADRs
-      </p>
 
-      {ranked.length === 0 ? (
-        <p className={EMPTY}>
-          No market data yet. Set MASSIVE_API_KEY on the API to track the
-          manufacturers this catalogue carries.
+      {/* Today's Top 10 */}
+      <div className="min-w-0 overflow-hidden rounded-[10px] border border-slate-line bg-white">
+        <p className="bg-[#1f7a44] px-5 py-3 text-center text-[14px] font-bold tracking-[0.02em] text-white">
+          TODAY&apos;S TOP 10
         </p>
-      ) : (
-        <>
-          <MarketChart data={data} series={names} />
-          <div className="mt-3.5 flex flex-col gap-2.5 text-[12.5px] text-ink-soft">
-            {ranked.map((s) => {
-              const up = s.changePct > 0;
-              const flat = s.changePct === 0;
-              return (
-                <span
-                  key={s.ticker}
-                  className="flex items-center justify-between gap-3 border-b border-[#f2f4f7] pb-2.5 last:border-0 last:pb-0"
-                >
-                  <span className="min-w-0 truncate">
-                    {s.label}
-                    <span className="ml-1.5 font-mono text-[10.5px] text-[#8a94a6]">
-                      {s.ticker}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2.5">
-                    <strong className="font-mono text-[12px] text-ink">
-                      ${s.latestClose.toFixed(2)}
-                    </strong>
-                    <strong
-                      className={`font-mono text-[11.5px] ${
-                        flat ? "text-[#8a94a6]" : up ? "text-ok" : "text-[#c22]"
+
+        <div className="flex gap-1 border-b border-hairline bg-surface px-2 py-2">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`rounded-[5px] px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors ${
+                tab === t.key
+                  ? "bg-[#1f7a44] text-white"
+                  : "text-ink-soft hover:bg-[#e8f2ea] hover:text-[#1f7a44]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {!table || table.rows.length === 0 ? (
+          <p className="p-5 text-[12px] text-[#8a94a6]">Nothing to show for this tab.</p>
+        ) : (
+          <div className="scrollbar-slim overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-surface">
+                  {table.columns.map((column, i) => (
+                    <th
+                      key={column}
+                      className={`px-3 py-2 font-semibold text-ink-muted ${
+                        i === 0 ? "text-left" : "text-right"
                       }`}
                     >
-                      {up ? "↑" : flat ? "→" : "↓"} {Math.abs(s.changePct).toFixed(2)}%
-                    </strong>
-                  </span>
-                </span>
-              );
-            })}
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row) => (
+                  <tr key={row[0]} className="border-b border-[#f2f4f7] last:border-0">
+                    {row.map((cell, i) => {
+                      const signed =
+                        isSignedColumn(table.columns[i] ?? "") && cell.startsWith("-");
+                      const positive =
+                        isSignedColumn(table.columns[i] ?? "") && !cell.startsWith("-");
+                      return (
+                        <td
+                          key={i}
+                          className={`px-3 py-2 ${
+                            i === 0
+                              ? "font-semibold text-ink"
+                              : `text-right font-mono ${
+                                  signed
+                                    ? "text-[#c22]"
+                                    : positive
+                                      ? "text-ok"
+                                      : "text-ink-soft"
+                                }`
+                          }`}
+                        >
+                          {cell}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-export async function StockStatusPanel() {
-  const stock = await readStockStatus();
-  const total = stock.inStock + stock.lowStock + stock.outOfStock;
-
-  const segments = [
-    { label: "In stock", count: stock.inStock, className: "bg-ok-dot", text: "text-ok" },
-    { label: "Low", count: stock.lowStock, className: "bg-accent", text: "text-warn" },
-    { label: "Out", count: stock.outOfStock, className: "bg-[#c22]", text: "text-[#c22]" },
-  ];
-
+function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className={PANEL}>
-      <div className="mb-3.5 flex items-start justify-between gap-3">
-        <p className={HEADING}>Stock position</p>
-        <span className="shrink-0 font-mono text-[10.5px] text-[#8a94a6]">
-          {total} {total === 1 ? "PRODUCT" : "PRODUCTS"}
-        </span>
-      </div>
-
-      {total === 0 ? (
-        <p className={EMPTY}>No products in the catalogue yet.</p>
-      ) : (
-        <>
-          {/* One bar rather than three: the question is how the catalogue
-              splits, and a single stacked bar shows the proportions at a
-              glance where three separate bars would not. */}
-          <span className="flex h-2 w-full overflow-hidden rounded bg-hairline">
-            {segments.map((s) =>
-              s.count === 0 ? null : (
-                <span
-                  key={s.label}
-                  className={s.className}
-                  style={{ width: `${(s.count / total) * 100}%` }}
-                />
-              )
-            )}
-          </span>
-
-          <div className="mt-3.5 grid grid-cols-3 gap-2 text-center">
-            {segments.map((s) => (
-              <span key={s.label}>
-                <strong className={`block font-mono text-[17px] font-bold ${s.text}`}>
-                  {s.count}
-                </strong>
-                <span className="text-[11px] text-[#8a94a6]">{s.label}</span>
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-[#f2f4f7] pt-3 text-[12px]">
-            <span className="text-[#8a94a6]">Units held</span>
-            <strong className="font-mono text-ink">
-              {stock.totalUnits.toLocaleString("en-GB")}
-            </strong>
-          </div>
-          <div className="mt-1.5 flex items-center justify-between text-[12px]">
-            <span className="text-[#8a94a6]">Stock value</span>
-            <strong className="font-mono text-ink">{formatPrice(stock.stockValue)}</strong>
-          </div>
-        </>
-      )}
-
-      <Link
-        href="/admin/stock"
-        className="mt-4 inline-block text-[12px] font-semibold text-primary hover:underline"
-      >
-        Manage stock →
-      </Link>
-    </div>
+    <span className="flex items-baseline justify-between gap-3 sm:justify-start">
+      <span className="w-40 shrink-0 font-semibold text-ink-soft">{label}</span>
+      <span className="font-mono text-[#8a7a00]">{children}</span>
+    </span>
   );
 }

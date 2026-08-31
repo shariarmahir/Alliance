@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/app/lib/utils";
 import { PageHeader, Panel, EmptyState, Pill } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
+import type { MailProvider } from "@/app/lib/admin-data";
 
 type ThreadSummary = {
   id: string;
@@ -58,7 +59,15 @@ function initials(from: string): string {
   );
 }
 
-function ConnectPanel({ configured }: { configured: boolean }) {
+function ConnectPanel({
+  configured,
+  provider,
+  error,
+}: {
+  configured: boolean;
+  provider: MailProvider;
+  error: string | null;
+}) {
   const [starting, setStarting] = useState(false);
 
   // The API hands back Google's consent URL as JSON rather than redirecting,
@@ -83,6 +92,34 @@ function ConnectPanel({ configured }: { configured: boolean }) {
     }
   }
 
+  // IMAP has nothing for an admin to click: the mailbox is configured on the
+  // server with its own password, so a failure here is a server problem to
+  // report rather than a connection to authorise. Showing a Connect button
+  // would be a dead end.
+  if (provider === "imap") {
+    return (
+      <Panel className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+        <span className="flex size-12 items-center justify-center rounded-full bg-[#fdecec]">
+          <PlugZap className="size-5 text-[#c22]" />
+        </span>
+        <h2 className="text-[15.5px] font-bold text-ink">
+          Could not reach the mailbox
+        </h2>
+        <p className="max-w-md text-[13px] leading-[1.65] text-ink-muted">
+          The mail server rejected the connection for info@auto-bd.com. This is
+          set up on the server, so it needs the IMAP host, username and password
+          checked there — most often the password is wrong, or the mailbox has
+          not been created yet in the mail host&rsquo;s dashboard.
+        </p>
+        {error && (
+          <p className="max-w-md rounded-md bg-surface px-3 py-2 font-mono text-[11.5px] text-ink-soft">
+            {error}
+          </p>
+        )}
+      </Panel>
+    );
+  }
+
   return (
     <Panel className="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-tint">
@@ -95,7 +132,7 @@ function ConnectPanel({ configured }: { configured: boolean }) {
       <p className="max-w-sm text-[13px] leading-[1.65] text-ink-muted">
         {configured
           ? "Sign in as the mailbox once to see real messages here — AutoLink only reads mail, it never sends or deletes anything through this connection."
-          : "Google sign-in is not set up on the server yet. Once the Gmail credentials are added there, this is where you connect the mailbox."}
+          : "No mailbox is set up on the server yet. Add either IMAP settings for info@auto-bd.com or Google sign-in credentials, and this screen will connect to it."}
       </p>
       {configured && (
         <button
@@ -115,11 +152,15 @@ function ConnectPanel({ configured }: { configured: boolean }) {
 // useSearchParams() requires a Suspense boundary above it or the build fails
 // at static-generation time (not caught by tsc/eslint) — this thin wrapper is
 // the boundary, EmailsClientInner does the actual work.
-export function EmailsClient(props: {
+type EmailsClientProps = {
   configured: boolean;
   connected: boolean;
   connectedSince: string | null;
-}) {
+  provider: MailProvider;
+  error: string | null;
+};
+
+export function EmailsClient(props: EmailsClientProps) {
   return (
     <Suspense fallback={null}>
       <EmailsClientInner {...props} />
@@ -131,11 +172,9 @@ function EmailsClientInner({
   configured,
   connected: initiallyConnected,
   connectedSince,
-}: {
-  configured: boolean;
-  connected: boolean;
-  connectedSince: string | null;
-}) {
+  provider,
+  error,
+}: EmailsClientProps) {
   const searchParams = useSearchParams();
   const gmailError = searchParams.get("gmail_error");
   // The redirect back from Google's consent screen is the one moment
@@ -266,28 +305,37 @@ function EmailsClientInner({
             {connectedSince && ` since ${new Date(connectedSince).toLocaleDateString("en-GB")}`}.
             Read-only — nothing is sent or deleted from here.
           </p>
-          <button
-            type="button"
-            onClick={disconnect}
-            disabled={disconnecting}
-            className="inline-flex shrink-0 items-center gap-1.5 text-[11.5px] font-semibold text-ink-muted transition-colors hover:text-[#c22] disabled:opacity-60"
-          >
-            <Unplug className="size-3.5" /> Disconnect
-          </button>
+          {/* Gmail only. An IMAP mailbox is configured in the server's
+              environment, so there is no stored authorisation to revoke and
+              nothing a button here could undo. */}
+          {provider === "gmail" && (
+            <button
+              type="button"
+              onClick={disconnect}
+              disabled={disconnecting}
+              className="inline-flex shrink-0 items-center gap-1.5 text-[11.5px] font-semibold text-ink-muted transition-colors hover:text-[#c22] disabled:opacity-60"
+            >
+              <Unplug className="size-3.5" /> Disconnect
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex items-center gap-2.5 rounded-[10px] border border-tint-line bg-[#f4faff] px-4 py-3">
-          <Pill tone="info">{configured ? "NOT CONNECTED" : "NOT SET UP"}</Pill>
+          <Pill tone={provider === "imap" ? "danger" : "info"}>
+            {provider === "imap" ? "LOGIN FAILED" : configured ? "NOT CONNECTED" : "NOT SET UP"}
+          </Pill>
           <p className="text-[12.5px] text-[#00618f]">
-            {configured
-              ? "Connect the info@auto-bd.com mailbox to see real messages here."
-              : "Gmail access needs to be set up on the server before the mailbox can be connected."}
+            {provider === "imap"
+              ? "The mailbox is set up on the server but the mail server refused the connection."
+              : configured
+                ? "Connect the info@auto-bd.com mailbox to see real messages here."
+                : "Mailbox access needs to be set up on the server before this inbox can be connected."}
           </p>
         </div>
       )}
 
       {!connected ? (
-        <ConnectPanel configured={configured} />
+        <ConnectPanel configured={configured} provider={provider} error={error} />
       ) : loading ? (
         <Panel className="flex items-center justify-center gap-2 py-16 text-ink-muted">
           <Loader2 className="size-4 animate-spin" /> Loading inbox...

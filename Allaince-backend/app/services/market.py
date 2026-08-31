@@ -1,26 +1,35 @@
-"""Weekly share prices for the manufacturers whose parts this business trades.
+"""The Chittagong Stock Exchange's market summary, for the admin Overview.
 
-Sourced from Massive (formerly Polygon.io). Two constraints shape everything
-here:
+CSE publishes no API, so this reads its public homepage. Three things come
+from it:
 
-  * The free tier allows five requests a minute. Every ticker is one request,
-    so the series are cached in `market_series` and refreshed at most once
-    every settings.market_cache_hours. The Overview reads the cache; it never
-    waits on the provider.
+  * the index summary and intraday chart, from two POST endpoints the page's
+    own JavaScript calls (`load__index_summary` and `graph_load`). Both
+    require a CSRF token that is minted per session and embedded in the page,
+    so a scrape is always: fetch the page, read the token, post with the
+    cookie it set.
 
-  * The provider covers US listings only. Siemens, Omron, Mitsubishi Electric
-    and Schneider are listed in Frankfurt, Tokyo and Paris, and those symbols
-    return nothing at all -- so the US ADRs are tracked instead. They follow
-    the same companies, priced in USD.
+  * Today's Top 10 -- gainers, losers, volume and value -- and the market
+    statistics strip, which are server-rendered into the HTML itself.
 
-A ticker that returns no data is skipped rather than stored empty: the panel
-shows the manufacturers it could price and says so, which is honest, where a
-flat zero line would read as a company whose shares are worthless.
+Everything is cached in `market_series`. The scrape costs three requests and
+the numbers only move during trading hours, so refetching per page load would
+hammer someone else's server for data that has not changed. A failed scrape
+leaves the last good snapshot in place: a stale market figure clearly labelled
+with its time is worth more than an empty panel, and must never take the
+Overview's own revenue figures down with it.
+
+Parsing is deliberately defensive. This is someone else's markup and it will
+change without warning; every extractor returns empty rather than raising, so
+a redesign at CSE degrades this panel instead of breaking the dashboard.
 """
 
-import asyncio
 import logging
-from datetime import date, datetime, timedelta, timezone
+import re
+import ssl
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,163 +39,281 @@ from app.models import MarketSeries
 
 logger = logging.getLogger("app.market")
 
-# The manufacturers this catalogue actually carries, as ADRs. Ordered the way
-# the panel lists them when every series is equal.
-TRACKED: list[tuple[str, str]] = [
-    ("SIEGY", "Siemens"),
-    ("MIELY", "Mitsubishi Electric"),
-    ("OMRNY", "Omron"),
-    ("SBGSY", "Schneider Electric"),
-    ("ROK", "Rockwell / Allen-Bradley"),
-]
+CSE_BASE = "https://www.cse.com.bd"
 
-# Enough weeks to read a trend without crowding a panel-sized chart.
-WEEKS = 12
+# The indices CSE's own dropdown offers, in its order.
+INDICES = ["CSE50", "CSE30", "CSCX", "CASPI", "CSI"]
+DEFAULT_INDEX = "CSE50"
 
-# How far back to ask. Deliberately far more than WEEKS: the free tier's data
-# runs months behind the calendar, so a window of only the last twelve weeks
-# can come back empty. The most recent WEEKS bars are kept from whatever the
-# plan returns.
-LOOKBACK_DAYS = 730
+# The four Top 10 tabs, in the order their content_N divs appear.
+TOP_TABS = ["gainers", "losers", "volume", "value"]
 
-# The free tier's ceiling is 5 requests/minute. Tickers are fetched in series
-# with a gap rather than concurrently: a refresh that trips the limit returns
-# errors for the tail of the list, which would cache some manufacturers and
-# silently drop the rest.
-_REQUEST_GAP_SECONDS = 13.0
+# A browser UA: the site serves a different (or no) page to obvious scripts.
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    )
+}
+
+_TOKEN_RE = re.compile(r"csrf_cse_token:\s*'([0-9a-f]+)'")
+_TAG_RE = re.compile(r"<[^>]+>")
+
+# CSE serves an incomplete certificate chain -- the leaf only, without the
+# GlobalSign intermediate that signs it -- so a strict client cannot build a
+# path to a trusted root and every request fails verification. Browsers and
+# curl fetch the missing link themselves; httpx does not. Supplying the
+# intermediate alongside certifi's roots completes the chain with
+# verification fully on, which is the point: the usual shortcut for this
+# error is verify=False, and that would accept any certificate at all for a
+# host we do not control. See app/integrations/certs/README.md.
+_EXTRA_CA = (
+    Path(__file__).resolve().parent.parent
+    / "integrations"
+    / "certs"
+    / "globalsign-gcc-r3-dv-tls-ca-2020.pem"
+)
+
+
+@lru_cache(maxsize=1)
+def _ssl_context() -> ssl.SSLContext:
+    import certifi
+
+    context = ssl.create_default_context(cafile=certifi.where())
+    if _EXTRA_CA.exists():
+        context.load_verify_locations(cafile=str(_EXTRA_CA))
+    return context
+
+
+def _text(fragment: str) -> str:
+    """Tag-stripped, entity-decoded, whitespace-collapsed text."""
+    import html
+
+    return re.sub(r"\s+", " ", html.unescape(_TAG_RE.sub(" ", fragment))).strip()
+
+
+def _number(value: str) -> float:
+    """A figure from the page as a float, or 0.0 when it is not one.
+
+    CSE prints thousands separators and the occasional stray symbol, and an
+    unparseable cell must not abort a whole table.
+    """
+    cleaned = re.sub(r"[^0-9.\-]", "", value or "")
+    if not cleaned or cleaned in {"-", ".", "-."}:
+        return 0.0
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def _parse_top_tables(html: str) -> dict[str, dict]:
+    """The four Top 10 tables, keyed by tab name.
+
+    Each is `{columns: [...], rows: [[...]]}`. The columns are read from the
+    table's own header rather than assumed, because the four tabs do not
+    share a shape: Gainers and Losers report Company/LTP/Change/Change %,
+    while Volume and Value report Company/YCP/LTP/Volume or Value (mn).
+    Hard-coding the gainers' columns for all four would have labelled a share
+    volume of 424,699 as a 424,699% price move.
+
+    Values stay as text. These are display-only figures with CSE's own
+    formatting -- 2 decimal places on a price, none on a volume -- and
+    parsing them to floats only to format them again would be a chance to
+    render 35.90 as 35.9.
+    """
+    tables: dict[str, dict] = {}
+    for i, tab in enumerate(TOP_TABS, start=1):
+        # Anchored on the tap_content div, which is the only unambiguous
+        # marker for a tab. The bare id cannot be used: the tab-switch script
+        # above the markup mentions content_1 in a usage comment, so a plain
+        # id search finds the comment. Nor can the inner container -- CSE
+        # gives every one of the four tabs id="mitabs-1", which is invalid
+        # HTML but is what they serve.
+        marker = f'<div id="content_{i}" class="tap_content">'
+        start = html.find(marker)
+        if start == -1:
+            tables[tab] = {"columns": [], "rows": []}
+            continue
+        end = html.find(f'<div id="content_{i + 1}" class="tap_content">', start)
+        block = html[start : end if end != -1 else start + 20000]
+
+        rows: list[dict] = []
+        # Cells are matched directly rather than by first splitting on a row
+        # wrapper: CSE's rows close with irregular whitespace and stray tabs,
+        # and grouping every four ColN cells is both simpler and unaffected
+        # by how the surrounding divs happen to be indented.
+        # \s+ before class, not a single space: CSE emits `<div  class="Col1">`
+        # with a double space on some rows, which a literal space misses --
+        # and a missed Col1 silently shifts every value in that row.
+        columns = [
+            _text(header)
+            for header in re.findall(
+                r'<div\s+class="Col[1-4]"><span>(.*?)</span></div>', block, re.S
+            )
+        ][:4]
+
+        cells = re.findall(r'<div\s+class="Col([1-4])">(.*?)</div>', block, re.S)
+        current: dict[str, str] = {}
+        for column, value in cells:
+            current[column] = _text(value)
+            if column != "4":
+                continue
+            first = current.get("1", "")
+            # The header row carries the same ColN classes as the data rows,
+            # so it is skipped by its own label rather than by position: a
+            # change of row order upstream cannot then start admitting it.
+            if first and first.lower() != "company":
+                rows.append([current.get(str(n), "") for n in range(1, 5)])
+            current = {}
+        tables[tab] = {"columns": columns, "rows": rows[:10]}
+    return tables
+
+
+def _parse_statistics(html: str) -> dict:
+    """The trade summary strip beneath the chart.
+
+    Each figure is a caption/value pair; Issues Traded carries four numbers
+    (total, advanced, declined, unchanged) inside one value, coloured rather
+    than separately labelled, so it is split out by position.
+    """
+    stats: dict[str, object] = {}
+    pairs = re.findall(
+        r'<div class="caption1"><p>(.*?)</p></div>\s*'
+        r'<div style="float:left;" class="value1"><p>(.*?)</p></div>',
+        html,
+        re.S,
+    )
+    if not pairs:
+        pairs = re.findall(
+            r'class="caption1"><p>(.*?)</p>.*?class="value1"><p>(.*?)</p>', html, re.S
+        )
+
+    for caption_raw, value_raw in pairs:
+        caption = _text(caption_raw).rstrip(".").lower()
+        value = _text(value_raw)
+        if caption.startswith("issues traded"):
+            numbers = [int(n.replace(",", "")) for n in re.findall(r"[\d,]+", value)]
+            stats["issuesTraded"] = numbers[0] if numbers else 0
+            stats["advanced"] = numbers[1] if len(numbers) > 1 else 0
+            stats["declined"] = numbers[2] if len(numbers) > 2 else 0
+            stats["unchanged"] = numbers[3] if len(numbers) > 3 else 0
+        elif caption.startswith("volume"):
+            stats["volume"] = _number(value)
+        elif caption.startswith("issued cap"):
+            stats["issuedCap"] = _number(value)
+        elif caption.startswith("value in taka"):
+            stats["valueInTaka"] = _number(value)
+        elif caption.startswith("contract"):
+            stats["contractNumber"] = _number(value)
+        elif caption.startswith("closing market cap"):
+            stats["marketCap"] = _number(value)
+    return stats
+
+
+def _to_minutes(hhmmss: str) -> str:
+    """"09:16:00" as "09:16" — the chart's axis labels are to the minute."""
+    parts = (hhmmss or "").split(":")
+    return f"{parts[0]}:{parts[1]}" if len(parts) >= 2 else (hhmmss or "")
+
+
+async def _scrape(index: str) -> dict | None:
+    """One full snapshot of CSE, or None if it could not be read."""
+    import httpx
+
+    async with httpx.AsyncClient(
+        timeout=25.0, headers=_HEADERS, follow_redirects=True, verify=_ssl_context()
+    ) as client:
+        page = await client.get(f"{CSE_BASE}/")
+        page.raise_for_status()
+        html = page.text
+
+        token_match = _TOKEN_RE.search(html)
+        if not token_match:
+            # The page loaded but not as expected — most likely a redesign or
+            # an interstitial. Nothing here is trustworthy, so take none of it.
+            logger.warning("No CSRF token in the CSE page; skipping this refresh.")
+            return None
+        token = token_match.group(1)
+        form = {"selected_index": index, "csrf_cse_token": token}
+
+        summary: dict = {}
+        points: list[dict] = []
+        try:
+            response = await client.post(f"{CSE_BASE}/home/load__index_summary/", data=form)
+            response.raise_for_status()
+            summary = response.json()
+        except Exception:
+            logger.exception("Could not read the CSE index summary for %s", index)
+
+        try:
+            response = await client.post(f"{CSE_BASE}/home/graph_load/", data=form)
+            response.raise_for_status()
+            points = [
+                {"label": _to_minutes(row.get("idx_time", "")), "value": _number(row.get("idx_capital_value", ""))}
+                for row in response.json()
+                if row.get("idx_time")
+            ]
+        except Exception:
+            logger.exception("Could not read the CSE index graph for %s", index)
+
+    return {
+        "index": index,
+        "value": _number(str(summary.get("value", ""))),
+        "change": _number(str(summary.get("change", ""))),
+        "changePct": _number(str(summary.get("percentage_change", ""))),
+        "points": points,
+        "top": _parse_top_tables(html),
+        "stats": _parse_statistics(html),
+    }
 
 
 def _is_stale(fetched_at: datetime | None) -> bool:
     if fetched_at is None:
         return True
-    age = datetime.now(timezone.utc) - fetched_at
-    return age > timedelta(hours=settings.market_cache_hours)
-
-
-async def _fetch_bars(client, ticker: str) -> list[dict]:
-    """One ticker's most recent weekly aggregates, or [] if there are none.
-
-    The window reaches back a long way on purpose. How current the data is
-    depends on the plan -- the free tier runs some months behind -- so asking
-    only for the last twelve weeks of the calendar can return two or three
-    bars, or none at all. Asking for a wide range and keeping the tail gives
-    a full chart of the most recent weeks the plan actually covers, whenever
-    those happen to be.
-    """
-    today = date.today()
-    start = today - timedelta(days=LOOKBACK_DAYS)
-    url = (
-        f"{settings.massive_base_url.rstrip('/')}"
-        f"/v2/aggs/ticker/{ticker}/range/1/week/{start.isoformat()}/{today.isoformat()}"
+    return datetime.now(timezone.utc) - fetched_at > timedelta(
+        minutes=settings.market_cache_minutes
     )
-    response = await client.get(
-        url,
-        params={
-            "adjusted": "true",
-            "sort": "asc",
-            # The provider truncates to `limit` from the START of the range,
-            # so this has to cover the whole window; the tail is sliced off
-            # below. Limiting to WEEKS here returns the OLDEST weeks instead.
-            "limit": 5000,
-            "apiKey": settings.massive_api_key,
-        },
-    )
-    response.raise_for_status()
-    payload = response.json()
-
-    if payload.get("status") == "ERROR":
-        # Rate limit and entitlement problems arrive as 200s with an error
-        # body, so status has to be read rather than relying on the HTTP code.
-        raise RuntimeError(payload.get("error") or "Market provider returned an error.")
-
-    results = payload.get("results") or []
-    return [
-        {
-            "t": bar.get("t"),
-            "o": bar.get("o"),
-            "h": bar.get("h"),
-            "l": bar.get("l"),
-            "c": bar.get("c"),
-            "v": bar.get("v"),
-        }
-        for bar in results
-        if bar.get("c") is not None and bar.get("t") is not None
-    ][-WEEKS:]
 
 
-def _summarise(bars: list[dict]) -> tuple[float, float, int]:
-    """Latest close, week-on-week change, and the latest week's volume."""
-    if not bars:
-        return 0.0, 0.0, 0
-    latest = float(bars[-1].get("c") or 0.0)
-    previous = float(bars[-2].get("c") or 0.0) if len(bars) > 1 else 0.0
-    change = round(((latest - previous) / previous) * 100, 2) if previous else 0.0
-    return round(latest, 2), change, int(bars[-1].get("v") or 0)
+async def get_market_snapshot(
+    db: AsyncSession, index: str = DEFAULT_INDEX, *, force: bool = False
+) -> MarketSeries | None:
+    """The cached CSE snapshot for one index, refreshed when stale."""
+    if index not in INDICES:
+        index = DEFAULT_INDEX
+
+    row = await db.get(MarketSeries, index)
+    if row is not None and not force and not _is_stale(row.fetched_at):
+        return row
+
+    try:
+        scraped = await _scrape(index)
+    except Exception:
+        logger.exception("Could not reach CSE for %s", index)
+        return row
+
+    gainers = (scraped or {}).get("top", {}).get("gainers", {}).get("rows") or []
+    if scraped is None or (not scraped["points"] and not gainers):
+        # Nothing usable came back. Keep whatever is cached rather than
+        # overwriting real figures with an empty snapshot.
+        return row
+
+    if row is None:
+        row = MarketSeries(index=index)
+        db.add(row)
+
+    row.value = scraped["value"]
+    row.change = scraped["change"]
+    row.change_pct = scraped["changePct"]
+    row.points = scraped["points"]
+    row.top = scraped["top"]
+    row.stats = scraped["stats"]
+    row.fetched_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(row)
+    return row
 
 
-async def refresh_market_series(db: AsyncSession, *, force: bool = False) -> list[MarketSeries]:
-    """Brings the cache up to date and returns every stored series.
-
-    A provider failure is logged and swallowed: this is a panel on a
-    dashboard, and a market API being down must not take the Overview -- or
-    the revenue figures beside it -- with it. The last good series stays on
-    screen, which is what a stale price should do.
-    """
-    stored = {row.ticker: row for row in await list_market_series(db)}
-
-    if not settings.massive_api_key:
-        return list(stored.values())
-
-    due = [
-        (ticker, label)
-        for ticker, label in TRACKED
-        if force or _is_stale(stored.get(ticker).fetched_at if stored.get(ticker) else None)
-    ]
-    if not due:
-        return list(stored.values())
-
-    import httpx
-
-    changed = False
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        for index, (ticker, label) in enumerate(due):
-            if index:
-                await asyncio.sleep(_REQUEST_GAP_SECONDS)
-            try:
-                bars = await _fetch_bars(client, ticker)
-            except Exception:
-                logger.exception("Could not refresh market series for %s", ticker)
-                continue
-
-            if not bars:
-                # Nothing to show for this symbol on this plan; leave whatever
-                # is cached rather than replacing real prices with an empty row.
-                logger.info("Market provider returned no bars for %s", ticker)
-                continue
-
-            latest_close, change_pct, week_volume = _summarise(bars)
-            row = stored.get(ticker)
-            if row is None:
-                row = MarketSeries(ticker=ticker, label=label)
-                db.add(row)
-                stored[ticker] = row
-            row.label = label
-            row.bars = bars
-            row.latest_close = latest_close
-            row.change_pct = change_pct
-            row.week_volume = week_volume
-            row.fetched_at = datetime.now(timezone.utc)
-            changed = True
-
-    if changed:
-        await db.commit()
-    return await list_market_series(db)
-
-
-async def list_market_series(db: AsyncSession) -> list[MarketSeries]:
-    rows = list((await db.execute(select(MarketSeries))).scalars().all())
-    # Ordered by TRACKED so the panel's rows keep a stable position between
-    # refreshes instead of reshuffling with whatever the database returns.
-    order = {ticker: i for i, (ticker, _) in enumerate(TRACKED)}
-    rows.sort(key=lambda r: order.get(r.ticker, len(order)))
-    return rows
+async def list_cached_indices(db: AsyncSession) -> list[MarketSeries]:
+    return list((await db.execute(select(MarketSeries))).scalars().all())

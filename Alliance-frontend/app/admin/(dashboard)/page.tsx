@@ -4,6 +4,7 @@ import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token
 import {
   readRangeAnalytics,
   readPaymentAnalytics,
+  readMarketSnapshot,
   type AnalyticsRange,
 } from "@/app/lib/admin-data";
 import { formatPrice } from "@/app/lib/utils";
@@ -20,7 +21,7 @@ import {
 } from "./overview-panels";
 import { PendingQuotationsPanel } from "./pending-quotations-panel";
 import { PaymentSplit } from "./payment-split";
-import { MarketWatchPanel, StockStatusPanel } from "./market-panels";
+import { MarketSummaryPanel } from "./market-panels";
 
 // /admin is role-branching as of Phase 4: super admin keeps the analytics
 // Overview below, sub-admin sees their personal dashboard instead of being
@@ -46,7 +47,7 @@ function deltaNote(deltaPct: number | null, rangeLabel: string): string {
 export default async function AdminOverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; index?: string }>;
 }) {
   const cookieStore = await cookies();
   const session = await parseAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
@@ -56,10 +57,12 @@ export default async function AdminOverviewPage({
     return <SubAdminDashboard session={session} />;
   }
 
-  const range = parseRange((await searchParams).range);
-  const [analytics, payments] = await Promise.all([
+  const query = await searchParams;
+  const range = parseRange(query.range);
+  const [analytics, payments, market] = await Promise.all([
     readRangeAnalytics(range),
     readPaymentAnalytics(range),
+    readMarketSnapshot(query.index || "CSE50"),
   ]);
   const rangeLabel = RANGE_LABEL[range];
   // Both trends are built from the same buckets for the same range, so they
@@ -145,15 +148,13 @@ export default async function AdminOverviewPage({
             />
           )}
         </div>
-        {/* The right column tracks the market this business buys and sells
-            into, beside its own conversion. Both are read-only context for
-            the figures on the left. */}
-        <div className="flex min-w-0 flex-col gap-4">
-          <OrderRatioPanel />
-          <MarketWatchPanel />
-          <StockStatusPanel />
-        </div>
+        <OrderRatioPanel />
       </div>
+
+      {/* The Chittagong Stock Exchange's own summary. Read-only context for
+          the market this business trades in, kept clear of the figures above
+          it: nothing here is derived from this company's data. */}
+      <MarketSummaryPanel snapshot={market} />
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.3fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">

@@ -71,24 +71,48 @@ class StockAlert(CamelModel):
     quantity: int
 
 
-class MarketBar(CamelModel):
-    """One week of trading, as the provider reports it."""
+class MarketTable(CamelModel):
+    """One Top 10 tab: its own column headers, and rows of matching cells.
 
-    t: int  # epoch milliseconds at the start of the week
-    o: float
-    h: float
-    l: float
-    c: float
-    v: float
+    Generic rather than a fixed set of named fields because the four tabs do
+    not share a shape -- Gainers reports Change %, Volume reports a share
+    count -- and cells stay strings so CSE's own formatting survives to the
+    screen.
+    """
+
+    columns: list[str] = []
+    rows: list[list[str]] = []
 
 
-class MarketSeriesOut(CamelModel):
-    ticker: str
-    label: str
-    bars: list[MarketBar]
-    latest_close: float
+class MarketPoint(CamelModel):
+    label: str  # "09:16"
+    value: float
+
+
+class MarketStats(CamelModel):
+    """The trade summary strip. Every field defaults, because these are
+    scraped and CSE may not publish all of them on a given day."""
+
+    issues_traded: int = 0
+    advanced: int = 0
+    declined: int = 0
+    unchanged: int = 0
+    volume: float = 0
+    issued_cap: float = 0
+    value_in_taka: float = 0
+    contract_number: float = 0
+    market_cap: float = 0
+
+
+class MarketSnapshot(CamelModel):
+    index: str
+    indices: list[str]
+    value: float
+    change: float
     change_pct: float
-    week_volume: int
+    points: list[MarketPoint]
+    top: dict[str, MarketTable]
+    stats: MarketStats
     fetched_at: datetime | None = None
 
 

@@ -33,20 +33,29 @@ class Settings(BaseSettings):
     google_oauth_client_secret: str | None = None
     google_oauth_redirect_uri: str | None = None
 
+    # The shared mailbox, read over IMAP. Used for hosts that offer no OAuth
+    # -- Namecheap Private Email (mail.privateemail.com), cPanel, and most
+    # domain mail -- where the alternative is the account password.
+    #
+    # That password is why this is environment-only and never a field in the
+    # admin UI: it grants full access to the mailbox, so it belongs with the
+    # server's other secrets rather than travelling through a browser or
+    # sitting in the database. It is never returned by any endpoint.
+    imap_host: str | None = None
+    imap_port: int = 993
+    imap_username: str | None = None
+    imap_password: str | None = None
+
     resend_api_key: str | None = None
     resend_from_email: str = "info@auto-bd.com"
     notify_internal_email: str = "info@auto-bd.com"
 
-    # Massive (formerly Polygon.io) — weekly share prices for the automation
-    # manufacturers whose parts this business trades. Absent means the market
-    # panels render their empty state rather than the API failing at runtime.
-    #
-    # The free tier allows 5 requests/minute, which is why market_cache_hours
-    # exists: one refresh a day across a handful of tickers stays well inside
-    # it, and the Overview reads the cached rows rather than the API.
-    massive_api_key: str | None = None
-    massive_base_url: str = "https://api.massive.com"
-    market_cache_hours: int = 24
+    # How long a scraped CSE snapshot is served before it is refetched. The
+    # market panel reads the cache, so this is the only thing deciding how
+    # often this app touches CSE's servers: short enough to stay current
+    # through a trading session, long enough that a busy Overview does not
+    # turn into a scraper hammering someone else's site.
+    market_cache_minutes: int = 15
 
     s3_endpoint_url: str | None = None
     s3_access_key_id: str | None = None
@@ -84,6 +93,24 @@ class Settings(BaseSettings):
             and self.google_oauth_client_secret
             and self.google_oauth_redirect_uri
         )
+
+    @property
+    def imap_configured(self) -> bool:
+        return bool(self.imap_host and self.imap_username and self.imap_password)
+
+    @property
+    def mailbox_provider(self) -> str:
+        """Which mailbox backend the Shared inbox screen should use.
+
+        IMAP wins when both are set: it is configured with an explicit
+        host and password, which is a deliberate act, where leftover Google
+        OAuth credentials may simply be from a previous setup.
+        """
+        if self.imap_configured:
+            return "imap"
+        if self.gmail_configured:
+            return "gmail"
+        return "none"
 
     @property
     def s3_configured(self) -> bool:

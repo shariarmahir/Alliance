@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -10,21 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// One line per manufacturer, indexed to 100 at the first week rather than
-// plotted in dollars. The ADRs trade at very different prices — Rockwell in
-// the hundreds, Omron in the thirties — so a shared dollar axis would flatten
-// four of the five lines into the floor and show only that one is expensive,
-// which is not the question this panel answers. Indexing puts every
-// manufacturer on the same footing: the chart reads as relative movement.
-export type MarketPoint = { label: string } & Record<string, number | string>;
-
-const SERIES_COLORS = [
-  "#007DCC",
-  "#e07b39",
-  "#2f9e6e",
-  "#8a5cd1",
-  "#c2454f",
-] as const;
+export type MarketPoint = { label: string; value: number };
 
 function ChartTooltip({
   active,
@@ -32,66 +18,62 @@ function ChartTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
+  payload?: { value: number }[];
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md border border-slate-line bg-white px-3 py-2 text-xs shadow-md">
-      <p className="mb-1 font-semibold text-ink">{label}</p>
-      {payload.map((entry) => (
-        <p key={entry.name} style={{ color: entry.color }}>
-          {entry.name} {entry.value > 100 ? "+" : ""}
-          {(entry.value - 100).toFixed(1)}%
-        </p>
-      ))}
+      <p className="font-semibold text-ink">{label}</p>
+      <p className="font-mono text-ok">{payload[0].value.toFixed(4)}</p>
     </div>
   );
 }
 
-export function MarketChart({
-  data,
-  series,
-}: {
-  data: MarketPoint[];
-  series: string[];
-}) {
-  if (data.length === 0 || series.length === 0) return null;
+export function MarketChart({ data }: { data: MarketPoint[] }) {
+  if (data.length === 0) return null;
 
   return (
-    <div className="h-45 w-full min-w-0">
+    <div className="h-52 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
-          <CartesianGrid stroke="#f2f4f7" vertical={false} />
+        <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: -14 }}>
+          <defs>
+            <linearGradient id="cseFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4caf50" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="#4caf50" stopOpacity={0.06} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="#e8edf2" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 10, fill: "#8a94a6" }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
-            minTickGap={18}
+            minTickGap={26}
           />
           <YAxis
             tick={{ fontSize: 10, fill: "#8a94a6" }}
             tickLine={false}
             axisLine={false}
-            domain={["dataMin - 4", "dataMax + 4"]}
-            tickFormatter={(v: number) => `${Math.round(v - 100)}%`}
+            width={52}
+            // The index moves within a fraction of a percent across a session,
+            // so a domain anchored at zero would render the day as a flat
+            // line. Fitted to the data, with a little air either side.
+            domain={["dataMin - 1", "dataMax + 1"]}
+            tickFormatter={(v: number) => v.toFixed(0)}
           />
           <Tooltip content={<ChartTooltip />} />
-          {series.map((name, i) => (
-            <Line
-              key={name}
-              type="monotone"
-              dataKey={name}
-              name={name}
-              stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-              strokeWidth={1.75}
-              dot={false}
-              activeDot={{ r: 3 }}
-            />
-          ))}
-        </LineChart>
+          <Area
+            type="linear"
+            dataKey="value"
+            stroke="#4caf50"
+            strokeWidth={1.5}
+            fill="url(#cseFill)"
+            dot={false}
+            activeDot={{ r: 3 }}
+          />
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
