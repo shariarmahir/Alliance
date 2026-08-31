@@ -24,6 +24,7 @@ import {
   TH,
   TD,
   ROW,
+  type PillTone,
 } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
@@ -214,11 +215,27 @@ function PaymentDialog({ quotation }: { quotation: Quotation }) {
   );
 }
 
+// The order-progress columns: NOT CREATED until the first invoice/challan is
+// raised against the order (from `hasX`, since a raised-for-zero document
+// would otherwise look identical to none at all), then PARTIAL until the
+// server-derived totals say the order is fully invoiced/delivered.
+function docStatus(
+  hasAny: boolean,
+  complete: boolean
+): { label: string; tone: PillTone } {
+  if (!hasAny) return { label: "NOT CREATED", tone: "neutral" };
+  return complete ? { label: "COMPLETE", tone: "ok" } : { label: "PARTIAL", tone: "warn" };
+}
+
 function OrderRow({
   quotation,
+  hasInvoice,
+  hasChallan,
   onChanged,
 }: {
   quotation: Quotation;
+  hasInvoice: boolean;
+  hasChallan: boolean;
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -228,6 +245,9 @@ function OrderRow({
 
   const stage = clampStage(confirmation.deliveryStage ?? 0);
   const paid = confirmation.paymentStatus === "received";
+  const invoiceComplete = (confirmation.amountInvoiced ?? 0) >= confirmation.grandTotal;
+  const invoicePill = docStatus(hasInvoice, invoiceComplete);
+  const challanPill = docStatus(hasChallan, confirmation.deliveryComplete ?? false);
 
   async function setStage(next: number) {
     setBusy(true);
@@ -318,6 +338,12 @@ function OrderRow({
         <Pill tone={paid ? "ok" : "warn"}>{paid ? "RECEIVED" : "PENDING"}</Pill>
       </td>
       <td className={TD}>
+        <Pill tone={invoicePill.tone}>{invoicePill.label}</Pill>
+      </td>
+      <td className={TD}>
+        <Pill tone={challanPill.tone}>{challanPill.label}</Pill>
+      </td>
+      <td className={TD}>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={stage}
@@ -371,10 +397,16 @@ function OrderRow({
 export function OrdersClient({
   initialOrders,
   payments,
+  invoicedOrderIds,
+  challanedOrderIds,
 }: {
   initialOrders: Quotation[];
   payments: PaymentAnalytics;
+  invoicedOrderIds: string[];
+  challanedOrderIds: string[];
 }) {
+  const invoicedSet = new Set(invoicedOrderIds);
+  const challanedSet = new Set(challanedOrderIds);
   const router = useRouter();
   const [filter, setFilter] = useState<StageFilter>("all");
   // Bumped on every row change. router.refresh() re-renders the rows from the
@@ -463,7 +495,7 @@ export function OrdersClient({
       ) : (
         <Panel className="overflow-hidden">
           <div className="scrollbar-slim overflow-x-auto">
-            <table className="w-full min-w-280 text-[12.5px]">
+            <table className="w-full min-w-320 text-[12.5px]">
               <thead className="bg-surface">
                 <tr>
                   <th className={TH}>REFERENCE</th>
@@ -473,6 +505,8 @@ export function OrdersClient({
                   <th className={TH}>ISSUED</th>
                   <th className={TH}>STATUS</th>
                   <th className={TH}>PAYMENT</th>
+                  <th className={TH}>INVOICE</th>
+                  <th className={TH}>CHALLAN</th>
                   <th className={TH}>ACTIONS</th>
                 </tr>
               </thead>
@@ -481,6 +515,8 @@ export function OrdersClient({
                   <OrderRow
                     key={quotation.id}
                     quotation={quotation}
+                    hasInvoice={invoicedSet.has(quotation.id)}
+                    hasChallan={challanedSet.has(quotation.id)}
                     onChanged={handleChanged}
                   />
                 ))}
