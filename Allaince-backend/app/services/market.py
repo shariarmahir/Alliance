@@ -268,6 +268,46 @@ async def _scrape(index: str) -> dict | None:
     }
 
 
+# Indices with a background refresh already in flight. Without this, every
+# request arriving during a ~2s scrape would start another one, so a busy
+# dashboard would hit CSE dozens of times for a single expiry.
+_refreshing: set[str] = set()
+
+
+def _schedule_background_refresh(index: str) -> None:
+    """Refreshes one index out of band, at most one scrape per index at a time.
+
+    Fire-and-forget on purpose: the caller has already answered from cache,
+    so nothing depends on the result and a failure here must stay invisible
+    to the request that triggered it.
+    """
+    if index in _refreshing:
+        return
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
+    _refreshing.add(index)
+
+    async def _run() -> None:
+        try:
+            # A session of its own: the request's is closed the moment its
+            # response is sent, and reusing it here would fail once this
+            # outlives that request -- which is the entire point.
+            from app.db import async_session_factory
+
+            async with async_session_factory() as session:
+                await get_market_snapshot(session, index, force=True)
+        except Exception:
+            logger.exception("Background market refresh failed for %s", index)
+        finally:
+            _refreshing.discard(index)
+
+    loop.create_task(_run())
+
+
 def _is_stale(fetched_at: datetime | None) -> bool:
     if fetched_at is None:
         return True
@@ -279,12 +319,29 @@ def _is_stale(fetched_at: datetime | None) -> bool:
 async def get_market_snapshot(
     db: AsyncSession, index: str = DEFAULT_INDEX, *, force: bool = False
 ) -> MarketSeries | None:
-    """The cached CSE snapshot for one index, refreshed when stale."""
+    """The cached CSE snapshot for one index, refreshed when stale.
+
+    Stale-while-revalidate: an expired snapshot is still returned immediately
+    and refreshed in the background. Only the very first request for an index
+    -- when there is nothing cached at all -- waits for the scrape.
+
+    That distinction matters because the scrape takes over two seconds: with
+    a blocking refresh, one admin every cache window paid that cost on a
+    dashboard whose own figures were already in hand, and the whole Overview
+    sat blank until a third party's website replied.
+    """
     if index not in INDICES:
         index = DEFAULT_INDEX
 
     row = await db.get(MarketSeries, index)
     if row is not None and not force and not _is_stale(row.fetched_at):
+        return row
+
+    if row is not None and not force:
+        # Something usable is cached. Hand it over now and bring it up to
+        # date out of band, so nobody waits on CSE for figures that are at
+        # most one cache window old.
+        _schedule_background_refresh(index)
         return row
 
     try:
