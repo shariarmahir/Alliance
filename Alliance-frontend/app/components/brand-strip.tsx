@@ -2,8 +2,14 @@ import Link from "next/link";
 import { getBrands } from "@/app/lib/catalog-data";
 import { BrandLogo } from "@/app/components/brand-logo";
 
+// Two rows at the widest breakpoint (lg:grid-cols-6) is twelve cards — capped
+// here rather than with CSS row limiting, so the "All 60+ manufacturers"
+// link has an actual reason to exist instead of a grid that already shows
+// everything.
+const MAX_BRANDS = 12;
+
 export async function BrandStrip() {
-  const brands = await getBrands();
+  const brands = (await getBrands()).slice(0, MAX_BRANDS);
   return (
     <section className="mx-auto max-w-[1360px] px-4 sm:px-7 py-13 md:px-[68px]">
       <div className="mb-5 flex items-baseline justify-between">
