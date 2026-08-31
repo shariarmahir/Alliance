@@ -341,4 +341,51 @@ export async function readChallans(): Promise<Challan[]> {
   return getOrDefault<Challan[]>("/api/admin/challans", [], { auth: true });
 }
 
+// --- Market & stock -------------------------------------------------------
+
+// One week of trading, as the provider reports it. Field names are the
+// provider's own single letters; renaming them here would only add a mapping
+// layer between two places that both understand this shape.
+export type MarketBar = {
+  t: number; // epoch ms at the start of the week
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+};
+
+export type MarketSeries = {
+  ticker: string;
+  label: string;
+  bars: MarketBar[];
+  latestClose: number;
+  changePct: number;
+  weekVolume: number;
+  fetchedAt: string | null;
+};
+
+export type StockStatusBreakdown = {
+  inStock: number;
+  lowStock: number;
+  outOfStock: number;
+  totalUnits: number;
+  stockValue: number;
+};
+
+// Both default to an empty/zero shape rather than throwing: these feed two
+// panels on the Overview, and a market API being unreachable must not take
+// the revenue figures beside them off the screen.
+export async function readMarketSeries(): Promise<MarketSeries[]> {
+  return getOrDefault<MarketSeries[]>("/api/admin/analytics/market", [], { auth: true });
+}
+
+export async function readStockStatus(): Promise<StockStatusBreakdown> {
+  return getOrDefault<StockStatusBreakdown>(
+    "/api/admin/analytics/stock-status",
+    { inStock: 0, lowStock: 0, outOfStock: 0, totalUnits: 0, stockValue: 0 },
+    { auth: true }
+  );
+}
+
 export { api };

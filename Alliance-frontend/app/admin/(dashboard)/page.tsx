@@ -20,6 +20,7 @@ import {
 } from "./overview-panels";
 import { PendingQuotationsPanel } from "./pending-quotations-panel";
 import { PaymentSplit } from "./payment-split";
+import { MarketWatchPanel, StockStatusPanel } from "./market-panels";
 
 // /admin is role-branching as of Phase 4: super admin keeps the analytics
 // Overview below, sub-admin sees their personal dashboard instead of being
@@ -144,7 +145,14 @@ export default async function AdminOverviewPage({
             />
           )}
         </div>
-        <OrderRatioPanel />
+        {/* The right column tracks the market this business buys and sells
+            into, beside its own conversion. Both are read-only context for
+            the figures on the left. */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <OrderRatioPanel />
+          <MarketWatchPanel />
+          <StockStatusPanel />
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.3fr_1fr]">

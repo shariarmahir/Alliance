@@ -13,6 +13,7 @@ from app.schemas.analytics import (
     PaymentAnalytics,
     RangeAnalytics,
     StockAlert,
+    StockStatusBreakdown,
     TrendPoint,
 )
 from app.schemas.catalog import ProductOut, TopSellerOut
@@ -364,6 +365,40 @@ async def low_stock(db: AsyncSession, threshold: int = 5, limit: int = 6) -> lis
         StockAlert(part_number=p.part_number, name=p.name, slug=p.slug, quantity=p.stock_qty)
         for p in products
     ]
+
+
+async def stock_status_breakdown(db: AsyncSession) -> StockStatusBreakdown:
+    """The whole catalogue's stock position in one row.
+
+    Counts are derived from stock_qty here rather than read from the stored
+    `stock` column: that column is itself derived (see derive_stock_status),
+    and counting the quantity directly means this panel cannot disagree with
+    the Warehouse alerts panel beside it if a write ever leaves the two out
+    of step.
+    """
+    products = list((await db.execute(select(Product))).scalars().all())
+
+    in_stock = low = out = 0
+    total_units = 0
+    stock_value = 0.0
+    for product in products:
+        quantity = int(product.stock_qty or 0)
+        total_units += quantity
+        stock_value += quantity * float(product.price or 0.0)
+        if quantity <= 0:
+            out += 1
+        elif quantity < 10:
+            low += 1
+        else:
+            in_stock += 1
+
+    return StockStatusBreakdown(
+        in_stock=in_stock,
+        low_stock=low,
+        out_of_stock=out,
+        total_units=total_units,
+        stock_value=round(stock_value, 2),
+    )
 
 
 async def top_sellers(

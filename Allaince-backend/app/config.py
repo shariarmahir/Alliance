@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     resend_from_email: str = "info@auto-bd.com"
     notify_internal_email: str = "info@auto-bd.com"
 
+    # Massive (formerly Polygon.io) — weekly share prices for the automation
+    # manufacturers whose parts this business trades. Absent means the market
+    # panels render their empty state rather than the API failing at runtime.
+    #
+    # The free tier allows 5 requests/minute, which is why market_cache_hours
+    # exists: one refresh a day across a handful of tickers stays well inside
+    # it, and the Overview reads the cached rows rather than the API.
+    massive_api_key: str | None = None
+    massive_base_url: str = "https://api.massive.com"
+    market_cache_hours: int = 24
+
     s3_endpoint_url: str | None = None
     s3_access_key_id: str | None = None
     s3_secret_access_key: str | None = None

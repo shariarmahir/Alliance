@@ -1,5 +1,6 @@
 from app.models.base import Base, JSONVariant, UTCDateTime, utcnow
 from app.models.catalog import Brand, Category, HeroImage, Product
+from app.models.market import MarketSeries
 from app.models.employee import DailyReport, Employee, LeaveRequest, Task
 from app.models.operations import (
     Challan,
@@ -25,6 +26,7 @@ __all__ = [
     "Category",
     "HeroImage",
     "Product",
+    "MarketSeries",
     "DailyReport",
     "Employee",
     "LeaveRequest",

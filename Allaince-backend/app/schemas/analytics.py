@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from app.schemas.session import CamelModel
@@ -68,6 +69,38 @@ class StockAlert(CamelModel):
     name: str
     slug: str
     quantity: int
+
+
+class MarketBar(CamelModel):
+    """One week of trading, as the provider reports it."""
+
+    t: int  # epoch milliseconds at the start of the week
+    o: float
+    h: float
+    l: float
+    c: float
+    v: float
+
+
+class MarketSeriesOut(CamelModel):
+    ticker: str
+    label: str
+    bars: list[MarketBar]
+    latest_close: float
+    change_pct: float
+    week_volume: int
+    fetched_at: datetime | None = None
+
+
+class StockStatusBreakdown(CamelModel):
+    """The catalogue's own stock position, for the panel beside the market
+    chart: how many products sit in each state and what they are worth."""
+
+    in_stock: int
+    low_stock: int
+    out_of_stock: int
+    total_units: int
+    stock_value: float
 
 
 class SearchResult(CamelModel):

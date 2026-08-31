@@ -7,16 +7,20 @@ from app.schemas.analytics import (
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
+    MarketSeriesOut,
     SearchResult,
     StockAlert,
+    StockStatusBreakdown,
 )
 from app.services.analytics import (
     low_stock,
     order_status_ratio,
+    stock_status_breakdown,
     read_payment_analytics,
     read_range_analytics,
     top_destinations,
 )
+from app.services.market import refresh_market_series
 from app.services.search import search_admin
 
 router = APIRouter(prefix="/api/admin", tags=["analytics"])
@@ -64,6 +68,27 @@ async def stock_alerts(session: AdminDep, db: DbSession, threshold: int = Query(
     stock screen, so gating the same numbers here would only hide them from
     the staff who act on them."""
     return await low_stock(db, threshold=threshold)
+
+
+@router.get("/analytics/stock-status", response_model=StockStatusBreakdown)
+async def stock_status(session: AdminDep, db: DbSession):
+    """The catalogue's overall stock position, beside the market panel.
+
+    Open to any admin on the same reasoning as low-stock alerts: these are
+    the numbers the stock screen already shows every sub-admin.
+    """
+    return await stock_status_breakdown(db)
+
+
+@router.get("/analytics/market", response_model=list[MarketSeriesOut])
+async def market(session: SuperAdminDep, db: DbSession):
+    """Weekly share prices for the manufacturers this business trades.
+
+    Served from the cache, refreshed only when stale -- the provider's free
+    tier allows five requests a minute, so a fetch per page load would fail
+    as soon as two admins opened the Overview at once.
+    """
+    return await refresh_market_series(db)
 
 
 @router.get("/search", response_model=list[SearchResult])
