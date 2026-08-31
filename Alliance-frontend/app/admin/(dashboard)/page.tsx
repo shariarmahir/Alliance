@@ -133,6 +133,14 @@ export default async function AdminOverviewPage({
             pendingCount={payments.pendingCount}
             rangeLabel={rangeLabel}
           />
+        </div>
+        {/* The right column: conversion, then deleted revenue beneath it.
+            A bare panel here stretched to match the taller left column and
+            left a column of empty white below it — pairing it with the
+            deleted-revenue chart fills that space and evens the two columns
+            out, rather than padding one side with nothing. */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <OrderRatioPanel />
           {/* Only once something has actually been deleted. A permanent
               zeroed chart would imply deletions are a routine part of the
               month rather than the exception they are. */}
@@ -148,7 +156,6 @@ export default async function AdminOverviewPage({
             />
           )}
         </div>
-        <OrderRatioPanel />
       </div>
 
       {/* The Chittagong Stock Exchange's own summary. Read-only context for
