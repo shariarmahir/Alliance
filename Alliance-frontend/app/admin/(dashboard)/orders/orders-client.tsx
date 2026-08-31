@@ -27,7 +27,6 @@ import {
   type PillTone,
 } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
-import { downloadQuotationPdf } from "@/app/lib/quotation-pdf";
 import { downloadReceiptPdf, receiptPdfToBase64 } from "@/app/lib/challan-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import { PaymentsPanel } from "./payments-panel";
@@ -292,7 +291,6 @@ function OrderRow({
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const confirmation = quotation.confirmation;
   if (!confirmation) return null;
 
@@ -323,17 +321,6 @@ function OrderRow({
       );
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function download() {
-    setDownloading(true);
-    try {
-      await downloadQuotationPdf(quotation);
-    } catch {
-      toast.error("Could not generate the PDF.");
-    } finally {
-      setDownloading(false);
     }
   }
 
@@ -385,14 +372,6 @@ function OrderRow({
             paid={paid}
             complete={stage >= MAX_STAGE}
           />
-          <button
-            type="button"
-            onClick={download}
-            disabled={downloading}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-          >
-            <Download className="size-3.5" /> {downloading ? "..." : "Order Summary"}
-          </button>
           <PaymentDialog quotation={quotation} />
           {/* These open the real Prepare windows on the Challans and Invoices
               screens, carrying this order so the window opens on it.
