@@ -168,8 +168,10 @@ async def test_over_delivery_is_rejected_by_the_api(client, db):
     assert "left to deliver" in r.json()["detail"]
 
 
-async def test_completing_delivery_advances_the_order(client, db):
-    """When the last unit ships, the order's own delivery status follows."""
+async def test_delivery_alone_does_not_advance_an_unpaid_order(client, db):
+    """Shipping everything is not enough on its own — the order still owes
+    money, so the stage (and the Orders screen's dot meter) must not claim
+    it's done."""
     quotation_id = await _confirmed(client)
     challan = (
         await client.post(
@@ -180,6 +182,43 @@ async def test_completing_delivery_advances_the_order(client, db):
     ).json()
     await client.post(f"/api/admin/challans/{challan['id']}/approve")
     await client.post(f"/api/admin/challans/{challan['id']}/deliver")
+
+    quotation = (await client.get(f"/api/admin/quotations/{quotation_id}")).json()
+    assert quotation["confirmation"]["deliveryStage"] == 0
+
+
+async def test_completing_delivery_and_payment_advances_the_order(client, db):
+    """The order's own status only follows once it is both fully shipped and
+    fully paid — the two must agree before the stage (and dot meter) call it
+    Confirmed."""
+    quotation_id = await _confirmed(client)
+    challan = (
+        await client.post(
+            "/api/admin/challans",
+            json={"quotationId": quotation_id,
+                  "lines": [{"slug": "drive-1", "quantity": 10}]},
+        )
+    ).json()
+    await client.post(f"/api/admin/challans/{challan['id']}/approve")
+    await client.post(f"/api/admin/challans/{challan['id']}/deliver")
+
+    invoice = (
+        await client.post(
+            "/api/admin/invoices",
+            json={"quotationId": quotation_id,
+                  "lines": [{"slug": "drive-1", "name": "Drive", "quantity": 10,
+                             "unitPrice": 100.0}]},
+        )
+    ).json()
+    await client.post(f"/api/admin/invoices/{invoice['id']}/approve")
+
+    quotation = (await client.get(f"/api/admin/quotations/{quotation_id}")).json()
+    assert quotation["confirmation"]["deliveryStage"] == 0
+
+    await client.post(
+        f"/api/admin/invoices/{invoice['id']}/payments",
+        json={"amount": 1000.0, "method": "bank", "reference": "TXN-1"},
+    )
 
     quotation = (await client.get(f"/api/admin/quotations/{quotation_id}")).json()
     assert quotation["confirmation"]["deliveryStage"] == 1

@@ -702,6 +702,30 @@ async def update_delivery_stage(
     return quotation
 
 
+async def advance_stage_if_fulfilled(db: AsyncSession, quotation: Quotation) -> None:
+    """Moves an order to Confirmed once it is fully billed, shipped and paid.
+
+    Called after every invoice/challan/payment write so the stage — and the
+    dot meter on the Orders screen that reads it — never sits stale behind
+    documents that already say the order is done. Deliberately silent: the
+    Confirmed-stage email means "we're now preparing your order", which would
+    read backwards sent to someone whose order already arrived, so this path
+    never sends it (see admin_operations.update_delivery, the only place that
+    does, for an admin choosing to confirm early).
+    """
+    if quotation.confirmation is None:
+        return
+    if clamp_stage(quotation.confirmation.delivery_stage) == MAX_STAGE:
+        return
+    delivered = await delivered_in_full(db, quotation)
+    if not delivered:
+        return
+    position = await payment_position(db, quotation)
+    if position["payment_status"] != "received":
+        return
+    await update_delivery_stage(db, quotation.confirmation.tracking_id, MAX_STAGE)
+
+
 # ---------------------------------------------------------------------------
 # Orders
 # ---------------------------------------------------------------------------

@@ -397,6 +397,9 @@ async def add_payment(
         received_at=payload.received_at,
     )
     quotation = await ops.get_quotation(db, updated.quotation_id)
+    if quotation is not None:
+        await ops.advance_stage_if_fulfilled(db, quotation)
+        quotation = await ops.get_quotation(db, updated.quotation_id)
     return _invoice_out(updated, quotation)
 
 
@@ -412,6 +415,9 @@ async def set_invoice_status(
     except svc.TransitionRefused as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     quotation = await ops.get_quotation(db, updated.quotation_id)
+    if quotation is not None:
+        await ops.advance_stage_if_fulfilled(db, quotation)
+        quotation = await ops.get_quotation(db, updated.quotation_id)
     return _invoice_out(updated, quotation)
 
 
@@ -620,13 +626,12 @@ async def deliver_challan(
     updated = await svc.deliver_challan(db, challan, signed_document_url=url)
     quotation = await ops.get_quotation(db, updated.quotation_id)
 
-    # The order's own delivery is complete once every line has shipped, which
-    # is derived rather than set by hand so a later cancellation reopens it.
-    if quotation is not None and await svc.delivery_is_complete(db, quotation):
-        await ops.update_delivery_stage(
-            db, quotation.confirmation.tracking_id, ops.MAX_STAGE
-        )
-        logger.info("Order %s fully delivered", quotation.id)
+    # Stage only advances once the order is fully shipped AND fully paid —
+    # see advance_stage_if_fulfilled. A delivered-but-unpaid order stays at
+    # Pending so the dot meter still flags the outstanding payment.
+    if quotation is not None:
+        await ops.advance_stage_if_fulfilled(db, quotation)
+        quotation = await ops.get_quotation(db, updated.quotation_id)
 
     return _challan_out(updated, quotation)
 
@@ -643,4 +648,7 @@ async def set_challan_status(
     except svc.TransitionRefused as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     quotation = await ops.get_quotation(db, updated.quotation_id)
+    if quotation is not None:
+        await ops.advance_stage_if_fulfilled(db, quotation)
+        quotation = await ops.get_quotation(db, updated.quotation_id)
     return _challan_out(updated, quotation)

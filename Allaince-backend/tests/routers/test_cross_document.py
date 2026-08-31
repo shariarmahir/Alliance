@@ -105,7 +105,9 @@ async def test_the_po_number_on_a_document_follows_the_order(client, db):
 async def test_a_delivered_order_reports_completed_delivery(client, db):
     """Section B's Completed: when the total ordered quantity has been
     delivered, the Work Order delivery status becomes Completed
-    automatically -- across both lines, not just the first."""
+    automatically -- across both lines, not just the first. The order's own
+    stage only follows once payment is in too, so this raises and pays an
+    invoice for the full amount alongside the delivery."""
     qid = await _confirmed(client)
     ch = (await client.post("/api/admin/challans", json={
         "quotationId": qid,
@@ -116,6 +118,12 @@ async def test_a_delivered_order_reports_completed_delivery(client, db):
                       json={"vehicleNumber": "DHK-1", "driverInfo": "Karim",
                             "receiverName": "Store", "remarks": ""})
     await client.post(f"/api/admin/challans/{ch['id']}/deliver")
+
+    invoice = (await client.post("/api/admin/invoices", json={
+        "quotationId": qid, "lines": LINES})).json()
+    await client.post(f"/api/admin/invoices/{invoice['id']}/approve")
+    await client.post(f"/api/admin/invoices/{invoice['id']}/payments",
+                      json={"amount": 2000.0, "method": "bank", "reference": "TXN-1"})
 
     # MAX_STAGE is the last entry in DELIVERY_STAGES, not a fixed number:
     # asserting a literal here would break the moment a stage is added.

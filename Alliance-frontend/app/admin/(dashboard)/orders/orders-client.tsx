@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileText, Mail, ReceiptText, Wallet } from "lucide-react";
+import { CheckCircle2, Download, FileText, Mail, ReceiptText, Wallet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -227,6 +227,59 @@ function docStatus(
   return complete ? { label: "COMPLETE", tone: "ok" } : { label: "PARTIAL", tone: "warn" };
 }
 
+const DOT_TONE: Record<PillTone, string> = {
+  ok: "bg-ok-dot",
+  warn: "bg-accent",
+  danger: "bg-[#c22]",
+  info: "bg-primary",
+  neutral: "bg-[#c8d0da]",
+};
+
+// A step's dot is grey until something has happened at all, amber while it's
+// short of done, and green once it is — same vocabulary as the pill columns,
+// compressed to fit next to the row's action buttons instead of taking a
+// column of its own.
+function StepDot({ tone, label }: { tone: PillTone; label: string }) {
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className={`size-2.5 shrink-0 rounded-full ${DOT_TONE[tone]}`}
+    />
+  );
+}
+
+// Read-only order-progress meter: one dot per stage (invoice, challan,
+// payment), lighting up as each is raised and then completed, with a check
+// once every stage — and therefore the order itself — is done. Replaces the
+// old Pending/Confirmed dropdown: the stage it set is now derived
+// automatically from these same three signals (advance_stage_if_fulfilled on
+// the backend), so there is nothing left for an admin to pick by hand.
+function ProgressMeter({
+  invoiceTone,
+  challanTone,
+  paid,
+  complete,
+}: {
+  invoiceTone: PillTone;
+  challanTone: PillTone;
+  paid: boolean;
+  complete: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5">
+      <StepDot tone={invoiceTone} label="Invoice" />
+      <StepDot tone={challanTone} label="Challan" />
+      <StepDot tone={paid ? "ok" : "warn"} label="Payment" />
+      {complete ? (
+        <CheckCircle2 className="size-3.5 text-ok" aria-label="Order complete" />
+      ) : (
+        <span className="text-[10.5px] font-semibold text-ink-muted">In progress</span>
+      )}
+    </div>
+  );
+}
+
 function OrderRow({
   quotation,
   hasInvoice,
@@ -248,25 +301,6 @@ function OrderRow({
   const invoiceComplete = (confirmation.amountInvoiced ?? 0) >= confirmation.grandTotal;
   const invoicePill = docStatus(hasInvoice, invoiceComplete);
   const challanPill = docStatus(hasChallan, confirmation.deliveryComplete ?? false);
-
-  async function setStage(next: number) {
-    setBusy(true);
-    try {
-      await apiFetch(
-        `/api/admin/quotations/${encodeURIComponent(quotation.id)}/delivery`,
-        { method: "PATCH", body: { stage: next } }
-      );
-      toast.success(`Marked ${DELIVERY_STAGES[next].label.toLowerCase()}.`, {
-        description:
-          next === MAX_STAGE ? "A confirmation email has been sent to the customer." : undefined,
-      });
-      onChanged();
-    } catch {
-      toast.error("Could not update the order status.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function cancel() {
     setBusy(true);
@@ -345,18 +379,12 @@ function OrderRow({
       </td>
       <td className={TD}>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={stage}
-            disabled={busy}
-            onChange={(e) => setStage(Number(e.target.value))}
-            className="rounded-md border border-[#dde3ea] bg-white px-2 py-1.5 text-[11.5px] font-semibold text-ink-soft outline-none transition-colors hover:border-primary focus:border-primary disabled:opacity-60"
-          >
-            {DELIVERY_STAGES.map((s, i) => (
-              <option key={s.label} value={i}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          <ProgressMeter
+            invoiceTone={invoicePill.tone}
+            challanTone={challanPill.tone}
+            paid={paid}
+            complete={stage >= MAX_STAGE}
+          />
           <button
             type="button"
             onClick={download}
