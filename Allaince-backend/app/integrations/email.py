@@ -1,5 +1,6 @@
 import logging
 import re
+from contextvars import ContextVar
 from html import escape
 
 from app.config import settings
@@ -9,6 +10,56 @@ logger = logging.getLogger("app.email")
 
 def _configured() -> bool:
     return bool(settings.resend_api_key)
+
+
+class SendFailure(RuntimeError):
+    """Why a send failed, in words an admin can act on.
+
+    send_email still returns a bool, because most callers only branch on
+    success. This carries the reason alongside it for the ones that surface
+    an error to a person: "check the mail configuration" is actively
+    misleading when the configuration is fine and the account has simply run
+    out of daily quota.
+    """
+
+    def __init__(self, message: str, *, status: int = 502):
+        super().__init__(message)
+        self.status = status
+
+
+# Why the most recent send in *this task* failed. A ContextVar rather than a
+# plain global: the API serves requests concurrently on one event loop, and a
+# module-level value would let one request report the failure reason belonging
+# to another. Each asyncio task gets its own view, and it is reset at the start
+# of every send so a stale reason cannot outlive the failure that set it.
+_last_failure: ContextVar[SendFailure | None] = ContextVar(
+    "email_last_failure", default=None
+)
+
+
+def last_failure() -> SendFailure | None:
+    """The reason the most recent send failed, or None if it succeeded."""
+    return _last_failure.get()
+
+
+def _classify(exc: Exception) -> SendFailure:
+    """Turns a Resend exception into something worth showing an admin."""
+    name = type(exc).__name__
+    text = str(exc)
+
+    if "RateLimit" in name or "quota" in text.lower():
+        return SendFailure(
+            "The mail provider's daily sending quota has been reached. "
+            "Sending resumes when the quota resets, or upgrade the Resend plan.",
+            status=429,
+        )
+    if "Validation" in name or "not verified" in text.lower():
+        return SendFailure(f"The mail provider rejected the message: {text}", status=422)
+    if "Authentication" in name or "api_key" in text.lower() or "unauthorized" in text.lower():
+        return SendFailure(
+            "The mail provider rejected the API key. Check RESEND_API_KEY.", status=502
+        )
+    return SendFailure(f"The mail provider could not send this message: {text}", status=502)
 
 
 async def send_email(
@@ -27,8 +78,16 @@ async def send_email(
     what makes the answer appear under the original in the recipient's client
     instead of starting a new conversation.
     """
+    _last_failure.set(None)
+
     if not _configured():
         logger.info("Email not configured; skipping send of %r to %s", subject, to)
+        _last_failure.set(
+            SendFailure(
+                "Email sending is not configured on the server. Set RESEND_API_KEY.",
+                status=503,
+            )
+        )
         return False
 
     try:
@@ -49,8 +108,9 @@ async def send_email(
             params["reply_to"] = reply_to
         resend.Emails.send(params)
         return True
-    except Exception:
+    except Exception as exc:
         logger.exception("Resend send failed for %r", subject)
+        _last_failure.set(_classify(exc))
         return False
 
 

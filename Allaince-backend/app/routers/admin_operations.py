@@ -342,8 +342,14 @@ async def email_quotation(
 
     sent = await email_integration.send_quotation_issued(quotation, pdf_bytes)
     if not sent:
+        # The provider's own reason, when it gave one: a spent daily quota
+        # and a bad API key both used to read "check the mail
+        # configuration", which sends an admin to fix something that is not
+        # broken.
+        failure = email_integration.last_failure()
         raise HTTPException(
-            status_code=502, detail="Email could not be sent. Check the mail configuration."
+            status_code=failure.status if failure else 502,
+            detail=str(failure) if failure else "Email could not be sent.",
         )
 
     # Only after a confirmed send: "submitted" has to mean the customer
@@ -441,8 +447,14 @@ async def email_receipt(
 
     sent = await email_integration.send_receipt(quotation, pdf_bytes)
     if not sent:
+        # The provider's own reason, when it gave one: a spent daily quota
+        # and a bad API key both used to read "check the mail
+        # configuration", which sends an admin to fix something that is not
+        # broken.
+        failure = email_integration.last_failure()
         raise HTTPException(
-            status_code=502, detail="Email could not be sent. Check the mail configuration."
+            status_code=failure.status if failure else 502,
+            detail=str(failure) if failure else "Email could not be sent.",
         )
     logger.info("%s emailed receipt for %s", session.email, quotation_id)
     return {"sent": True, "attached": True}

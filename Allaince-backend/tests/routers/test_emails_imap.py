@@ -414,3 +414,80 @@ async def test_replying_is_super_admin_only(client, db, fake_imap, sent_mail):
 
     assert response.status_code == 403
     assert sent_mail == []
+
+
+# --- Why a send failed ------------------------------------------------------
+#
+# Every send failure used to surface as "check the mail configuration". A
+# spent daily quota is not a misconfiguration, and telling an admin to fix
+# settings that are already correct sends them looking in the wrong place.
+
+
+def test_a_spent_quota_is_reported_as_a_quota_problem():
+    from app.integrations import email as e
+
+    class RateLimitError(Exception):
+        pass
+
+    failure = e._classify(RateLimitError("You have reached your daily email sending quota."))
+    assert failure.status == 429
+    assert "quota" in str(failure).lower()
+    assert "configuration" not in str(failure).lower()
+
+
+def test_a_rejected_key_is_reported_as_a_key_problem():
+    from app.integrations import email as e
+
+    class AuthenticationError(Exception):
+        pass
+
+    failure = e._classify(AuthenticationError("invalid api_key"))
+    assert failure.status == 502
+    assert "RESEND_API_KEY" in str(failure)
+
+
+def test_an_unconfigured_sender_says_so(monkeypatch):
+    from app.config import settings
+    from app.integrations import email as e
+
+    monkeypatch.setattr(settings, "resend_api_key", None)
+
+    async def _run():
+        assert await e.send_email("a@b.com", "S", "<p>x</p>") is False
+        failure = e.last_failure()
+        assert failure is not None
+        assert failure.status == 503
+        assert "RESEND_API_KEY" in str(failure)
+
+    import asyncio
+
+    asyncio.run(_run())
+
+
+def test_a_successful_send_clears_the_previous_failure(monkeypatch):
+    """Otherwise a stale reason from an earlier request gets reported against
+    a send that actually worked."""
+    from app.config import settings
+    from app.integrations import email as e
+
+    monkeypatch.setattr(settings, "resend_api_key", "re_test")
+
+    sent: list[dict] = []
+
+    class FakeEmails:
+        @staticmethod
+        def send(params):
+            sent.append(params)
+
+    fake_module = type("FakeResend", (), {"Emails": FakeEmails, "api_key": None})
+    monkeypatch.setitem(__import__("sys").modules, "resend", fake_module)
+
+    import asyncio
+
+    async def _run():
+        e._last_failure.set(e.SendFailure("stale", status=429))
+        assert await e.send_email("a@b.com", "S", "<p>x</p>") is True
+        assert e.last_failure() is None
+
+    asyncio.run(_run())
+    assert len(sent) == 1

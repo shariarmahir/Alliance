@@ -263,11 +263,13 @@ async def reply_to_thread(
         headers=headers or None,
     )
     if not sent:
-        # Resend unconfigured or refusing: say so rather than reporting a
-        # reply the customer will never receive.
+        # Say why, rather than reporting a reply the customer will never
+        # receive. A spent daily quota and a bad API key need different
+        # actions from whoever is reading this.
+        failure = email_integration.last_failure()
         raise HTTPException(
-            status_code=502,
-            detail="Could not send the reply. Check the mail sending configuration.",
+            status_code=failure.status if failure else 502,
+            detail=str(failure) if failure else "Could not send the reply.",
         )
 
     logger.info("%s replied to %s (%s)", session.email, recipient, thread_id)

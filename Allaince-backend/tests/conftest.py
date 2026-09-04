@@ -12,6 +12,18 @@ os.environ.setdefault("SESSION_SECRET", "test-secret-must-be-at-least-32-charact
 os.environ.setdefault("GMAIL_TOKEN_ENCRYPTION_SECRET", "test-secret-must-be-at-least-32-characters")
 os.environ.setdefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 
+# The suite must never send real mail. Settings falls back to .env for
+# anything unset, so on a developer machine with working credentials every
+# test that triggers a notification was posting to Resend for real -- burning
+# the account's daily quota and making the tests depend on someone else's
+# service being up. Forced (not setdefault) so a key exported in the shell
+# cannot reintroduce it.
+os.environ["RESEND_API_KEY"] = ""
+# Same reasoning for the mailbox: no test should reach a live IMAP server.
+os.environ["IMAP_HOST"] = ""
+os.environ["IMAP_USERNAME"] = ""
+os.environ["IMAP_PASSWORD"] = ""
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
