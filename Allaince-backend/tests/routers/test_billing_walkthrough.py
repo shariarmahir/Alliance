@@ -118,19 +118,13 @@ async def test_section_a_invoice_end_to_end(client, db, monkeypatch):
         f"/api/admin/invoices/{inv['id']}", json={"discount": 0.0}
     )).status_code == 409
 
-    # -- items 17-19: send by e-mail, then Submitted -----------------------
-    import app.routers.billing as billing_router
-    sent = {}
-
-    async def _fake_send(quotation, pdf_bytes=None, invoice=None):
-        sent["number"] = invoice.invoice_number
-        return True
-
-    monkeypatch.setattr(billing_router.email_integration, "send_invoice", _fake_send)
-    submitted = await client.post(f"/api/admin/invoices/{inv['id']}/send")
+    # -- items 17-19: submit, then Submitted -------------------------------
+    # Invoices go to the customer outside this system, so Submit records that
+    # it has gone out rather than sending anything.
+    submitted = await client.post(f"/api/admin/invoices/{inv['id']}/submit")
     assert submitted.status_code == 200, submitted.text
     assert submitted.json()["status"] == "submitted"
-    assert sent["number"] == approved["invoiceNumber"]
+    assert submitted.json()["invoiceNumber"] == approved["invoiceNumber"]
 
     # -- items 20-22: Unpaid -> Partially Paid -> Paid ---------------------
     part = (await client.post(f"/api/admin/invoices/{inv['id']}/payments", json={

@@ -4,7 +4,6 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
 from app.core.deps import DbSession, require_any_area, require_area
-from app.integrations import email as email_integration
 from app.integrations import pdf as pdf_integration
 from app.integrations.object_storage import (
     ImageRejected,
@@ -333,45 +332,34 @@ async def approve_invoice(invoice_id: str, db: DbSession, session: AdminSession 
     return _invoice_out(updated, quotation)
 
 
-@router.post("/invoices/{invoice_id}/send", response_model=InvoiceOut)
-async def send_invoice_email(
+@router.post("/invoices/{invoice_id}/submit", response_model=InvoiceOut)
+async def submit_invoice(
     invoice_id: str, db: DbSession, session: AdminSession = InvoicesArea
 ):
-    """Item 17-19: e-mail the approved invoice, then mark it Submitted.
+    """Marks an approved invoice Submitted.
 
-    The status moves on a confirmed send, never on the click. An invoice
-    recorded as delivered to a customer who never received it is worse than
-    one still sitting in Pending, because nobody chases it.
+    Invoices are delivered to the customer outside this system, so this
+    records that it has gone out rather than sending anything itself. It
+    replaces the earlier e-mail action, which coupled the status change to a
+    successful send.
 
-    The PDF is rendered here rather than accepted from the browser: this is
-    the customer's copy of a financial document, and the server's own render
-    is the one that matches the stored figures.
+    Approval is still required first: the number is what identifies the
+    document to the customer, and submitting one that has none would put a
+    nameless invoice into their hands.
     """
     invoice = await svc.get_invoice(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found.")
     if invoice.invoice_number is None:
         raise HTTPException(
-            status_code=409, detail="Approve the invoice before sending it."
+            status_code=409, detail="Approve the invoice before submitting it."
         )
     quotation = await ops.get_quotation(db, invoice.quotation_id)
     if quotation is None:
         raise HTTPException(status_code=404, detail="Linked order not found.")
 
-    try:
-        pdf_bytes = pdf_integration.render_invoice_document_pdf(invoice, quotation)
-    except pdf_integration.PdfUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-    sent = await email_integration.send_invoice(quotation, pdf_bytes, invoice=invoice)
-    if not sent:
-        raise HTTPException(
-            status_code=502,
-            detail="Email could not be sent. The invoice stays pending so you can retry.",
-        )
-
     updated = await svc.mark_invoice_submitted(db, invoice)
-    logger.info("%s emailed invoice %s", session.email, updated.invoice_number)
+    logger.info("%s submitted invoice %s", session.email, updated.invoice_number)
     return _invoice_out(updated, quotation)
 
 
@@ -521,45 +509,6 @@ async def update_challan(
     except svc.OverDelivery as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _challan_out(updated, quotation)
-
-
-@router.post("/challans/{challan_id}/send", response_model=ChallanOut)
-async def send_challan_email(
-    challan_id: str, db: DbSession, session: AdminSession = ChallansArea
-):
-    """E-mails the approved challan, so the customer knows what is coming
-    before the vehicle arrives.
-
-    Unlike the invoice this does not advance the status: a challan becomes
-    Dispatched when goods leave, which is a physical event that sending an
-    e-mail does not cause.
-    """
-    challan = await svc.get_challan(db, challan_id)
-    if challan is None:
-        raise HTTPException(status_code=404, detail="Challan not found.")
-    if challan.challan_number is None:
-        raise HTTPException(
-            status_code=409, detail="Approve the challan before sending it."
-        )
-    quotation = await ops.get_quotation(db, challan.quotation_id)
-    if quotation is None:
-        raise HTTPException(status_code=404, detail="Linked order not found.")
-
-    rows = await svc.order_balances(db, quotation, exclude_challan=challan.id)
-    balances = {row["slug"]: row for row in rows}
-
-    try:
-        pdf_bytes = pdf_integration.render_challan_document_pdf(challan, quotation, balances)
-    except pdf_integration.PdfUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-    sent = await email_integration.send_challan(quotation, pdf_bytes)
-    if not sent:
-        raise HTTPException(
-            status_code=502, detail="Email could not be sent. Check the mail configuration."
-        )
-    logger.info("%s emailed challan %s", session.email, challan.challan_number)
-    return _challan_out(challan, quotation)
 
 
 @router.post("/challans/{challan_id}/approve", response_model=ChallanOut)

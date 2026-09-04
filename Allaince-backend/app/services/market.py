@@ -24,6 +24,7 @@ change without warning; every extractor returns empty rather than raising, so
 a redesign at CSE degrades this panel instead of breaking the dashboard.
 """
 
+import asyncio
 import logging
 import re
 import ssl

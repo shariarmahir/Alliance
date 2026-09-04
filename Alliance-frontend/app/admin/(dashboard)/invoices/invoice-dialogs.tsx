@@ -387,8 +387,11 @@ export function EditInvoiceDialog({
   );
 }
 
-// Item 17-19: send, then Submitted. The status moves on a confirmed send.
-export function SendInvoiceButton({
+// Marks an approved invoice Submitted. Invoices are delivered to the customer
+// outside this system, so this records that it has gone out rather than
+// sending anything -- it replaces the earlier e-mail action, which coupled
+// the status change to a successful send.
+export function SubmitInvoiceButton({
   invoice,
   onDone,
 }: {
@@ -396,40 +399,40 @@ export function SendInvoiceButton({
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [sending, setSending] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  async function send() {
-    setSending(true);
-    const toastId = toast.loading("Sending the invoice...");
+  async function submit() {
+    setSubmitting(true);
+    const toastId = toast.loading("Submitting the invoice...");
     try {
-      await apiFetch(`/api/admin/invoices/${encodeURIComponent(invoice.id)}/send`, {
+      await apiFetch(`/api/admin/invoices/${encodeURIComponent(invoice.id)}/submit`, {
         method: "POST",
       });
-      toast.success("Invoice sent", {
+      toast.success("Invoice submitted", {
         id: toastId,
-        description: `${invoice.invoiceNumber} delivered. Moved to Submitted.`,
+        description: `${invoice.invoiceNumber} moved to Submitted.`,
         duration: 7000,
       });
       onDone();
       router.refresh();
     } catch (error) {
       toast.error(
-        error instanceof ApiError ? error.message : "Could not send the invoice.",
+        error instanceof ApiError ? error.message : "Could not submit the invoice.",
         { id: toastId, description: "It stays pending, so you can retry." }
       );
     } finally {
-      setSending(false);
+      setSubmitting(false);
     }
   }
 
   return (
     <button
       type="button"
-      onClick={send}
-      disabled={sending}
+      onClick={submit}
+      disabled={submitting}
       className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary bg-[#eaf4fb] px-2.5 py-1.5 text-[11.5px] font-semibold text-primary transition-colors hover:bg-primary hover:text-white disabled:opacity-60"
     >
-      <Send className="size-3.5" /> {sending ? "Sending..." : "Send E-mail"}
+      <Send className="size-3.5" /> {submitting ? "Submitting..." : "Submit"}
     </button>
   );
 }

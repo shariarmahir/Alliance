@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye, Pencil, Send } from "lucide-react";
+import { Eye, Pencil } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -306,33 +306,3 @@ export function EditChallanDialog({
   );
 }
 
-export function SendChallanButton({ challan }: { challan: Challan }) {
-  const [sending, setSending] = useState(false);
-
-  async function send() {
-    setSending(true);
-    const toastId = toast.loading("Sending the challan...");
-    try {
-      await apiFetch(`/api/admin/challans/${encodeURIComponent(challan.id)}/send`, {
-        method: "POST",
-      });
-      toast.success("Challan sent", {
-        id: toastId,
-        description: `${challan.challanNumber} delivered to the customer.`,
-      });
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not send the challan.",
-        { id: toastId }
-      );
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <button type="button" onClick={send} disabled={sending} className={BTN}>
-      <Send className="size-3.5" /> {sending ? "Sending..." : "E-mail"}
-    </button>
-  );
-}

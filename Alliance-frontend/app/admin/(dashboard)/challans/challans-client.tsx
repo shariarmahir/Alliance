@@ -39,7 +39,6 @@ import { OrderSummary, composeDeliveryAddress } from "../order-summary";
 import {
   ViewChallanDialog,
   EditChallanDialog,
-  SendChallanButton,
 } from "./challan-dialogs";
 import type { Challan, ChallanStatus, OrderBalanceLine } from "@/app/lib/admin-data";
 import type { Quotation } from "@/app/lib/types";
@@ -533,7 +532,6 @@ function ChallanRow({ challan, onChanged }: { challan: Challan; onChanged: () =>
           )}
           {challan.challanNumber !== null && challan.status === "pending" && (
             <>
-              <SendChallanButton challan={challan} />
               <DispatchDialog challan={challan} onDone={onChanged} />
             </>
           )}

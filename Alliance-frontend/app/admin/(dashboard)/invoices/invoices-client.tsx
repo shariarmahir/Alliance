@@ -40,7 +40,7 @@ import { OrderSummary } from "../order-summary";
 import {
   ViewInvoiceDialog,
   EditInvoiceDialog,
-  SendInvoiceButton,
+  SubmitInvoiceButton,
 } from "./invoice-dialogs";
 import type {
   Invoice,
@@ -527,7 +527,7 @@ function InvoiceRow({ invoice, onChanged }: { invoice: Invoice; onChanged: () =>
           ) : (
             <>
               {invoice.status === "pending" && (
-                <SendInvoiceButton invoice={invoice} onDone={onChanged} />
+                <SubmitInvoiceButton invoice={invoice} onDone={onChanged} />
               )}
               <RecordPaymentDialog invoice={invoice} onDone={onChanged} />
               {invoice.status === "paid" && (

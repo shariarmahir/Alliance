@@ -541,69 +541,6 @@ async def test_payment_status_rejects_an_unknown_value(client, db):
     assert r.status_code == 422
 
 
-async def test_invoice_email_sends_the_supplied_pdf(client, db):
-    """The invoice is rendered in the browser, so those bytes are what the
-    customer must receive."""
-    import base64
-    from unittest.mock import AsyncMock, patch
-
-    _auth(client)
-    quotation_id = await _issued_quotation(client, db)
-    supplied = b"%PDF-1.4 invoice"
-
-    with patch(
-        "app.routers.admin_operations.email_integration.send_invoice",
-        new=AsyncMock(return_value=True),
-    ) as send:
-        r = await client.post(
-            f"/api/admin/quotations/{quotation_id}/invoice/email",
-            json={"pdfBase64": base64.b64encode(supplied).decode()},
-        )
-
-    assert r.status_code == 200
-    assert send.await_args.args[1] == supplied
-
-
-async def test_invoice_email_requires_a_pdf(client, db):
-    _auth(client)
-    quotation_id = await _issued_quotation(client, db)
-    r = await client.post(f"/api/admin/quotations/{quotation_id}/invoice/email", json={})
-    assert r.status_code == 422
-
-
-async def test_challan_email_sends_the_supplied_pdf(client, db):
-    """The challan layout exists only in the browser builder, so the bytes
-    posted here are what the customer must receive."""
-    import base64
-    from unittest.mock import AsyncMock, patch
-
-    _auth(client)
-    quotation_id = await _issued_quotation(client, db)
-    supplied = b"%PDF-1.4 challan"
-
-    with patch(
-        "app.routers.admin_operations.email_integration.send_challan",
-        new=AsyncMock(return_value=True),
-    ) as send:
-        r = await client.post(
-            f"/api/admin/quotations/{quotation_id}/challan/email",
-            json={"pdfBase64": base64.b64encode(supplied).decode()},
-        )
-
-    assert r.status_code == 200
-    assert send.await_args.args[1] == supplied
-
-
-async def test_challan_email_requires_a_pdf(client, db):
-    """There is no server-side challan renderer to fall back on, so a caller
-    that sends nothing must get a clear error rather than an email with the
-    wrong document attached."""
-    _auth(client)
-    quotation_id = await _issued_quotation(client, db)
-    r = await client.post(f"/api/admin/quotations/{quotation_id}/challan/email", json={})
-    assert r.status_code == 422
-
-
 async def test_receipt_email_requires_payment_to_be_received(client, db):
     """A receipt asserts money arrived. Emailing one for an unpaid order would
     put a claim in the customer's inbox that the business cannot support, so
@@ -657,13 +594,15 @@ async def test_receipt_email_requires_a_pdf(client, db):
     assert r.status_code == 422
 
 
-async def test_challan_email_rejects_a_non_pdf(client, db):
+async def test_emailing_rejects_a_non_pdf_attachment(client, db):
+    """_decode_pdf guards every e-mail route: anything posted as an
+    attachment is checked rather than trusted."""
     import base64
 
     _auth(client)
     quotation_id = await _issued_quotation(client, db)
     r = await client.post(
-        f"/api/admin/quotations/{quotation_id}/challan/email",
+        f"/api/admin/quotations/{quotation_id}/email",
         json={"pdfBase64": base64.b64encode(b"<html>nope").decode()},
     )
     assert r.status_code == 422
