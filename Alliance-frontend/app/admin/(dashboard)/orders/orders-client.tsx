@@ -3,8 +3,18 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { jsPDF } from "jspdf";
 import { toast } from "sonner";
-import { CheckCircle2, Download, FileText, Mail, ReceiptText, Wallet } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Download,
+  FileText,
+  History,
+  Mail,
+  ReceiptText,
+  Wallet,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +38,7 @@ import {
 } from "../admin-ui";
 import { apiFetch, ApiError } from "@/app/lib/api-browser";
 import { downloadReceiptPdf, receiptPdfToBase64 } from "@/app/lib/challan-pdf";
+import { drawHeader, drawFooter, INK, MUTED, LINE, HEAD_BG, setColor, ascii, loadImage } from "@/app/lib/quotation-pdf";
 import { DELIVERY_STAGES, MAX_STAGE, clampStage } from "@/app/lib/delivery";
 import { PaymentsPanel } from "./payments-panel";
 import type { PaymentAnalytics } from "@/app/lib/admin-data";
@@ -279,6 +290,178 @@ function ProgressMeter({
   );
 }
 
+function historyEvents(
+  quotation: Quotation,
+  hasInvoice: boolean,
+  hasChallan: boolean
+): { label: string; at: string | null; done: boolean }[] {
+  const c = quotation.confirmation!;
+  return [
+    { label: "Order confirmed", at: c.issuedAt, done: true },
+    { label: "Invoice raised", at: hasInvoice ? c.deliveryUpdatedAt ?? c.issuedAt : null, done: hasInvoice },
+    {
+      label: "Challan dispatched",
+      at: hasChallan ? c.deliveryUpdatedAt ?? null : null,
+      done: hasChallan,
+    },
+    { label: "Payment received", at: c.paymentReceivedAt ?? null, done: c.paymentStatus === "received" },
+    {
+      label: "Delivery completed",
+      at: c.deliveryComplete ? c.deliveryUpdatedAt ?? null : null,
+      done: !!c.deliveryComplete,
+    },
+  ];
+}
+
+function when(at: string | null): string {
+  if (!at) return "Not yet";
+  return new Date(at).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+async function downloadOrderHistoryPdf(
+  quotation: Quotation,
+  hasInvoice: boolean,
+  hasChallan: boolean
+) {
+  const c = quotation.confirmation!;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const rawText = doc.text.bind(doc) as any;
+  doc.text = ((t: string | string[], ...rest: any[]) =>
+    rawText(Array.isArray(t) ? t.map(ascii) : ascii(String(t)), ...rest)) as typeof doc.text;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  const logo = await loadImage("/logo-mark.png");
+  drawHeader(doc, logo, "Order History");
+
+  let y = 42;
+  doc.setFont("helvetica", "normal").setFontSize(10);
+  setColor(doc, INK);
+  doc.text(quotation.details.companyName || quotation.details.fullName, 18, y);
+  y += 5.5;
+  setColor(doc, MUTED);
+  doc.text(`Ref: ${c.refNumber}`, 18, y);
+  y += 10;
+
+  const rows = historyEvents(quotation, hasInvoice, hasChallan);
+  doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
+  doc.setFillColor(HEAD_BG[0], HEAD_BG[1], HEAD_BG[2]);
+  doc.rect(18, y, 174, 8, "F");
+  doc.rect(18, y, 174, 8);
+  doc.setFont("helvetica", "bold").setFontSize(9.5);
+  setColor(doc, INK);
+  doc.text("Milestone", 22, y + 5.5);
+  doc.text("Status", 190 - 4, y + 5.5, { align: "right" });
+  y += 8;
+
+  doc.setFont("helvetica", "normal").setFontSize(9.5);
+  rows.forEach((row) => {
+    doc.rect(18, y, 174, 9);
+    setColor(doc, INK);
+    doc.text(row.label, 22, y + 6);
+    setColor(doc, row.done ? INK : MUTED);
+    doc.text(row.done ? when(row.at) : "Pending", 190 - 4, y + 6, { align: "right" });
+    y += 9;
+  });
+
+  y += 8;
+  doc.setFont("helvetica", "bold").setFontSize(10);
+  setColor(doc, INK);
+  doc.text(`Order total: ${formatPrice(c.grandTotal)}`, 18, y);
+
+  drawFooter(doc);
+  doc.save(`Order-History-${c.refNumber.replace(/[/\\]/g, "-")}.pdf`);
+}
+
+// Once an order is Confirmed, the raise/prepare actions no longer apply — the
+// documents against it already exist or don't, and this is now a completed
+// record rather than something being worked. History replaces them: a read
+// -only look back at what happened and when, plus a copy an admin can keep.
+function OrderHistoryDialog({
+  quotation,
+  hasInvoice,
+  hasChallan,
+}: {
+  quotation: Quotation;
+  hasInvoice: boolean;
+  hasChallan: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const rows = historyEvents(quotation, hasInvoice, hasChallan);
+
+  async function download() {
+    setBusy(true);
+    try {
+      await downloadOrderHistoryPdf(quotation, hasInvoice, hasChallan);
+    } catch {
+      toast.error("Could not generate the order history.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <History className="size-3.5" /> Complete Order History
+          </button>
+        }
+      />
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-[17px] font-bold text-ink">Order history</DialogTitle>
+          <DialogDescription className="font-mono text-[11.5px] text-[#8a94a6]">
+            {quotation.confirmation!.refNumber} &middot;{" "}
+            {quotation.details.companyName || quotation.details.fullName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ol className="space-y-3">
+          {rows.map((row) => (
+            <li key={row.label} className="flex items-start gap-3">
+              {row.done ? (
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" />
+              ) : (
+                <Clock className="mt-0.5 size-4 shrink-0 text-[#c8d0da]" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className={`text-[12.5px] font-semibold ${row.done ? "text-ink" : "text-ink-muted"}`}>
+                  {row.label}
+                </p>
+                <p className="text-[11.5px] text-[#8a94a6]">{when(row.at)}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex justify-end border-t border-hairline pt-4">
+          <button
+            type="button"
+            onClick={download}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-[9px] border border-slate-line bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+          >
+            <Download className="size-4" />
+            {busy ? "Preparing..." : "Download the History"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OrderRow({
   quotation,
   hasInvoice,
@@ -372,26 +555,34 @@ function OrderRow({
             paid={paid}
             complete={stage >= MAX_STAGE}
           />
-          <PaymentDialog quotation={quotation} />
-          {/* These open the real Prepare windows on the Challans and Invoices
-              screens, carrying this order so the window opens on it.
-              They used to render a client-side PDF instead, which created no
-              record on either screen and numbered itself by rewriting the
-              quotation ref -- AIT/M/Q-0003 became AIT/M/I-0003, while the
-              real series issues I-0001 upward, so two different invoices
-              could carry the same number. */}
-          <Link
-            href={`/admin/challans?order=${encodeURIComponent(quotation.id)}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <FileText className="size-3.5" /> Prepare Challan
-          </Link>
-          <Link
-            href={`/admin/invoices?order=${encodeURIComponent(quotation.id)}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <ReceiptText className="size-3.5" /> Prepare Invoice
-          </Link>
+          {stage >= MAX_STAGE ? (
+            // Confirmed: nothing left to raise or prepare against this order,
+            // so the working actions give way to a read-only record of it.
+            <OrderHistoryDialog quotation={quotation} hasInvoice={hasInvoice} hasChallan={hasChallan} />
+          ) : (
+            <>
+              <PaymentDialog quotation={quotation} />
+              {/* These open the real Prepare windows on the Challans and
+                  Invoices screens, carrying this order so the window opens
+                  on it. They used to render a client-side PDF instead, which
+                  created no record on either screen and numbered itself by
+                  rewriting the quotation ref -- AIT/M/Q-0003 became
+                  AIT/M/I-0003, while the real series issues I-0001 upward, so
+                  two different invoices could carry the same number. */}
+              <Link
+                href={`/admin/challans?order=${encodeURIComponent(quotation.id)}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+              >
+                <FileText className="size-3.5" /> Prepare Challan
+              </Link>
+              <Link
+                href={`/admin/invoices?order=${encodeURIComponent(quotation.id)}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#dde3ea] px-2.5 py-1.5 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+              >
+                <ReceiptText className="size-3.5" /> Prepare Invoice
+              </Link>
+            </>
+          )}
           <RowButton tone="danger" disabled={busy} onClick={cancel}>
             Cancel
           </RowButton>
