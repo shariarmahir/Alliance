@@ -304,7 +304,11 @@ function historyEvents(
       at: hasChallan ? c.deliveryUpdatedAt ?? null : null,
       done: hasChallan,
     },
-    { label: "Payment received", at: c.paymentReceivedAt ?? null, done: c.paymentStatus === "received" },
+    {
+      label: "Payment received",
+      at: c.paymentReceivedAt ?? (c.paymentStatus === "received" ? c.deliveryUpdatedAt ?? null : null),
+      done: c.paymentStatus === "received",
+    },
     {
       label: "Delivery completed",
       at: c.deliveryComplete ? c.deliveryUpdatedAt ?? null : null,

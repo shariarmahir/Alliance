@@ -305,11 +305,27 @@ async def payment_position(db: AsyncSession, quotation: Quotation) -> dict:
     # Nothing billed means nothing can have been received, so an order with no
     # invoice reads pending rather than settled by vacuous truth.
     settled = invoiced > 0 and paid + 0.01 >= invoiced
+
+    # Latest receipt across the order's invoices, only once settled -- this is
+    # what the Orders/History screens show as "Payment received on". Derived
+    # here rather than read off the confirmation row: payment_status is
+    # already derived from the invoices, and a stored payment_received_at
+    # that isn't kept in step with it can end up marking the order paid with
+    # no date to show for it.
+    received_at = None
+    if settled:
+        received_at = await db.scalar(
+            select(func.max(InvoicePayment.received_at))
+            .join(Invoice, Invoice.id == InvoicePayment.invoice_id)
+            .where(Invoice.quotation_id == quotation.id, Invoice.status != "cancelled")
+        )
+
     return {
         "amount_invoiced": invoiced,
         "amount_paid": paid,
         "amount_outstanding": round(max(0.0, invoiced - paid), 2),
         "payment_status": "received" if settled else "pending",
+        "payment_received_at": received_at,
     }
 
 
