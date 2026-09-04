@@ -170,6 +170,15 @@ def _get_thread_sync(uid: str) -> dict | None:
         message = email.message_from_bytes(fetched[0][1])
         return {
             "id": uid,
+            # Where a reply should go, and what threads it. Reply-To wins over
+            # From when the sender asked for replies elsewhere -- ignoring it
+            # sends the answer to an address that may not be read.
+            "replyTo": _decode(message.get("Reply-To")) or _decode(message.get("From")),
+            # Carried so a reply can quote References/In-Reply-To. Without
+            # these the answer arrives as a new conversation in the
+            # customer's client rather than under the mail they sent.
+            "messageId": message.get("Message-ID", ""),
+            "references": message.get("References", ""),
             "messages": [
                 {
                     "id": uid,

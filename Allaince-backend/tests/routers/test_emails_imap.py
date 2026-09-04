@@ -297,3 +297,120 @@ async def test_the_inbox_is_super_admin_only(client, db):
 
     _auth(client, role="sub", employee_id="emp-1")
     assert (await client.get("/api/admin/emails/status")).status_code == 403
+
+
+# --- Replying ---------------------------------------------------------------
+#
+# Mail is read over IMAP but sent through Resend, so a reply is a new message
+# addressed and threaded to look like one. The mailbox stays read-only.
+
+
+@pytest.fixture
+def sent_mail(monkeypatch):
+    """Captures what would have been sent, instead of sending it."""
+    from app.routers import emails as emails_router
+
+    captured: list[dict] = []
+
+    async def _capture(to, subject, html, attachments=None, headers=None, reply_to=None):
+        captured.append(
+            {"to": to, "subject": subject, "html": html, "headers": headers}
+        )
+        return True
+
+    monkeypatch.setattr(emails_router.email_integration, "send_email", _capture)
+    return captured
+
+
+async def test_a_reply_goes_to_the_senders_address(client, fake_imap, sent_mail):
+    """The address comes from the stored message, never from the request."""
+    _auth(client)
+    response = await client.post("/api/admin/emails/101/reply", json={"body": "Our price is attached."})
+
+    assert response.status_code == 202
+    assert response.json()["to"] == "rahim@example.com"
+    assert sent_mail[0]["to"] == "rahim@example.com"
+
+
+async def test_a_reply_subject_is_prefixed_once(client, fake_imap, sent_mail):
+    """"Re: Re: ..." is what happens when a reply to a reply re-prefixes."""
+    _auth(client)
+    await client.post("/api/admin/emails/101/reply", json={"body": "Noted."})
+    assert sent_mail[0]["subject"] == "Re: Quotation for PLC"
+
+    # A subject that already carries the prefix is left alone.
+    fake_imap.messages[b"103"] = RAW_PLAIN.replace(
+        b"Subject: =?UTF-8?B?UXVvdGF0aW9uIGZvciBQTEM=?=", b"Subject: Re: Already replied"
+    )
+    await client.post("/api/admin/emails/103/reply", json={"body": "Again."})
+    assert sent_mail[1]["subject"] == "Re: Already replied"
+
+
+async def test_the_reply_quotes_the_message_it_answers(client, fake_imap, sent_mail):
+    _auth(client)
+    await client.post("/api/admin/emails/101/reply", json={"body": "Sending shortly."})
+
+    html = sent_mail[0]["html"]
+    assert "Sending shortly." in html
+    assert "6ES7215-1AG40-0XB0" in html
+
+
+async def test_the_reply_body_is_escaped_not_injected(client, fake_imap, sent_mail):
+    """The compose box is a textarea; markup typed there is content, not HTML."""
+    _auth(client)
+    await client.post(
+        "/api/admin/emails/101/reply", json={"body": "<script>alert(1)</script>"}
+    )
+
+    html = sent_mail[0]["html"]
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;" in html
+
+
+async def test_a_reply_to_a_message_that_does_not_exist_is_404(client, fake_imap, sent_mail):
+    _auth(client)
+    response = await client.post("/api/admin/emails/999/reply", json={"body": "Hello."})
+
+    assert response.status_code == 404
+    assert sent_mail == []
+
+
+async def test_an_empty_reply_is_rejected(client, fake_imap, sent_mail):
+    _auth(client)
+    response = await client.post("/api/admin/emails/101/reply", json={"body": ""})
+
+    assert response.status_code == 422
+    assert sent_mail == []
+
+
+async def test_a_reply_that_cannot_be_sent_is_reported_not_silently_dropped(
+    client, fake_imap, monkeypatch
+):
+    """Resend unconfigured returns False. Reporting success there would tell
+    an admin their answer went out when it never left the building."""
+    from app.routers import emails as emails_router
+
+    async def _fails(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr(emails_router.email_integration, "send_email", _fails)
+
+    _auth(client)
+    response = await client.post("/api/admin/emails/101/reply", json={"body": "Hello."})
+    assert response.status_code == 502
+
+
+async def test_replying_is_super_admin_only(client, db, fake_imap, sent_mail):
+    db.add(
+        Employee(
+            id="emp-2", employee_id_number="emp-2", name="Sub", email="sub2@x.com",
+            password_hash="x", role="sub", access_options=["emails"],
+        )
+    )
+    await db.commit()
+
+    _auth(client, role="sub", employee_id="emp-2", access_options=["emails"])
+    response = await client.post("/api/admin/emails/101/reply", json={"body": "Hi."})
+
+    assert response.status_code == 403
+    assert sent_mail == []

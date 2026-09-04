@@ -4,9 +4,7 @@ import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token
 import { navGroupsForRole } from "@/app/admin/nav-config";
 import { AdminShell } from "@/app/admin/admin-shell";
 
-import { readContactRequests, readQuotations, readProducts } from "@/app/lib/admin-data";
-import { MAX_STAGE } from "@/app/lib/delivery";
-import type { AdminNavCounts } from "@/app/admin/nav-config";
+import { readNavCounts } from "@/app/lib/admin-data";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -17,37 +15,21 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   // match what the screens themselves show. They were previously hardcoded to
   // the design mockup's figures (1,284 products / 9 orders / 37 quotations),
   // which contradicted the real data on every screen.
-  // A sub-admin only reaches orders/quotations/contact-requests once granted
-  // that AccessArea — read each file only when the viewer can actually see it,
-  // same reasoning as the old superAdmin-only gate, just per-area now.
-  const accessOptions = session.accessOptions ?? [];
-  const canSee = (area: (typeof accessOptions)[number]) =>
-    session.role === "super" || accessOptions.includes(area);
-  const [products, quotations, contactRequests] = await Promise.all([
-    readProducts(),
-    canSee("quotations") || canSee("orders") ? readQuotations() : [],
-    canSee("contact-requests") ? readContactRequests() : [],
-  ]);
-
-  const counts: AdminNavCounts = {
-    products: products.length,
-    lowStock: products.filter((p) => p.stock !== "in-stock").length,
-    // Orders are confirmed quotations, so both badges come from the same
-    // read. An order is pending until it is confirmed on the Orders screen.
-    pendingOrders: quotations.filter(
-      (q) => q.status === "confirmed" && (q.confirmation?.deliveryStage ?? 0) < MAX_STAGE
-    ).length,
-    // Every stage short of a decision is still work in hand, so all three
-    // count toward the badge — an untouched request, a prepared quotation and
-    // one awaiting the customer's answer all need someone to come back to it.
-    pendingQuotations: quotations.filter(
-      (q) => q.status === "inbox" || q.status === "pending" || q.status === "submitted"
-    ).length,
-    openContactRequests: contactRequests.filter((r) => !r.handled).length,
-  };
+  //
+  // One counting call, not three listing calls. This layout re-renders on
+  // every navigation, and it used to read every product, quotation and
+  // contact request in full just to take .length of them -- and listing
+  // quotations derives each order's delivery and payment position, three
+  // more queries per row. The badges only ever needed the numbers, so the
+  // backend counts them; areas this viewer cannot reach come back as zero.
+  const counts = await readNavCounts();
 
   return (
-    <AdminShell groups={navGroupsForRole(session.role, accessOptions)} session={session} counts={counts}>
+    <AdminShell
+      groups={navGroupsForRole(session.role, session.accessOptions ?? [])}
+      session={session}
+      counts={counts}
+    >
       {children}
     </AdminShell>
   );

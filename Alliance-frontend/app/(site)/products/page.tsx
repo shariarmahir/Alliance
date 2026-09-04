@@ -1,16 +1,92 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getBrands, getCategories, getProducts } from "@/app/lib/catalog-data";
 import { ProductGridCard } from "@/app/components/product-grid-card";
 import { ProductFilters } from "@/app/components/product-filters";
+import { SITE_URL } from "@/app/lib/site";
 
 const PAGE_SIZE = 24;
 
-export const metadata = {
-  title: "Industrial Automation Parts & Spares",
-  description:
-    "Browse AutoLink's catalogue of PLCs, VFDs, servo drives, HMIs, sensors and power system electronics from Siemens, Omron, Mitsubishi, Allen-Bradley, Schneider Electric and Danfoss. Shipped worldwide from Dhaka, Bangladesh.",
-  alternates: { canonical: "/products" },
-};
+const BASE_DESCRIPTION =
+  "Browse AutoLink's catalogue of PLCs, VFDs, servo drives, HMIs, sensors and power system electronics from Siemens, Omron, Mitsubishi, Allen-Bradley, Schneider Electric and Danfoss. Shipped worldwide from Dhaka, Bangladesh.";
+
+/**
+ * The catalogue's own name for a slug, falling back to a title-cased slug
+ * when it is not a known facet.
+ *
+ * Worth the lookup rather than deriving from the slug alone: "plc" title-cases
+ * to "Plc", and a search result reading "Plc Parts & Spares" looks like a
+ * mistake to the buyer deciding which link to click. The API knows it as "PLC".
+ */
+function facetName(slug: string, known: { slug: string; name: string }[]): string {
+  const match = known.find((entry) => entry.slug === slug);
+  if (match) return match.name;
+  return slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * A filtered catalogue view is a real page worth ranking -- "Siemens PLC
+ * Bangladesh" is exactly what a buyer types -- so a category or brand filter
+ * gets its own title, description and canonical rather than all of them
+ * collapsing onto /products as duplicates.
+ *
+ * A free-text search is the opposite: unbounded, thin and infinitely
+ * variable, so those are pointed back at the clean catalogue and kept out of
+ * the index. Pagination is self-canonical, otherwise pages 2+ are
+ * canonicalised away and the products only listed there never get indexed.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; brand?: string; q?: string; page?: string }>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page ?? "1"));
+
+  // A search results page has nothing stable to rank for.
+  if (sp.q) {
+    return {
+      title: `Search: ${sp.q}`,
+      description: BASE_DESCRIPTION,
+      alternates: { canonical: "/products" },
+      robots: { index: false, follow: true },
+    };
+  }
+
+  const [categories, brands] = sp.category || sp.brand
+    ? await Promise.all([getCategories(), getBrands()])
+    : [[], []];
+
+  const parts: string[] = [];
+  if (sp.brand) parts.push(facetName(sp.brand, brands));
+  if (sp.category) parts.push(facetName(sp.category, categories));
+
+  const query = new URLSearchParams();
+  if (sp.category) query.set("category", sp.category);
+  if (sp.brand) query.set("brand", sp.brand);
+  if (page > 1) query.set("page", String(page));
+  const canonical = `/products${query.size ? `?${query}` : ""}`;
+
+  const subject = parts.length ? `${parts.join(" ")} Parts & Spares` : "Industrial Automation Parts & Spares";
+  const suffix = page > 1 ? ` — Page ${page}` : "";
+
+  return {
+    title: `${subject}${suffix}`,
+    description: parts.length
+      ? `${parts.join(" ")} industrial automation parts from AutoLink — PLCs, drives, servos and HMIs supplied from Dhaka, Bangladesh and shipped worldwide. Request a quotation within 4 working hours.`
+      : BASE_DESCRIPTION,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      title: `${subject}${suffix}`,
+      url: `${SITE_URL}${canonical}`,
+      description: BASE_DESCRIPTION,
+    },
+  };
+}
 
 export default async function ProductsPage({
   searchParams,
@@ -47,8 +123,47 @@ export default async function ProductsPage({
   const activeCategory = categories.find((c) => c.slug === sp.category);
   const heading = activeCategory?.name ?? "All products";
 
+  // Tells Google this page is a list of products and which ones, in the order
+  // shown. Only the page actually rendered is listed -- claiming items that
+  // are not on the page is the usual reason an ItemList is disregarded.
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: heading,
+    numberOfItems: paged.length,
+    itemListElement: paged.map((p, i) => ({
+      "@type": "ListItem",
+      position: start + i + 1,
+      url: `${SITE_URL}/products/${p.slug}`,
+      name: `${p.partNumber} ${p.name}`.trim(),
+    })),
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "All products", item: `${SITE_URL}/products` },
+      ...(activeCategory
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: activeCategory.name,
+              item: `${SITE_URL}/products?category=${activeCategory.slug}`,
+            },
+          ]
+        : []),
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-[1360px] px-4 pb-9 pt-4 sm:px-6 lg:px-7">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([listSchema, breadcrumbSchema]) }}
+      />
       <nav className="mb-4 text-xs text-[#8a94a6]">
         <Link href="/" className="hover:text-primary">
           Home

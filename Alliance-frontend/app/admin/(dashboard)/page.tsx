@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_SESSION_COOKIE, parseAdminSession } from "@/app/lib/session-token";
@@ -7,6 +8,7 @@ import {
   readMarketSnapshot,
   type AnalyticsRange,
 } from "@/app/lib/admin-data";
+import { PanelSkeleton } from "./admin-ui";
 import { formatPrice } from "@/app/lib/utils";
 import { RangeToggle } from "./range-toggle";
 import { StatCard } from "./stat-card";
@@ -44,6 +46,14 @@ function deltaNote(deltaPct: number | null, rangeLabel: string): string {
   return `${arrow} ${Math.abs(deltaPct)}% vs previous ${rangeLabel}`;
 }
 
+// Scraped from the CSE, so it is the slowest thing on the page by an order of
+// magnitude on a cold cache. Isolated behind its own boundary: this is
+// read-only context beside the business's own figures, and it should never be
+// what the rest of the dashboard is waiting for.
+async function MarketSection({ index }: { index: string }) {
+  return <MarketSummaryPanel snapshot={await readMarketSnapshot(index)} />;
+}
+
 export default async function AdminOverviewPage({
   searchParams,
 }: {
@@ -59,10 +69,13 @@ export default async function AdminOverviewPage({
 
   const query = await searchParams;
   const range = parseRange(query.range);
-  const [analytics, payments, market] = await Promise.all([
+  // Only the figures this page cannot lay out without. Everything else --
+  // the market panel and the six side panels -- streams in behind its own
+  // Suspense boundary, so the dashboard paints as soon as these land instead
+  // of waiting on the slowest panel on the screen.
+  const [analytics, payments] = await Promise.all([
     readRangeAnalytics(range),
     readPaymentAnalytics(range),
-    readMarketSnapshot(query.index || "CSE50"),
   ]);
   const rangeLabel = RANGE_LABEL[range];
   // Both trends are built from the same buckets for the same range, so they
@@ -140,7 +153,9 @@ export default async function AdminOverviewPage({
             deleted-revenue chart fills that space and evens the two columns
             out, rather than padding one side with nothing. */}
         <div className="flex min-w-0 flex-col gap-4">
-          <OrderRatioPanel />
+          <Suspense fallback={<PanelSkeleton rows={4} />}>
+            <OrderRatioPanel />
+          </Suspense>
           {/* Only once something has actually been deleted. A permanent
               zeroed chart would imply deletions are a routine part of the
               month rather than the exception they are. */}
@@ -161,16 +176,26 @@ export default async function AdminOverviewPage({
       {/* The Chittagong Stock Exchange's own summary. Read-only context for
           the market this business trades in, kept clear of the figures above
           it: nothing here is derived from this company's data. */}
-      <MarketSummaryPanel snapshot={market} />
+      <Suspense fallback={<PanelSkeleton rows={6} />}>
+        <MarketSection index={query.index || "CSE50"} />
+      </Suspense>
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.3fr_1fr]">
         <div className="flex min-w-0 flex-col gap-4">
-          <PendingQuotationsPanel />
-          <TopDestinationsPanel />
+          <Suspense fallback={<PanelSkeleton rows={5} />}>
+            <PendingQuotationsPanel />
+          </Suspense>
+          <Suspense fallback={<PanelSkeleton rows={4} />}>
+            <TopDestinationsPanel />
+          </Suspense>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-          <BestSellersCard />
-          <WarehouseAlertsPanel />
+          <Suspense fallback={<PanelSkeleton rows={4} />}>
+            <BestSellersCard />
+          </Suspense>
+          <Suspense fallback={<PanelSkeleton rows={3} />}>
+            <WarehouseAlertsPanel />
+          </Suspense>
         </div>
       </div>
     </div>

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.core.deps import AdminDep, DbSession, SuperAdminDep, require_area
+from app.core.deps import AdminDep, DbSession, SuperAdminDep, holds_area, require_area
 from app.schemas.analytics import (
     AnalyticsRange,
     CountryBreakdown,
+    NavCounts,
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
@@ -14,6 +15,7 @@ from app.schemas.analytics import (
 )
 from app.services.analytics import (
     low_stock,
+    nav_counts,
     order_status_ratio,
     stock_status_breakdown,
     read_payment_analytics,
@@ -50,6 +52,21 @@ async def payment_analytics(
     record them.
     """
     return await read_payment_analytics(db, range)
+
+
+@router.get("/analytics/nav-counts", response_model=NavCounts)
+async def nav_badge_counts(session: AdminDep, db: DbSession):
+    """The sidebar badge numbers for whoever is asking.
+
+    Open to any admin because every admin has a sidebar; the areas they
+    cannot reach come back as zero rather than being counted, so this never
+    reports totals from a screen the caller is not allowed to open.
+    """
+    return await nav_counts(
+        db,
+        orders=holds_area(session, "orders") or holds_area(session, "quotations"),
+        contact_requests=holds_area(session, "contact-requests"),
+    )
 
 
 @router.get("/analytics/order-ratio", response_model=list[OrderRatioSlice])

@@ -80,14 +80,14 @@ def require_area(area: AccessArea):
     async def dependency(
         session: Annotated[AdminSession, Depends(require_admin)],
     ) -> AdminSession:
-        if _holds(session, area):
+        if holds_area(session, area):
             return session
         raise _forbidden()
 
     return dependency
 
 
-def _holds(session: AdminSession, area: AccessArea) -> bool:
+def holds_area(session: AdminSession, area: AccessArea) -> bool:
     """Whether this session reaches one area. Super admin passes everything.
 
     A broader grant covers the areas split out of it, so accounts that held
@@ -113,7 +113,7 @@ def require_any_area(*areas: AccessArea):
     async def dependency(
         session: Annotated[AdminSession, Depends(require_admin)],
     ) -> AdminSession:
-        if any(_holds(session, area) for area in areas):
+        if any(holds_area(session, area) for area in areas):
             return session
         raise _forbidden()
 

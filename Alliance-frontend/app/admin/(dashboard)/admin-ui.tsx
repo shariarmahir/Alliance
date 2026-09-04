@@ -152,3 +152,27 @@ export function RowButton({
     </button>
   );
 }
+
+/**
+ * Placeholder for a panel that is still streaming in. Sized in rows rather
+ * than a fixed height so the space it holds is close to what replaces it,
+ * which keeps the grid from jumping as each panel lands.
+ */
+export function PanelSkeleton({ rows = 3, className }: { rows?: number; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 animate-pulse rounded-[10px] border border-slate-line bg-white p-5",
+        className
+      )}
+      aria-hidden
+    >
+      <div className="mb-4 h-3.5 w-32 rounded bg-[#eef1f5]" />
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="h-3 rounded bg-[#f2f4f7]" style={{ width: `${92 - i * 11}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}

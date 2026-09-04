@@ -1,4 +1,5 @@
 import { api, getOrDefault } from "@/app/lib/api-client";
+import type { AdminNavCounts } from "@/app/admin/nav-config";
 import type {
   Brand,
   ContactRequest,
@@ -109,6 +110,18 @@ export type OrderRatioSlice = {
 
 export async function readOrderRatio(): Promise<OrderRatioSlice[]> {
   return getOrDefault<OrderRatioSlice[]>("/api/admin/analytics/order-ratio", [], { auth: true });
+}
+
+// The sidebar badge numbers. Counted by the backend rather than derived here
+// from full listings: the admin layout renders on every navigation, and
+// reading every product, quotation and contact request just to call .length
+// on them made each screen change wait on all three.
+export async function readNavCounts(): Promise<AdminNavCounts> {
+  return getOrDefault<AdminNavCounts>(
+    "/api/admin/analytics/nav-counts",
+    { products: 0, lowStock: 0, pendingOrders: 0, pendingQuotations: 0, openContactRequests: 0 },
+    { auth: true }
+  );
 }
 
 export type CountryBreakdown = { country: string; orders: number };

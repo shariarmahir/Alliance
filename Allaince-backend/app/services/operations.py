@@ -375,6 +375,84 @@ async def delivered_in_full(db: AsyncSession, quotation: Quotation) -> bool:
     return all(delivered.get(slug, 0) >= qty for slug, qty in ordered.items())
 
 
+async def derived_positions(
+    db: AsyncSession, quotations: list[Quotation]
+) -> dict[str, dict]:
+    """`delivered_in_full` + `payment_position` for many orders at once.
+
+    Same answers as calling those two per order, in a fixed number of queries
+    instead of three per row. The Orders, Quotations, Invoices and Challans
+    screens all list every order, so the per-row version made a listing cost
+    grow with the business -- 25 orders meant 77 round trips, and against a
+    remote database that is most of what the screen was waiting for.
+    """
+    ids = [q.id for q in quotations if q.confirmation is not None]
+    if not ids:
+        return {}
+
+    # Invoice totals per order.
+    invoice_rows = await db.execute(
+        select(
+            Invoice.quotation_id,
+            func.sum(Invoice.grand_total),
+            func.sum(Invoice.amount_paid),
+        )
+        .where(Invoice.quotation_id.in_(ids), Invoice.status != "cancelled")
+        .group_by(Invoice.quotation_id)
+    )
+    invoiced: dict[str, tuple[float, float]] = {
+        qid: (round(float(total or 0), 2), round(float(paid or 0), 2))
+        for qid, total, paid in invoice_rows.all()
+    }
+
+    # Latest receipt per order, for the "payment received on" date.
+    receipt_rows = await db.execute(
+        select(Invoice.quotation_id, func.max(InvoicePayment.received_at))
+        .join(InvoicePayment, InvoicePayment.invoice_id == Invoice.id)
+        .where(Invoice.quotation_id.in_(ids), Invoice.status != "cancelled")
+        .group_by(Invoice.quotation_id)
+    )
+    last_receipt = {qid: at for qid, at in receipt_rows.all()}
+
+    # Delivered quantities per order and slug.
+    challan_rows = await db.execute(
+        select(Challan.quotation_id, ChallanLine.slug, func.sum(ChallanLine.quantity))
+        .join(ChallanLine, ChallanLine.challan_id == Challan.id)
+        .where(Challan.quotation_id.in_(ids), Challan.status != "cancelled")
+        .group_by(Challan.quotation_id, ChallanLine.slug)
+    )
+    delivered: dict[str, dict[str, int]] = {}
+    for qid, slug, total in challan_rows.all():
+        delivered.setdefault(qid, {})[slug] = int(total or 0)
+
+    positions: dict[str, dict] = {}
+    for quotation in quotations:
+        if quotation.confirmation is None:
+            continue
+
+        ordered: dict[str, int] = {}
+        for line in quotation.confirmation.lines or []:
+            slug = line.get("slug") or ""
+            if slug:
+                ordered[slug] = ordered.get(slug, 0) + int(line.get("quantity") or 0)
+        shipped = delivered.get(quotation.id, {})
+        complete = bool(ordered) and all(
+            shipped.get(slug, 0) >= qty for slug, qty in ordered.items()
+        )
+
+        total, paid = invoiced.get(quotation.id, (0.0, 0.0))
+        settled = total > 0 and paid + 0.01 >= total
+        positions[quotation.id] = {
+            "delivery_complete": complete,
+            "amount_invoiced": total,
+            "amount_paid": paid,
+            "amount_outstanding": round(max(0.0, total - paid), 2),
+            "payment_status": "received" if settled else "pending",
+            "payment_received_at": last_receipt.get(quotation.id) if settled else None,
+        }
+    return positions
+
+
 async def _committed_quantities(db: AsyncSession, quotation_id: str) -> dict[str, int]:
     """The most any line has already been invoiced or delivered.
 

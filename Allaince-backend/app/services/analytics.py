@@ -1,14 +1,15 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import DeletedOrder, OrderConfirmation, Product, Quotation
+from app.models import ContactRequest, DeletedOrder, OrderConfirmation, Product, Quotation
 from app.services import operations as ops
 from app.schemas.analytics import (
     AnalyticsRange,
     CountryBreakdown,
+    NavCounts,
     OrderRatioSlice,
     PaymentAnalytics,
     RangeAnalytics,
@@ -449,3 +450,68 @@ async def top_sellers(
         for slug, qty in ranked
         if slug in products
     ]
+
+
+async def nav_counts(db: AsyncSession, *, orders: bool, contact_requests: bool) -> NavCounts:
+    """The five sidebar badge numbers, as counts rather than as lists.
+
+    `orders` and `contact_requests` say whether this viewer reaches those
+    areas at all; when they do not, the badge is zero and the query is not
+    run, matching what the screens themselves would show them.
+
+    Counted in SQL for the same reason the layout needed fixing: it renders
+    on every navigation, and loading whole tables to call len() on them made
+    every screen change wait on work no badge needed.
+    """
+    products = await db.scalar(select(func.count()).select_from(Product)) or 0
+    low_stock_count = (
+        await db.scalar(
+            select(func.count()).select_from(Product).where(Product.stock != "in-stock")
+        )
+        or 0
+    )
+
+    pending_orders = 0
+    pending_quotations = 0
+    if orders:
+        # An order is pending until its confirmation reaches the final stage.
+        pending_orders = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Quotation)
+                .join(OrderConfirmation, OrderConfirmation.quotation_id == Quotation.id)
+                .where(
+                    Quotation.status == "confirmed",
+                    func.coalesce(OrderConfirmation.delivery_stage, 0) < ops.MAX_STAGE,
+                )
+            )
+            or 0
+        )
+        # Every stage short of a decision is still work in hand.
+        pending_quotations = (
+            await db.scalar(
+                select(func.count())
+                .select_from(Quotation)
+                .where(Quotation.status.in_(("inbox", "pending", "submitted")))
+            )
+            or 0
+        )
+
+    open_contact_requests = 0
+    if contact_requests:
+        open_contact_requests = (
+            await db.scalar(
+                select(func.count())
+                .select_from(ContactRequest)
+                .where(ContactRequest.handled.is_(False))
+            )
+            or 0
+        )
+
+    return NavCounts(
+        products=int(products),
+        low_stock=int(low_stock_count),
+        pending_orders=int(pending_orders),
+        pending_quotations=int(pending_quotations),
+        open_contact_requests=int(open_contact_requests),
+    )

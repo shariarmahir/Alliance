@@ -127,6 +127,23 @@ class StockStatusBreakdown(CamelModel):
     stock_value: float
 
 
+class NavCounts(CamelModel):
+    """The sidebar badge numbers, counted in the database.
+
+    The admin layout renders on every navigation, so these were previously
+    paid for by listing every product, quotation and contact request in full
+    -- and each quotation then had its delivery and payment position derived
+    with three more queries apiece. Counting is what the badges actually
+    need, so it is done as counts.
+    """
+
+    products: int
+    low_stock: int
+    pending_orders: int
+    pending_quotations: int
+    open_contact_requests: int
+
+
 class SearchResult(CamelModel):
     type: SearchResultType
     id: str

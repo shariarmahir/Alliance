@@ -4,15 +4,29 @@ import logging
 import secrets
 import time
 
+from email.utils import parseaddr
+
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.core.deps import DbSession, SuperAdminDep
+from app.integrations import email as email_integration
 from app.integrations import gmail
 from app.integrations import imap_mail
 
 logger = logging.getLogger("app.emails")
+
+
+def _address_only(value: str) -> str:
+    """The bare address out of a From header.
+
+    Headers arrive as 'Ada Lovelace <ada@example.com>'; Resend needs the
+    address on its own. Returns "" when there is nothing parseable, which the
+    caller turns into a 409 rather than sending into the void.
+    """
+    return parseaddr(value)[1].strip()
 
 # Inbox access is a super-admin surface: it exposes the business's own mail.
 router = APIRouter(prefix="/api/admin/emails", tags=["emails"])
@@ -172,3 +186,89 @@ async def get_thread(thread_id: str, session: SuperAdminDep, db: DbSession):
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found or Gmail not connected.")
     return thread
+
+
+class ReplyIn(BaseModel):
+    """A reply typed on the Shared inbox screen."""
+
+    body: str = Field(min_length=1, max_length=20000)
+
+
+@router.post("/{thread_id}/reply", status_code=status.HTTP_202_ACCEPTED)
+async def reply_to_thread(
+    thread_id: str, payload: ReplyIn, session: SuperAdminDep, db: DbSession
+):
+    """Answers a message in the shared mailbox.
+
+    Reading and sending are different systems here: mail arrives over IMAP
+    (Namecheap Private Email) and goes out through Resend, which is what the
+    domain's SPF and DKIM records authorise. So a reply is not "IMAP write" --
+    the mailbox stays strictly read-only -- it is a new message addressed and
+    threaded to look like a reply.
+
+    The recipient is taken from the stored message rather than the request:
+    accepting an arbitrary address here would turn an authenticated admin
+    screen into an open relay for the business's own domain.
+    """
+    if settings.mailbox_provider == "imap":
+        try:
+            thread = await imap_mail.get_thread(thread_id)
+        except imap_mail.ImapNotConfigured as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except Exception:
+            logger.exception("Failed to load IMAP message %s for reply", thread_id)
+            raise HTTPException(status_code=502, detail="Could not reach the mail server.")
+    else:
+        try:
+            thread = await gmail.get_thread(db, thread_id)
+        except gmail.GmailNotConfigured as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except Exception:
+            logger.exception("Failed to load Gmail thread %s for reply", thread_id)
+            raise HTTPException(status_code=502, detail="Could not reach Gmail.")
+
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    messages = thread.get("messages") or []
+    if not messages:
+        raise HTTPException(status_code=409, detail="This message has nothing to reply to.")
+    original = messages[-1]
+
+    recipient = _address_only(thread.get("replyTo") or original.get("from") or "")
+    if not recipient:
+        raise HTTPException(
+            status_code=409, detail="This message carries no address to reply to."
+        )
+
+    subject = original.get("subject") or "(no subject)"
+    if not subject.lower().startswith("re:"):
+        subject = f"Re: {subject}"
+
+    # In-Reply-To/References are what file the answer under the original in
+    # the customer's client. Omitted rather than faked when the source message
+    # had no Message-ID: a wrong reference breaks threading more visibly than
+    # no reference at all.
+    headers: dict[str, str] = {}
+    message_id = thread.get("messageId")
+    if message_id:
+        references = " ".join(filter(None, [thread.get("references", ""), message_id]))
+        headers["In-Reply-To"] = message_id
+        headers["References"] = references
+
+    sent = await email_integration.send_email(
+        recipient,
+        subject,
+        email_integration.reply_html(payload.body, original),
+        headers=headers or None,
+    )
+    if not sent:
+        # Resend unconfigured or refusing: say so rather than reporting a
+        # reply the customer will never receive.
+        raise HTTPException(
+            status_code=502,
+            detail="Could not send the reply. Check the mail sending configuration.",
+        )
+
+    logger.info("%s replied to %s (%s)", session.email, recipient, thread_id)
+    return {"sent": True, "to": recipient, "subject": subject}

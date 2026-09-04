@@ -666,7 +666,7 @@ export function OrdersClient({
 
       {initialOrders.length > 0 && (
         <div
-          className={`grid gap-4 transition-opacity duration-200 sm:grid-cols-3 ${
+          className={`grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ${
             pending ? "opacity-60" : "opacity-100"
           }`}
         >

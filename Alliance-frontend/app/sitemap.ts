@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getProducts } from "@/app/lib/catalog-data";
+import { getBrands, getCategories, getProducts } from "@/app/lib/catalog-data";
 import { SITE_URL } from "@/app/lib/site";
 
 const PAGE_SIZE = 100;
@@ -49,5 +49,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static routes alone still get the site indexed.
   }
 
-  return [...staticRoutes, ...productRoutes];
+  // Filtered catalogue views. "Siemens PLC Bangladesh" is a real query, and
+  // the filtered page answers it better than the unfiltered catalogue does --
+  // but Google has to be told these URLs exist, because nothing links to them
+  // except a client-side filter control it cannot operate. Each is
+  // self-canonical (see generateMetadata in products/page.tsx), so they are
+  // indexable rather than folded back into /products.
+  let facetRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const [categories, brands] = await Promise.all([getCategories(), getBrands()]);
+    facetRoutes = [
+      ...categories.map((c) => `/products?category=${encodeURIComponent(c.slug)}`),
+      ...brands.map((b) => `/products?brand=${encodeURIComponent(b.slug)}`),
+    ].map((path) => ({
+      url: `${SITE_URL}${path}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+  } catch {
+    // Same reasoning as the products loop: a partial sitemap beats none.
+  }
+
+  return [...staticRoutes, ...facetRoutes, ...productRoutes];
 }

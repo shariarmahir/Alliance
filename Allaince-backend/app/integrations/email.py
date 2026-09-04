@@ -12,11 +12,21 @@ def _configured() -> bool:
 
 
 async def send_email(
-    to: str | list[str], subject: str, html: str, attachments: list[dict] | None = None
+    to: str | list[str],
+    subject: str,
+    html: str,
+    attachments: list[dict] | None = None,
+    headers: dict[str, str] | None = None,
+    reply_to: str | None = None,
 ) -> bool:
     """Sends via Resend. Returns False (rather than raising) when email is not
     configured, so a missing API key degrades to "not sent" instead of taking
-    down the request that triggered it."""
+    down the request that triggered it.
+
+    `headers` carries In-Reply-To/References when this is a reply, which is
+    what makes the answer appear under the original in the recipient's client
+    instead of starting a new conversation.
+    """
     if not _configured():
         logger.info("Email not configured; skipping send of %r to %s", subject, to)
         return False
@@ -33,6 +43,10 @@ async def send_email(
         }
         if attachments:
             params["attachments"] = attachments
+        if headers:
+            params["headers"] = headers
+        if reply_to:
+            params["reply_to"] = reply_to
         resend.Emails.send(params)
         return True
     except Exception:
@@ -456,3 +470,32 @@ async def send_receipt(quotation, pdf_bytes: bytes | None = None) -> bool:
         _shell(f"Money receipt {receipt_ref}", body),
         attachments,
     )
+
+
+def reply_html(body: str, original: dict) -> str:
+    """An admin's reply, with the message being answered quoted beneath it.
+
+    The quote is what makes a reply readable months later: the customer sees
+    which of their messages this answers without opening their own sent mail.
+    Plain text in, escaped here -- the reply is typed into a textarea, so
+    treating it as HTML would let markup from the compose box reach the
+    recipient's client.
+    """
+    paragraphs = "".join(
+        f'<p style="margin:0 0 12px;font-size:14px;line-height:1.6">{escape(line)}</p>'
+        for line in body.strip().split("\n")
+        if line.strip()
+    )
+
+    quoted_body = (original.get("body") or "").strip()
+    quote = ""
+    if quoted_body:
+        # Trimmed: a long thread quoted in full buries the actual reply.
+        excerpt = quoted_body[:2000]
+        quote = f"""
+    <div style="margin-top:20px;padding-left:12px;border-left:3px solid #e3e8ef;color:#667085;font-size:13px;line-height:1.6">
+      <div style="margin-bottom:6px">On {escape(original.get("receivedAt", ""))}, {escape(original.get("from", ""))} wrote:</div>
+      <div style="white-space:pre-wrap">{escape(excerpt)}</div>
+    </div>"""
+
+    return _shell(original.get("subject") or "Reply", paragraphs + quote)

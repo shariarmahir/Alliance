@@ -121,10 +121,12 @@ async def list_quotations(
     db: DbSession, status_filter: str | None = None, session: AdminSession = QuotationsArea
 ):
     rows = await svc.list_quotations(db, status=status_filter)
-    # One query per confirmed order rather than a join: the Orders screen
-    # needs Section B's Completed state per row, and only confirmed rows can
-    # have challans at all.
-    return [_out(q, derived=await _derived(db, q)) for q in rows]
+    # Derived in one batch rather than per row. The Orders screen needs
+    # Section B's Completed state and the payment position for every row, and
+    # asking for those one order at a time made a listing cost three round
+    # trips per order -- the single biggest thing the admin screens waited on.
+    positions = await svc.derived_positions(db, rows)
+    return [_out(q, derived=positions.get(q.id, {})) for q in rows]
 
 
 @router.get("/quotations/{quotation_id}", response_model=QuotationOut)

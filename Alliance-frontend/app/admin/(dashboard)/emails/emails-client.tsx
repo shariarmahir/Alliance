@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Mail, Loader2, PlugZap, RefreshCw, Unplug } from "lucide-react";
+import { Mail, Loader2, PlugZap, RefreshCw, Send, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/app/lib/utils";
 import { PageHeader, Panel, EmptyState, Pill } from "../admin-ui";
@@ -31,7 +31,72 @@ type ThreadMessage = {
   body: string;
 };
 
-type ThreadDetail = { id: string; messages: ThreadMessage[] };
+type ThreadDetail = {
+  id: string;
+  /** Where a reply goes. Absent on providers that do not supply it, in which
+      case the backend falls back to the message's From. */
+  replyTo?: string;
+  messages: ThreadMessage[];
+};
+
+/**
+ * The reply box under an opened message.
+ *
+ * The address is never sent from here — the backend takes it from the stored
+ * message. An admin screen that accepted an arbitrary recipient would be an
+ * open relay for the company's own domain, signed by its DKIM key.
+ */
+function ReplyBox({ threadId, replyTo }: { threadId: string; replyTo?: string }) {
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  async function send() {
+    const text = body.trim();
+    if (!text) return;
+    setSending(true);
+    try {
+      const result = await apiFetch<{ to: string }>(
+        `/api/admin/emails/${encodeURIComponent(threadId)}/reply`,
+        { method: "POST", body: { body: text } }
+      );
+      toast.success("Reply sent", { description: `Delivered to ${result.to}.` });
+      setBody("");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not send the reply.",
+        { duration: 8000 }
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="mt-5 border-t border-slate-line pt-5">
+      <label className="mono-label mb-1.5 block text-[10px] text-ink-muted">
+        Reply{replyTo ? ` to ${replyTo}` : ""}
+      </label>
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={5}
+        placeholder="Write your reply…"
+        className="w-full resize-y rounded-[9px] border border-slate-line px-3 py-2.5 text-[13px] leading-[1.7] text-ink outline-none focus:border-primary"
+      />
+      <div className="mt-2.5 flex justify-end">
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending || !body.trim()}
+          className="inline-flex items-center gap-2 rounded-[9px] bg-primary px-4 py-2.5 text-[13px] font-bold text-white transition-opacity disabled:opacity-60"
+        >
+          {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {sending ? "Sending..." : "Send reply"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Gmail's Date header is an RFC 2822 string, and an unparseable one would
 // otherwise render as "Invalid Date". Fixed timezone so the server and the
@@ -433,6 +498,7 @@ function EmailsClientInner({
                     </article>
                   ))}
                 </div>
+                <ReplyBox threadId={visibleDetail.id} replyTo={visibleDetail.replyTo} />
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-ink-muted">

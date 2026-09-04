@@ -5,6 +5,7 @@ import { getProduct, getRelatedProducts } from "@/app/lib/catalog-data";
 import { ProductGallery } from "@/app/components/product-gallery";
 import { ProductDetailTabs } from "@/app/components/product-detail-tabs";
 import { QuoteCta } from "@/app/components/quote-cta";
+import { SITE_URL } from "@/app/lib/site";
 import type { Product } from "@/app/lib/types";
 
 // Status pills across the top of the buy column — colour-coded per the bundle.
@@ -35,6 +36,20 @@ const conditionLabel: Record<Product["stock"], string> = {
   "out-of-stock": "Obsolete series",
 };
 
+// Availability as schema.org states it. Derived from the same stock status
+// the page shows, so the rich result cannot contradict the page it describes
+// — a mismatch there is what gets structured data ignored.
+const AVAILABILITY: Record<Product["stock"], string> = {
+  "in-stock": "https://schema.org/InStock",
+  "low-stock": "https://schema.org/LimitedAvailability",
+  "out-of-stock": "https://schema.org/OutOfStock",
+};
+
+/** Absolute, because relative URLs are silently dropped from structured data. */
+function absolute(path: string): string {
+  return path.startsWith("http") ? path : `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -43,9 +58,44 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) return { title: "Product Not Found" };
+
+  // The part number is what people actually search for, so it leads the title
+  // and is repeated in the description. Alternate part numbers matter just as
+  // much: a buyer cross-referencing an equivalent code should land here.
+  const description =
+    `${product.partNumber} — ${product.name}. ` +
+    (product.description[0] ?? "") +
+    ` Request a quotation from AutoLink, Dhaka. Shipped worldwide.`;
+
   return {
     title: `${product.partNumber} | ${product.name}`,
-    description: product.description[0],
+    description: description.slice(0, 300),
+    // Without this the page is reachable at filter/query variants that all
+    // look like duplicate content to a crawler.
+    alternates: { canonical: `/products/${product.slug}` },
+    keywords: [
+      product.partNumber,
+      product.name,
+      ...product.alternatePartNumbers,
+      product.brand,
+      `${product.partNumber} price Bangladesh`,
+      `${product.partNumber} supplier Dhaka`,
+    ],
+    openGraph: {
+      type: "website",
+      title: `${product.partNumber} — ${product.name}`,
+      description: product.description[0],
+      url: `${SITE_URL}/products/${product.slug}`,
+      images: product.image
+        ? [{ url: absolute(product.image), alt: `${product.partNumber} — ${product.name}` }]
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.partNumber} — ${product.name}`,
+      description: product.description[0],
+      images: product.image ? [absolute(product.image)] : undefined,
+    },
   };
 }
 
@@ -61,8 +111,88 @@ export default async function ProductDetailPage({
   const related = await getRelatedProducts(product);
   const pill = stockPill[product.stock];
 
+  // What turns a plain blue link into a rich result: brand, part number,
+  // availability and specifications, expressed so Google can read them.
+  //
+  // Deliberately no `price`. This is a quotation-based B2B catalogue and the
+  // public API omits price entirely, so there is no figure here to publish --
+  // and inventing one would both leak commercial terms and be wrong. The
+  // Offer still carries availability and a URL, which is what makes the
+  // product eligible for a rich result; `priceSpecification` is omitted
+  // rather than zeroed, because a price of 0 is a claim, and absence is not.
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${SITE_URL}/products/${product.slug}/#product`,
+    name: `${product.partNumber} ${product.name}`.trim(),
+    sku: product.partNumber,
+    mpn: product.partNumber,
+    description: product.description.join(" "),
+    url: `${SITE_URL}/products/${product.slug}`,
+    image: (product.gallery?.length ? product.gallery : [product.image])
+      .filter(Boolean)
+      .map(absolute),
+    brand: { "@type": "Brand", name: product.brand },
+    // Equivalent codes a buyer might cross-reference to reach this part.
+    ...(product.alternatePartNumbers.length
+      ? { alternateName: product.alternatePartNumbers }
+      : {}),
+    ...(Object.keys(product.specifications).length
+      ? {
+          additionalProperty: Object.entries(product.specifications).map(([name, value]) => ({
+            "@type": "PropertyValue",
+            name,
+            value,
+          })),
+        }
+      : {}),
+    offers: {
+      "@type": "Offer",
+      url: `${SITE_URL}/products/${product.slug}`,
+      availability: AVAILABILITY[product.stock],
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@id": `${SITE_URL}/#organization` },
+      areaServed: "Worldwide",
+    },
+    ...(product.warrantyYears
+      ? {
+          warranty: {
+            "@type": "WarrantyPromise",
+            durationOfWarranty: {
+              "@type": "QuantitativeValue",
+              value: product.warrantyYears,
+              unitCode: "ANN",
+            },
+          },
+        }
+      : {}),
+  };
+
+  // Mirrors the visible breadcrumb above. Google renders this as the path
+  // under the result title instead of a bare URL.
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "All products", item: `${SITE_URL}/products` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.partNumber,
+        item: `${SITE_URL}/products/${product.slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-[1360px] px-4 pb-8 pt-4.5 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([productSchema, breadcrumbSchema]),
+        }}
+      />
       <nav className="mb-5 text-xs text-[#8a94a6]">
         <Link href="/" className="hover:text-primary">
           Home
